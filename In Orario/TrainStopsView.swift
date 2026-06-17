@@ -59,11 +59,16 @@ struct TrainStopsView: View {
                             }
                         }
                     }
-                    .listRowBackground(stop.stationName.lowercased().contains("magenta") ? Color.orange.opacity(0.1) : Color.clear)
+                    .listRowBackground(
+                        (!manager.homeDestinationStationName.isEmpty &&
+                         stop.stationName.lowercased().contains(manager.homeDestinationStationName.lowercased()))
+                        ? Color.orange.opacity(0.1)
+                        : Color.clear
+                    )
                 }
             }
         }
-        .navigationTitle("Treno \(train.number)")
+        .navigationTitle("\(train.category) \(train.number)")
         .toolbar {
             if showCloseButton {
                 ToolbarItem(placement: .topBarLeading) { Button("Chiudi") { dismiss() } }
@@ -72,11 +77,17 @@ struct TrainStopsView: View {
                     HStack(spacing: 16) {
                         let isActive = manager.activeLiveActivities.contains(train.number)
                         Button {
-                            if true /* UserDefaults.standard.bool(forKey: "tip.colazione") */ {
+                            if isActive {
+                                // Se è già attiva, la chiamata la spegne (comportamento predefinito)
                                 startLiveActivity(train: train)
                             } else {
-                                Haptics.notify(.error)
-                                manager.notificationLimitError = "Le Live Activities sono una funzionalità premium sbloccabile con Colazione Pendolare."
+                                let limit = manager.getLimit()
+                                if manager.activeLiveActivities.count >= limit {
+                                    Haptics.notify(.error)
+                                    manager.notificationLimitError = "Puoi avere al massimo \(limit) Live Activity attiva alla volta. Disattivane un'altra per procedere."
+                                } else {
+                                    startLiveActivity(train: train)
+                                }
                             }
                         } label: {
                             Image(systemName: isActive ? "livephoto.slash" : "livephoto.play")
@@ -95,7 +106,7 @@ struct TrainStopsView: View {
                         .simultaneousGesture(TapGesture().onEnded { Haptics.play(.light) })
                         
                         Button {
-                            manager.toggleFavorite(trainNumber: train.number, description: train.destination)
+                            manager.toggleFavorite(trainNumber: train.number, description: train.destination, departureTime: train.time)
                         } label: {
                             Image(systemName: manager.isFavorite(trainNumber: train.number) ? "star.fill" : "star").foregroundColor(.yellow)
                         }
@@ -147,18 +158,6 @@ struct TrainStopsView: View {
                 content: .init(state: contentState, staleDate: nil),
                 pushType: .token
             )
-            // Observe the push token and register it with the server for remote updates
-            Task {
-                for await tokenData in activity.pushTokenUpdates {
-                    if let apnsToken = manager.apnsToken, !apnsToken.isEmpty {
-                        manager.registerLiveActivityToken(
-                            pushToken: tokenData,
-                            trainNumber: train.number,
-                            deviceToken: apnsToken
-                        )
-                    }
-                }
-            }
             DispatchQueue.main.async { manager.syncLiveActivities() }
             Haptics.notify(.success)
             print("Dynamic Island attivata! ID: \(activity.id)")

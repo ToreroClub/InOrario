@@ -11,9 +11,10 @@ struct NewsItem: Codable, Identifiable {
     let content: String
     let isUrgent: Bool
     let category: String?
+    let date: String?
     
     enum CodingKeys: String, CodingKey {
-        case title, content, isUrgent, category
+        case title, content, isUrgent, category, date
     }
 }
 
@@ -162,7 +163,7 @@ struct MetroLine: Identifiable, Equatable {
 struct SavedTrain: Codable, Identifiable, Equatable {
     var id: String { number }
     let number: String
-    let description: String
+    var description: String
     
     var notifyDelay: Bool? = false
     var notifyStationPass: Bool? = false
@@ -232,7 +233,7 @@ struct Train: Identifiable, Sendable {
         return time
     }
     
-    static func cleanStationName(_ name: String) -> String {
+    nonisolated static func cleanStationName(_ name: String) -> String {
         var clean = name
         
         let replacements: [(String, String)] = [
@@ -408,7 +409,7 @@ struct SuburbanData {
     let allLines: [SuburbanLine]
     
     private init() {
-        let bovisa = Station(name: "Milano Bovisa", rfiID: nil, vtID: "S01201", lat: 45.5025, lon: 9.1592)
+        let bovisa = Station(name: "Milano Bovisa", rfiID: nil, vtID: "S01642", lat: 45.5025, lon: 9.1592)
         let certosa = Station(name: "Certosa", rfiID: "1708", vtID: "S01640", lat: 45.5085, lon: 9.1272)
         let villapizzone = Station(name: "Villapizzone", rfiID: "3099", vtID: "S01639", lat: 45.4998, lon: 9.1465)
         let lancetti = Station(name: "Lancetti", rfiID: "1713", vtID: "S01643", lat: 45.4925, lon: 9.1751)
@@ -420,10 +421,10 @@ struct SuburbanData {
         let rogoredo = Station(name: "Milano Rogoredo", rfiID: "1720", vtID: "S01820", lat: 45.4333, lon: 9.2389)
         let forlanini = Station(name: "Forlanini", rfiID: "3169", vtID: "S01492", lat: 45.4625, lon: 9.2368)
         
-        let domodossola = Station(name: "Milano Domodossola", rfiID: nil, vtID: "S01206", lat: 45.4811, lon: 9.1619)
-        let cadorna = Station(name: "Milano Cadorna", rfiID: nil, vtID: "S01200", lat: 45.4686, lon: 9.1752)
+        let domodossola = Station(name: "Milano Domodossola", rfiID: nil, vtID: "S01067", lat: 45.4811, lon: 9.1619)
+        let cadorna = Station(name: "Milano Cadorna", rfiID: nil, vtID: "S01066", lat: 45.4686, lon: 9.1752)
         
-        let saronno = Station(name: "Saronno", rfiID: nil, vtID: "S01150", lat: 45.6264, lon: 9.0336)
+        let saronno = Station(name: "Saronno", rfiID: nil, vtID: "S01933", lat: 45.6264, lon: 9.0336)
         let greco = Station(name: "Milano Greco Pirelli", rfiID: "1711", vtID: "S01326", lat: 45.5129, lon: 9.2141)
         let lambrate = Station(name: "Milano Lambrate", rfiID: "1712", vtID: "S01701", lat: 45.4849, lon: 9.2373)
         let romana = Station(name: "Milano Scalo Romana", rfiID: "1717", vtID: "S01632", lat: 45.4458, lon: 9.2131)
@@ -435,15 +436,15 @@ struct SuburbanData {
         let garibaldiSup = Station(name: "Milano P. Garibaldi", rfiID: "1715", vtID: "S01058", lat: 45.4844, lon: 9.1887)
         let rhoFiera = Station(name: "Rho Fiera", rfiID: "3098", vtID: "S01026", lat: 45.5215, lon: 9.0883)
         
-        let novara = Station(name: "Novara", rfiID: "1917", vtID: "S01017", lat: 45.4524, lon: 8.6253)
-        let trecate = Station(name: "Trecate", rfiID: "2909", vtID: "S01019", lat: 45.4374, lon: 8.7428)
-        let magenta = Station(name: "Magenta", rfiID: "1618", vtID: "S01021", lat: 45.4641, lon: 8.8845)
+        let novara = Station(name: "Novara", rfiID: "1917", vtID: "S00248", lat: 45.4524, lon: 8.6253)
+        let trecate = Station(name: "Trecate", rfiID: "2909", vtID: "S00252", lat: 45.4374, lon: 8.7428)
+        let magenta = Station(name: "Magenta", rfiID: "1618", vtID: "S01040", lat: 45.4641, lon: 8.8845)
         let corbetta = Station(name: "Corbetta-S.Stefano Ticino", rfiID: "1174", vtID: "S01041", lat: 45.4716, lon: 8.9189)
-        let vittuone = Station(name: "Vittuone-Arluno", rfiID: "3119", vtID: "S01023", lat: 45.4921, lon: 8.9568)
-        let pregnana = Station(name: "Pregnana Milanese", rfiID: "381", vtID: "S01024", lat: 45.5036, lon: 9.0069)
-        let rho = Station(name: "Rho", rfiID: "2345", vtID: "S01025", lat: 45.5262, lon: 9.0402)
-        let segrate = Station(name: "Segrate", rfiID: "3012", vtID: "S01065", lat: 45.4712, lon: 9.2974)
-        let pioltello = Station(name: "Pioltello-Limito", rfiID: "3011", vtID: "S01066", lat: 45.4801, lon: 9.3245)
+        let vittuone = Station(name: "Vittuone-Arluno", rfiID: "3119", vtID: "S01042", lat: 45.4921, lon: 8.9568)
+        let pregnana = Station(name: "Pregnana Milanese", rfiID: "381", vtID: "S01058", lat: 45.5036, lon: 9.0069)
+        let rho = Station(name: "Rho", rfiID: "2345", vtID: "S01037", lat: 45.5262, lon: 9.0402)
+        let segrate = Station(name: "Segrate", rfiID: "3507", vtID: "S01715", lat: 45.4712, lon: 9.2974)
+        let pioltello = Station(name: "Pioltello-Limito", rfiID: "2147", vtID: "S01703", lat: 45.4801, lon: 9.3245)
         
         let varese = Station(name: "Varese", rfiID: "2994", vtID: "S01205", lat: 45.8176, lon: 8.8329)
         let gazzada = Station(name: "Gazzada-Schianno-Morazzone", rfiID: "1413", vtID: "S01207", lat: 45.7821, lon: 8.8251)
@@ -452,48 +453,48 @@ struct SuburbanData {
         let cavaria = Station(name: "Cavaria-Oggiona-Jerago", rfiID: "1046", vtID: "S01210", lat: 45.6985, lon: 8.8183)
         let gallarate = Station(name: "Gallarate", rfiID: "1393", vtID: "S01030", lat: 45.6599, lon: 8.7963)
         let busto = Station(name: "Busto Arsizio", rfiID: "766", vtID: "S01031", lat: 45.6062, lon: 8.8612)
-        let legnano = Station(name: "Legnano", rfiID: "1701", vtID: "S01203", lat: 45.5925, lon: 8.9189)
-        let canegrate = Station(name: "Canegrate", rfiID: "1702", vtID: "S01202", lat: 45.5684, lon: 8.9321)
-        let parabiago = Station(name: "Parabiago", rfiID: "1703", vtID: "S01201", lat: 45.5562, lon: 8.9483)
-        let vanzago = Station(name: "Vanzago-Pogliano", rfiID: "1704", vtID: "S01200", lat: 45.5262, lon: 8.9951)
-        let melzo = Station(name: "Melzo", rfiID: "3013", vtID: "S01067", lat: 45.4983, lon: 9.4212)
-        let pozzuolo = Station(name: "Pozzuolo Martesana", rfiID: "3014", vtID: "S01068", lat: 45.5065, lon: 9.4583)
-        let trecella = Station(name: "Trecella", rfiID: "3015", vtID: "S01069", lat: 45.5121, lon: 9.4896)
-        let cassano = Station(name: "Cassano d'Adda", rfiID: "3016", vtID: "S01070", lat: 45.5242, lon: 9.5165)
-        let treviglio = Station(name: "Treviglio", rfiID: "1732", vtID: "S01071", lat: 45.5201, lon: 9.5932)
+        let legnano = Station(name: "Legnano", rfiID: "1554", vtID: "S01033", lat: 45.5925, lon: 8.9189)
+        let canegrate = Station(name: "Canegrate", rfiID: "858", vtID: "S01034", lat: 45.5684, lon: 8.9321)
+        let parabiago = Station(name: "Parabiago", rfiID: "2033", vtID: "S01035", lat: 45.5562, lon: 8.9483)
+        let vanzago = Station(name: "Vanzago-Pogliano", rfiID: "2987", vtID: "S01036", lat: 45.5262, lon: 8.9951)
+        let melzo = Station(name: "Melzo", rfiID: "1690", vtID: "S01705", lat: 45.4983, lon: 9.4212)
+        let pozzuolo = Station(name: "Pozzuolo Martesana", rfiID: "380", vtID: "S01722", lat: 45.5065, lon: 9.4583)
+        let trecella = Station(name: "Trecella", rfiID: "2910", vtID: "S01706", lat: 45.5121, lon: 9.4896)
+        let cassano = Station(name: "Cassano d'Adda", rfiID: "951", vtID: "S01707", lat: 45.5242, lon: 9.5165)
+        let treviglio = Station(name: "Treviglio", rfiID: "2919", vtID: "S01708", lat: 45.5201, lon: 9.5932)
         
-        let caronno = Station(name: "Caronno Pertusella", rfiID: nil, vtID: "S01151", lat: 45.5983, lon: 9.0432)
-        let cesate = Station(name: "Cesate", rfiID: nil, vtID: "S01152", lat: 45.5812, lon: 9.0621)
-        let garbagnateM = Station(name: "Garbagnate Milanese", rfiID: nil, vtID: "S01153", lat: 45.5684, lon: 9.0763)
-        let garbagnateP = Station(name: "Garbagnate Parco delle Groane", rfiID: nil, vtID: "S01154", lat: 45.5562, lon: 9.0883)
-        let bollateN = Station(name: "Bollate Nord", rfiID: nil, vtID: "S01155", lat: 45.5451, lon: 9.1021)
-        let bollateC = Station(name: "Bollate Centro", rfiID: nil, vtID: "S01156", lat: 45.5342, lon: 9.1162)
-        let novate = Station(name: "Novate Milanese", rfiID: nil, vtID: "S01157", lat: 45.5262, lon: 9.1301)
-        let quartoOggiaro = Station(name: "Milano Quarto Oggiaro", rfiID: nil, vtID: "S01158", lat: 45.5121, lon: 9.1412)
-        let sanDonato = Station(name: "San Donato Milanese", rfiID: "1836", vtID: "S01821", lat: 45.4183, lon: 9.2562)
-        let borgolombardo = Station(name: "Borgolombardo", rfiID: "1835", vtID: "S01822", lat: 45.4062, lon: 9.2683)
-        let sanGiuliano = Station(name: "San Giuliano Milanese", rfiID: "1834", vtID: "S01823", lat: 45.3983, lon: 9.2812)
-        let melegnano = Station(name: "Melegnano", rfiID: "1833", vtID: "S01824", lat: 45.3592, lon: 9.3235)
-        let tavazzano = Station(name: "Tavazzano", rfiID: "1831", vtID: "S01825", lat: 45.3262, lon: 9.3783)
-        let lodi = Station(name: "Lodi", rfiID: "1830", vtID: "S01826", lat: 45.2796, lon: 9.4795)
+        let caronno = Station(name: "Caronno Pertusella", rfiID: nil, vtID: "S01076", lat: 45.5983, lon: 9.0432)
+        let cesate = Station(name: "Cesate", rfiID: nil, vtID: "S01075", lat: 45.5812, lon: 9.0621)
+        let garbagnateM = Station(name: "Garbagnate Milanese", rfiID: nil, vtID: "S01074", lat: 45.5684, lon: 9.0763)
+        let garbagnateP = Station(name: "Garbagnate Parco delle Groane", rfiID: nil, vtID: "S01073", lat: 45.5562, lon: 9.0883)
+        let bollateN = Station(name: "Bollate Nord", rfiID: nil, vtID: "S01072", lat: 45.5451, lon: 9.1021)
+        let bollateC = Station(name: "Bollate Centro", rfiID: nil, vtID: "S01071", lat: 45.5342, lon: 9.1162)
+        let novate = Station(name: "Novate Milanese", rfiID: nil, vtID: "S01070", lat: 45.5262, lon: 9.1301)
+        let quartoOggiaro = Station(name: "Milano Quarto Oggiaro", rfiID: nil, vtID: "S01069", lat: 45.5121, lon: 9.1412)
+        let sanDonato = Station(name: "San Donato Milanese", rfiID: "2487", vtID: "S01624", lat: 45.4183, lon: 9.2562)
+        let borgolombardo = Station(name: "Borgolombardo", rfiID: "710", vtID: "S01830", lat: 45.4062, lon: 9.2683)
+        let sanGiuliano = Station(name: "San Giuliano Milanese", rfiID: "2520", vtID: "S01821", lat: 45.3983, lon: 9.2812)
+        let melegnano = Station(name: "Melegnano", rfiID: "1688", vtID: "S01822", lat: 45.3592, lon: 9.3235)
+        let tavazzano = Station(name: "Tavazzano", rfiID: "2820", vtID: "S01824", lat: 45.3262, lon: 9.3783)
+        let lodi = Station(name: "Lodi", rfiID: "1584", vtID: "S01825", lat: 45.2796, lon: 9.4795)
         
-        let mariano = Station(name: "Mariano Comense", rfiID: nil, vtID: "S01100", lat: 45.6983, lon: 9.1832)
-        let cabiate = Station(name: "Cabiate", rfiID: nil, vtID: "S01101", lat: 45.6812, lon: 9.1721)
-        let meda = Station(name: "Meda", rfiID: nil, vtID: "S01102", lat: 45.6684, lon: 9.1563)
-        let seveso = Station(name: "Seveso", rfiID: nil, vtID: "S01103", lat: 45.6421, lon: 9.1412)
-        let cesano = Station(name: "Cesano Maderno", rfiID: nil, vtID: "S01104", lat: 45.6262, lon: 9.1501)
-        let bovisio = Station(name: "Bovisio Masciago-Mombello", rfiID: nil, vtID: "S01105", lat: 45.6062, lon: 9.1521)
-        let varedo = Station(name: "Varedo", rfiID: nil, vtID: "S01106", lat: 45.5983, lon: 9.1583)
-        let palazzolo = Station(name: "Palazzolo Milanese", rfiID: nil, vtID: "S01107", lat: 45.5862, lon: 9.1621)
-        let paderno = Station(name: "Paderno Dugnano", rfiID: nil, vtID: "S01108", lat: 45.5712, lon: 9.1683)
+        let mariano = Station(name: "Mariano Comense", rfiID: nil, vtID: "S01089", lat: 45.6983, lon: 9.1832)
+        let cabiate = Station(name: "Cabiate", rfiID: nil, vtID: "S01088", lat: 45.6812, lon: 9.1721)
+        let meda = Station(name: "Meda", rfiID: nil, vtID: "S01087", lat: 45.6684, lon: 9.1563)
+        let seveso = Station(name: "Seveso", rfiID: nil, vtID: "S01925", lat: 45.6421, lon: 9.1412)
+        let cesano = Station(name: "Cesano Maderno", rfiID: nil, vtID: "S01086", lat: 45.6262, lon: 9.1501)
+        let bovisio = Station(name: "Bovisio Masciago-Mombello", rfiID: nil, vtID: "S01085", lat: 45.6062, lon: 9.1521)
+        let varedo = Station(name: "Varedo", rfiID: nil, vtID: "S01084", lat: 45.5983, lon: 9.1583)
+        let palazzolo = Station(name: "Palazzolo Milanese", rfiID: nil, vtID: "S01083", lat: 45.5862, lon: 9.1621)
+        let paderno = Station(name: "Paderno Dugnano", rfiID: nil, vtID: "S01082", lat: 45.5712, lon: 9.1683)
         let cormano = Station(name: "Cormano-Cusano Milanino", rfiID: nil, vtID: "S01109", lat: 45.5451, lon: 9.1783)
-        let bruzzano = Station(name: "Milano Bruzzano", rfiID: nil, vtID: "S01110", lat: 45.5262, lon: 9.1762)
+        let bruzzano = Station(name: "Milano Bruzzano", rfiID: nil, vtID: "S01079", lat: 45.5262, lon: 9.1762)
         
-        let locate = Station(name: "Locate Triulzi", rfiID: "1837", vtID: "S01831", lat: 45.3583, lon: 9.2182)
-        let pieve = Station(name: "Pieve Emanuele", rfiID: "3381", vtID: "S01832", lat: 45.3421, lon: 9.2062)
-        let villamaggiore = Station(name: "Villamaggiore", rfiID: "1838", vtID: "S01833", lat: 45.3212, lon: 9.2021)
-        let certosaPavia = Station(name: "Certosa di Pavia", rfiID: "1839", vtID: "S01834", lat: 45.2562, lon: 9.1583)
-        let pavia = Station(name: "Pavia", rfiID: "1840", vtID: "S01835", lat: 45.1868, lon: 9.1625)
+        let locate = Station(name: "Locate Triulzi", rfiID: "1583", vtID: "S01801", lat: 45.3583, lon: 9.2182)
+        let pieve = Station(name: "Pieve Emanuele", rfiID: "1749", vtID: "S01104", lat: 45.3421, lon: 9.2062)
+        let villamaggiore = Station(name: "Villamaggiore", rfiID: "3092", vtID: "S01802", lat: 45.3212, lon: 9.2021)
+        let certosaPavia = Station(name: "Certosa di Pavia", rfiID: "1069", vtID: "S01803", lat: 45.2562, lon: 9.1583)
+        let pavia = Station(name: "Pavia", rfiID: "2046", vtID: "S01860", lat: 45.1868, lon: 9.1625)
         
         let tunnelOvestBovisa = [bovisa, lancetti, garibaldiPassante, repubblica, venezia, dateo, vittoria, rogoredo]
         let tunnelOvestCertosa = [rhoFiera, certosa, villapizzone, lancetti, garibaldiPassante, repubblica, venezia, dateo, vittoria, forlanini]
@@ -511,17 +512,11 @@ struct SuburbanData {
         self.allLines = [
             SuburbanLine(id: "S1", name: "S1 Saronno - Lodi", hexColor: "#e30613", stations: lineS1Stations),
             SuburbanLine(id: "S2", name: "S2 Mariano - Rogoredo", hexColor: "#009640", stations: lineS2Stations),
-            SuburbanLine(id: "S3", name: "S3 Saronno - Cadorna", hexColor: "#a61a30", stations: ramoCadorna),
-            SuburbanLine(id: "S4", name: "S4 Camnago - Cadorna", hexColor: "#8ec06c", stations: ramoCadorna),
             SuburbanLine(id: "S5", name: "S5 Varese - Treviglio", hexColor: "#f39200", stations: lineS5Stations),
             SuburbanLine(id: "S6", name: "S6 Novara - Pioltello", hexColor: "#ffd60a", stations: lineS6Stations),
-            SuburbanLine(id: "S7", name: "S7 Lecco - P. Garibaldi", hexColor: "#ec008c", stations: [garibaldiSup]),
-            SuburbanLine(id: "S8", name: "S8 Lecco - P. Garibaldi", hexColor: "#fbc5b0", stations: [garibaldiSup]),
-            SuburbanLine(id: "S9", name: "S9 Saronno - Albairate", hexColor: "#7e1f7c", stations: cinturaS9),
             SuburbanLine(id: "S11", name: "S11 Chiasso - Rho", hexColor: "#8a8bbf", stations: superficieS11),
             SuburbanLine(id: "S12", name: "S12 Cormano - Melegnano", hexColor: "#005a2b", stations: lineS12Stations),
             SuburbanLine(id: "S13", name: "S13 Bovisa - Pavia", hexColor: "#a37a3e", stations: lineS13Stations),
-            SuburbanLine(id: "S19", name: "S19 Rogoredo - Albairate", hexColor: "#5a0f2b", stations: [rogoredo, romana, tibaldi, romolo, cristoforo, albairate])
         ]
     }
 }

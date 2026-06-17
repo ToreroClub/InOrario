@@ -81,6 +81,8 @@ struct Haptics {
     @Published var isLoadingSmartRoutes = false
     @Published var homeDestinationStationName: String = ""
     @Published var isHomeFilterActive: Bool = false
+    @Published var recentTrains: [SavedTrain] = []
+    @Published var recentStations: [VTSearchStation] = []
     
     @Published var userName: String = ""
     @Published var useSpecialPassanteView: Bool = true
@@ -101,6 +103,8 @@ struct Haptics {
     private let userNameKey = "userName_v1"
     private let useSpecialPassanteViewKey = "useSpecialPassanteView_v1"
     private let iCloudSyncEnabledKey = "iCloudSyncEnabled_v1"
+    private let recentTrainsKey = "recentTrains_v1"
+    private let recentStationsKey = "recentStations_v1"
     
     let rfiStationMap: [String: String] = [
         "novara": "1917",
@@ -236,12 +240,26 @@ struct Haptics {
     }
     
     init() { 
+        NSUbiquitousKeyValueStore.default.synchronize()
         loadFavorites()
         loadRFIStations()
+        observeAllLiveActivityPushTokens()
         
         NotificationCenter.default.addObserver(forName: NSNotification.Name("PurchasesUpdated"), object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             self.syncRemoteNotifications()
+        }
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(iCloudStoreDidChangeExternally(_:)),
+            name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: NSUbiquitousKeyValueStore.default
+        )
+        NSUbiquitousKeyValueStore.default.synchronize()
+        
+        if self.remoteNotificationsEnabled {
+            UIApplication.shared.registerForRemoteNotifications()
         }
     }
     
@@ -286,6 +304,33 @@ struct Haptics {
     }
     
     func loadFavorites() {
+        // First, restore any missing preferences from iCloud key-value store
+        loadFromiCloud(keys: nil, onlyIfLocalMissing: true)
+        
+        if let data = UserDefaults.standard.data(forKey: recentTrainsKey) {
+            do {
+                let decoded = try JSONDecoder().decode([SavedTrain].self, from: data)
+                self.recentTrains = decoded
+                print("recentTrains caricati: \(decoded.count) elementi")
+            } catch {
+                print("recentTrains errore decodifica: \(error)")
+            }
+        } else {
+            print("recentTrains non trovati in UserDefaults")
+        }
+        
+        if let data = UserDefaults.standard.data(forKey: recentStationsKey) {
+            do {
+                let decoded = try JSONDecoder().decode([VTSearchStation].self, from: data)
+                self.recentStations = decoded
+                print("recentStations caricati: \(decoded.count) elementi")
+            } catch {
+                print("recentStations errore decodifica: \(error)")
+            }
+        } else {
+            print("recentStations non trovati in UserDefaults")
+        }
+
         if let data = UserDefaults.standard.data(forKey: favoritesKey), let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) { self.favoriteTrains = decoded }
         
         if let data = UserDefaults.standard.data(forKey: myStationsKey), let decoded = try? JSONDecoder().decode([Station].self, from: data) {
@@ -403,6 +448,28 @@ struct Haptics {
         if let encoded = try? JSONEncoder().encode(smartRoutes) {
             UserDefaults.standard.set(encoded, forKey: smartRoutesKey)
         }
+        if let encoded = try? JSONEncoder().encode(sectionOrder) {
+            UserDefaults.standard.set(encoded, forKey: sectionOrderKey)
+        }
+        
+        do {
+            let encoded = try JSONEncoder().encode(recentTrains)
+            UserDefaults.standard.set(encoded, forKey: recentTrainsKey)
+            print("recentTrains salvati: \(recentTrains.count) elementi (\(encoded.count) bytes)")
+        } catch {
+            print("recentTrains errore codifica: \(error)")
+        }
+        
+        do {
+            let encoded = try JSONEncoder().encode(recentStations)
+            UserDefaults.standard.set(encoded, forKey: recentStationsKey)
+            print("recentStations salvati: \(recentStations.count) elementi (\(encoded.count) bytes)")
+        } catch {
+            print("recentStations errore codifica: \(error)")
+        }
+        
+        UserDefaults.standard.synchronize()
+        
         UserDefaults.standard.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
         UserDefaults.standard.set(userName, forKey: userNameKey)
         UserDefaults.standard.set(useSpecialPassanteView, forKey: useSpecialPassanteViewKey)
@@ -414,13 +481,200 @@ struct Haptics {
         UserDefaults.standard.set(apnsToken, forKey: apnsTokenKey)
         
         if iCloudSyncEnabled {
-            NSUbiquitousKeyValueStore.default.set(userName, forKey: userNameKey)
-            NSUbiquitousKeyValueStore.default.set(useSpecialPassanteView, forKey: useSpecialPassanteViewKey)
-            NSUbiquitousKeyValueStore.default.synchronize()
+            let store = NSUbiquitousKeyValueStore.default
+            if let encoded = try? JSONEncoder().encode(favoriteTrains) { store.set(encoded, forKey: favoritesKey) }
+            if let encoded = try? JSONEncoder().encode(myStations) { store.set(encoded, forKey: myStationsKey) }
+            if let encoded = try? JSONEncoder().encode(favoriteRoutes) { store.set(encoded, forKey: favoriteRoutesKey) }
+            if let encoded = try? JSONEncoder().encode(savedTrips) { store.set(encoded, forKey: savedTripsKey) }
+            if let encoded = try? JSONEncoder().encode(selectedSuburbanLines) { store.set(encoded, forKey: selectedSuburbanLinesKey) }
+            if let encoded = try? JSONEncoder().encode(hiddenSuburbanStations) { store.set(encoded, forKey: hiddenSuburbanStationsKey) }
+            if let encoded = try? JSONEncoder().encode(selectedPassanteStation) { store.set(encoded, forKey: selectedPassanteStationKey) }
+            if let encoded = try? JSONEncoder().encode(smartRoutes) { store.set(encoded, forKey: smartRoutesKey) }
+            if let encoded = try? JSONEncoder().encode(sectionOrder) { store.set(encoded, forKey: sectionOrderKey) }
+            
+            store.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
+            store.set(userName, forKey: userNameKey)
+            store.set(useSpecialPassanteView, forKey: useSpecialPassanteViewKey)
+            store.set(iCloudSyncEnabled, forKey: iCloudSyncEnabledKey)
+            store.set(remoteNotificationsEnabled, forKey: remoteNotificationsEnabledKey)
+            store.set(notifyOnStationPass, forKey: notifyOnStationPassKey)
+            store.set(strikeRegion, forKey: strikeRegionKey)
+            
+            store.synchronize()
         }
         
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
             groupDefaults.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
+        }
+    }
+    
+    func addToRecentTrains(_ train: SavedTrain) {
+        recentTrains.removeAll { $0.number == train.number }
+        recentTrains.insert(train, at: 0)
+        if recentTrains.count > 10 {
+            recentTrains.removeLast()
+        }
+        saveFavorites()
+    }
+    
+    func addToRecentStations(_ station: VTSearchStation) {
+        recentStations.removeAll { $0.vtID == station.vtID }
+        recentStations.insert(station, at: 0)
+        if recentStations.count > 10 {
+            recentStations.removeLast()
+        }
+        saveFavorites()
+    }
+    
+    func clearRecentTrains() {
+        recentTrains = []
+        saveFavorites()
+    }
+    
+    func clearRecentStations() {
+        recentStations = []
+        saveFavorites()
+    }
+    
+    @objc private func iCloudStoreDidChangeExternally(_ notification: Notification) {
+        guard iCloudSyncEnabled else { return }
+        if let userInfo = notification.userInfo,
+           let changedKeys = userInfo[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] {
+            loadFromiCloud(keys: changedKeys, onlyIfLocalMissing: false)
+        } else {
+            loadFromiCloud(keys: nil, onlyIfLocalMissing: false)
+        }
+    }
+    
+    private func loadFromiCloud(keys: [String]?, onlyIfLocalMissing: Bool) {
+        guard iCloudSyncEnabled else { return }
+        
+        let store = NSUbiquitousKeyValueStore.default
+        let keySet = keys != nil ? Set(keys!) : nil
+        var didModify = false
+        
+        func shouldUpdate(_ key: String) -> Bool {
+            if let ks = keySet, !ks.contains(key) { return false }
+            if onlyIfLocalMissing, UserDefaults.standard.object(forKey: key) != nil { return false }
+            return true
+        }
+        
+        if shouldUpdate(favoritesKey), let data = store.data(forKey: favoritesKey), let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
+            self.favoriteTrains = decoded
+            UserDefaults.standard.set(data, forKey: favoritesKey)
+            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: favoritesKey) }
+            didModify = true
+        }
+        
+        if shouldUpdate(myStationsKey), let data = store.data(forKey: myStationsKey), let decoded = try? JSONDecoder().decode([Station].self, from: data) {
+            self.myStations = decoded.map { st in
+                if let rfi = st.rfiID, (rfi.hasPrefix("S") || rfi.hasPrefix("N")) {
+                    return Station(name: st.name, rfiID: nil, vtID: st.vtID, lat: st.lat, lon: st.lon)
+                }
+                return st
+            }
+            UserDefaults.standard.set(data, forKey: myStationsKey)
+            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: myStationsKey) }
+            didModify = true
+        }
+        
+        if shouldUpdate(sectionOrderKey), let data = store.data(forKey: sectionOrderKey), let decoded = try? JSONDecoder().decode([AppSection].self, from: data) {
+            var loaded = decoded
+            for section in AppSection.allCases {
+                if !loaded.contains(section) { loaded.append(section) }
+            }
+            self.sectionOrder = loaded
+            UserDefaults.standard.set(data, forKey: sectionOrderKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(favoriteRoutesKey), let data = store.data(forKey: favoriteRoutesKey), let decoded = try? JSONDecoder().decode([FavoriteRoute].self, from: data) {
+            self.favoriteRoutes = decoded
+            UserDefaults.standard.set(data, forKey: favoriteRoutesKey)
+            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: favoriteRoutesKey) }
+            didModify = true
+        }
+        
+        if shouldUpdate(savedTripsKey), let data = store.data(forKey: savedTripsKey), let decoded = try? JSONDecoder().decode([SavedTrip].self, from: data) {
+            self.savedTrips = decoded
+            UserDefaults.standard.set(data, forKey: savedTripsKey)
+            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: savedTripsKey) }
+            didModify = true
+        }
+        
+        if shouldUpdate(selectedSuburbanLinesKey), let data = store.data(forKey: selectedSuburbanLinesKey), let decoded = try? JSONDecoder().decode([String].self, from: data) {
+            self.selectedSuburbanLines = decoded
+            UserDefaults.standard.set(data, forKey: selectedSuburbanLinesKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(hiddenSuburbanStationsKey), let data = store.data(forKey: hiddenSuburbanStationsKey), let decoded = try? JSONDecoder().decode([String: [String]].self, from: data) {
+            self.hiddenSuburbanStations = decoded
+            UserDefaults.standard.set(data, forKey: hiddenSuburbanStationsKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(selectedPassanteStationKey), let data = store.data(forKey: selectedPassanteStationKey), let decoded = try? JSONDecoder().decode(Station.self, from: data) {
+            self.selectedPassanteStation = decoded
+            UserDefaults.standard.set(data, forKey: selectedPassanteStationKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(smartRoutesKey), let data = store.data(forKey: smartRoutesKey), let decoded = try? JSONDecoder().decode([SuburbanRoute].self, from: data) {
+            self.smartRoutes = decoded
+            UserDefaults.standard.set(data, forKey: smartRoutesKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(homeDestinationStationNameKey), let value = store.string(forKey: homeDestinationStationNameKey) {
+            self.homeDestinationStationName = value
+            UserDefaults.standard.set(value, forKey: homeDestinationStationNameKey)
+            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(value, forKey: homeDestinationStationNameKey) }
+            didModify = true
+        }
+        
+        if shouldUpdate(userNameKey), let value = store.string(forKey: userNameKey) {
+            self.userName = value
+            UserDefaults.standard.set(value, forKey: userNameKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(useSpecialPassanteViewKey), store.object(forKey: useSpecialPassanteViewKey) != nil {
+            let value = store.bool(forKey: useSpecialPassanteViewKey)
+            self.useSpecialPassanteView = value
+            UserDefaults.standard.set(value, forKey: useSpecialPassanteViewKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(iCloudSyncEnabledKey), store.object(forKey: iCloudSyncEnabledKey) != nil {
+            let value = store.bool(forKey: iCloudSyncEnabledKey)
+            self.iCloudSyncEnabled = value
+            UserDefaults.standard.set(value, forKey: iCloudSyncEnabledKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(remoteNotificationsEnabledKey), store.object(forKey: remoteNotificationsEnabledKey) != nil {
+            let value = store.bool(forKey: remoteNotificationsEnabledKey)
+            self.remoteNotificationsEnabled = value
+            UserDefaults.standard.set(value, forKey: remoteNotificationsEnabledKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(notifyOnStationPassKey), store.object(forKey: notifyOnStationPassKey) != nil {
+            let value = store.bool(forKey: notifyOnStationPassKey)
+            self.notifyOnStationPass = value
+            UserDefaults.standard.set(value, forKey: notifyOnStationPassKey)
+            didModify = true
+        }
+        
+        if shouldUpdate(strikeRegionKey), let value = store.string(forKey: strikeRegionKey) {
+            self.strikeRegion = value
+            UserDefaults.standard.set(value, forKey: strikeRegionKey)
+            didModify = true
+        }
+        
+        if didModify {
+            syncRemoteNotifications()
         }
     }
     
@@ -994,8 +1248,11 @@ struct Haptics {
     nonisolated private func fetchTrainsForStation(station: Station) async -> [Train] {
         if let rfi = station.rfiID, !rfi.isEmpty {
             let scraped = await performRfiScraping(for: rfi, isDepartures: true)
-            return scraped.trains
-        } else if let vt = station.vtID, !vt.isEmpty {
+            if !scraped.trains.isEmpty {
+                return scraped.trains
+            }
+        }
+        if let vt = station.vtID, !vt.isEmpty {
             let f = DateFormatter()
             f.locale = Locale(identifier: "en_US_POSIX")
             f.timeZone = TimeZone(identifier: "Europe/Rome")
@@ -1007,10 +1264,10 @@ struct Haptics {
     }
     
     func saveSectionOrder() {
-        if let encoded = try? JSONEncoder().encode(sectionOrder) { UserDefaults.standard.set(encoded, forKey: sectionOrderKey) }
+        saveFavorites()
     }
     
-    func toggleFavorite(trainNumber: String, description: String) {
+    func toggleFavorite(trainNumber: String, description: String, departureTime: String? = nil) {
         if let index = favoriteTrains.firstIndex(where: { $0.number == trainNumber }) {
             favoriteTrains.remove(at: index)
             Haptics.notify(.warning)
@@ -1019,18 +1276,57 @@ struct Haptics {
             }
         } else {
             let cleanDescription = description.replacingOccurrences(of: "\(trainNumber) - ", with: "")
-            favoriteTrains.append(SavedTrain(number: trainNumber, description: cleanDescription))
+            favoriteTrains.append(SavedTrain(number: trainNumber, description: cleanDescription, departureTime: departureTime))
             Haptics.notify(.success)
             if let token = apnsToken {
                 registerTrainForPush(trainNumber: trainNumber, token: token)
+            }
+            // Asynchronously enrich with origin and arrival time from API
+            Task {
+                await enrichFavoriteTrainData(trainNumber: trainNumber)
             }
         }
         saveFavorites()
     }
     
+    /// Fetches live stops for a favorited train and updates departureTime (origin), arrivalTime (destination).
+    func enrichFavoriteTrainData(trainNumber: String) async {
+        let result = await fetchLiveStops(for: trainNumber)
+        guard !result.stops.isEmpty else { return }
+        let firstStop = result.stops.first
+        let lastStop = result.stops.last
+        await MainActor.run {
+            if let index = favoriteTrains.firstIndex(where: { $0.number == trainNumber }) {
+                favoriteTrains[index].departureTime = firstStop?.time
+                if favoriteTrains[index].arrivalTime == nil {
+                    favoriteTrains[index].arrivalTime = lastStop?.time
+                }
+                // Populate description with Origin - Destination if it's just the destination
+                let origin = firstStop?.stationName ?? ""
+                let destination = lastStop?.stationName ?? ""
+                if !origin.isEmpty && !destination.isEmpty {
+                    favoriteTrains[index].description = "\(origin) - \(destination)"
+                }
+                saveFavorites()
+            }
+        }
+    }
+    
     func syncRemoteNotifications() {
-        guard let token = apnsToken else { return }
+        print("[syncRemoteNotifications] Avvio sincronizzazione. Token: \(apnsToken ?? "nil"), remoteNotificationsEnabled: \(remoteNotificationsEnabled), preferiti: \(favoriteTrains.map { "\($0.number): \($0.notifyDelay ?? false)" })")
+        
+        if remoteNotificationsEnabled && apnsToken == nil {
+            print("[syncRemoteNotifications] Notifiche abilitate e token nil. Richiedo registrazione token APNs ad Apple...")
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+        
+        guard let token = apnsToken else {
+            print("[syncRemoteNotifications] Esco: token è ancora nil.")
+            return
+        }
+        
         if !remoteNotificationsEnabled {
+            print("[syncRemoteNotifications] Notifiche globali disabilitate. Cancello tutte le registrazioni.")
             // Unregister all
             Task {
                 for train in favoriteTrains {
@@ -1049,6 +1345,33 @@ struct Haptics {
             } else {
                 unregisterTrainForPush(trainNumber: train.number, token: token)
             }
+        }
+    }
+    
+    func ignoreStrike(strikeId: String) {
+        guard let token = apnsToken else { return }
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/ignore-strike") else { return }
+        
+        let payload: [String: Any] = [
+            "token": token,
+            "strike_id": strikeId
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    print("Errore ignoreStrike: \(error.localizedDescription)")
+                } else {
+                    print("Sciopero \(strikeId) ignorato con successo per il token.")
+                }
+            }.resume()
+        } catch {
+            print("Errore JSON ignoreStrike: \(error)")
         }
     }
     
@@ -1080,9 +1403,17 @@ struct Haptics {
             print("Errore serializzazione payload registrazione dispositivo: \(error.localizedDescription)")
         }
     }
+    func getLimit() -> Int {
+        if UserDefaults.standard.bool(forKey: "isSecretPremium") { return 99 }
+        return 1
+    }
     
     func registerTrainForPush(trainNumber: String, token: String) {
-        guard remoteNotificationsEnabled else { return }
+        print("[registerTrainForPush] Tentativo di registrazione per treno \(trainNumber)...")
+        if !remoteNotificationsEnabled {
+            print("[registerTrainForPush] Annullato: remoteNotificationsEnabled è false")
+            return
+        }
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/register") else { return }
         
         let trainPref = favoriteTrains.first(where: { $0.number == trainNumber })
@@ -1091,9 +1422,7 @@ struct Haptics {
         let stationPassName = trainPref?.stationPassName ?? ""
         let notifyDeparture = trainPref?.notifyDeparture ?? false
         
-        let hasCol = true // UserDefaults.standard.bool(forKey: "tip.colazione")
-        let hasCap = true // UserDefaults.standard.bool(forKey: "tip.cappuccino")
-        let limit = hasCol ? 99 : (hasCap ? 3 : 1)
+        let limit = getLimit()
         
         let payload: [String: Any] = [
             "token": token,
@@ -1117,10 +1446,11 @@ struct Haptics {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
             URLSession.shared.dataTask(with: request) { data, response, error in
                 if let error = error {
-                    print("Errore invio registrazione push: \(error.localizedDescription)")
+                    print("[registerTrainForPush] Errore invio registrazione push treno \(trainNumber): \(error.localizedDescription)")
                 } else if let httpResponse = response as? HTTPURLResponse {
+                    print("[registerTrainForPush] Risposta server per treno \(trainNumber): codice \(httpResponse.statusCode)")
                     if httpResponse.statusCode == 200 {
-                        print("Registrato con successo treno \(trainNumber) per notifiche push")
+                        print("[registerTrainForPush] Registrato con successo treno \(trainNumber) per notifiche push")
                     } else if httpResponse.statusCode == 403 {
                         DispatchQueue.main.async {
                             self.notificationLimitError = "Puoi monitorare al massimo \(limit) treno/i alla volta per il tuo livello."
@@ -1129,11 +1459,12 @@ struct Haptics {
                 }
             }.resume()
         } catch {
-            print("Errore serializzazione payload push: \(error.localizedDescription)")
+            print("[registerTrainForPush] Errore serializzazione payload push treno \(trainNumber): \(error.localizedDescription)")
         }
     }
     
     func unregisterTrainForPush(trainNumber: String, token: String) {
+        print("[unregisterTrainForPush] Tentativo di rimozione per treno \(trainNumber)...")
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/unregister") else { return }
         
         let payload: [String: Any] = [
@@ -1149,13 +1480,13 @@ struct Haptics {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
             URLSession.shared.dataTask(with: request) { data, response, error in
                 if let error = error {
-                    print("Errore invio cancellazione push: \(error.localizedDescription)")
-                } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    print("Rimosso con successo treno \(trainNumber) da notifiche push")
+                    print("[unregisterTrainForPush] Errore invio cancellazione push treno \(trainNumber): \(error.localizedDescription)")
+                } else if let httpResponse = response as? HTTPURLResponse {
+                    print("[unregisterTrainForPush] Risposta server rimozione treno \(trainNumber): codice \(httpResponse.statusCode)")
                 }
             }.resume()
         } catch {
-            print("Errore serializzazione payload push: \(error.localizedDescription)")
+            print("[unregisterTrainForPush] Errore serializzazione payload rimozione treno \(trainNumber): \(error.localizedDescription)")
         }
     }
 
@@ -1421,7 +1752,10 @@ struct Haptics {
                             nNum = (train["name"] as? String) ?? (train["description"] as? String) ?? ""
                         }
                         
-                        if nodeOrigin.lowercased().hasPrefix("milano") && nodeDest.lowercased().hasPrefix("milano") && nodeOrigin != nodeDest {
+                        if nCat.lowercased() == "urbano" || nNum.lowercased() == "urbano" || nCat.lowercased().contains("metro") {
+                            nCat = "Trasporto Urbano"
+                            nNum = "(Metro / Mezzi)"
+                        } else if nodeOrigin.lowercased().hasPrefix("milano") && nodeDest.lowercased().hasPrefix("milano") && nodeOrigin != nodeDest && nNum.isEmpty {
                             nCat = "Trasporto Urbano"
                             nNum = "(Metro / Mezzi)"
                         }
@@ -1655,14 +1989,40 @@ struct Haptics {
         }
     }
     
-    func fetchTrains(for rfiID: String, isDepartures: Bool) async {
+    func fetchTrains(for station: Station, isDepartures: Bool) async {
         self.isLoading = true
         self.stationAlerts = nil
         
-        let scraped = await performRfiScraping(for: rfiID, isDepartures: isDepartures)
+        let rfiID = station.rfiID ?? ""
+        let vtID = station.vtID ?? ""
         
-        self.trains = scraped.trains
-        self.stationAlerts = scraped.alerts
+        var scraperSuccess = false
+        if !rfiID.isEmpty {
+            let scraped = await performRfiScraping(for: rfiID, isDepartures: isDepartures)
+            if let alerts = scraped.alerts {
+                self.stationAlerts = alerts
+            }
+            if !scraped.trains.isEmpty {
+                self.trains = scraped.trains
+                scraperSuccess = true
+            }
+        }
+        
+        if !scraperSuccess && !vtID.isEmpty {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_US_POSIX")
+            f.timeZone = TimeZone(identifier: "Europe/Rome")
+            f.dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT'ZZZ"
+            let dateStr = f.string(from: Date()).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+            let vtTrains = await performVTFetch(for: vtID, isDepartures: isDepartures, dateStr: dateStr)
+            self.trains = vtTrains
+            scraperSuccess = true
+        }
+        
+        if !scraperSuccess {
+            self.trains = []
+        }
+        
         self.isLoading = false
     }
     
@@ -1684,39 +2044,80 @@ struct Haptics {
             }
             
             let lines = result.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-            guard let targetLine = lines.first(where: { $0.contains("|\(cleanNumber)-") }) ?? lines.first else {
+            var targets = lines.filter { $0.contains("|\(cleanNumber)-") }
+            if targets.isEmpty, let firstLine = lines.first {
+                targets = [firstLine]
+            }
+            if targets.isEmpty {
                 return await StopsResult(stops: [], status: TrainStatus(), errorMessage: "Dettagli del treno non trovati.")
             }
             
-            let pipes = targetLine.components(separatedBy: "|")
-            guard pipes.count >= 2 else {
-                return await StopsResult(stops: [], status: TrainStatus(), errorMessage: "Dati API ViaggiaTreno incompleti.")
+            let results: [(String, [String: Any])] = await withTaskGroup(of: (String, [String: Any])?.self) { group in
+                for targetLine in targets {
+                    group.addTask {
+                        let pipes = targetLine.components(separatedBy: "|")
+                        guard pipes.count >= 2 else { return nil }
+                        let subParts = pipes[1].components(separatedBy: "-")
+                        guard subParts.count >= 2 else { return nil }
+                        
+                        let originID = subParts[1]
+                        let timestamp = subParts.count >= 3 ? subParts[2] : ""
+                        
+                        var stopsUrl = "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(originID)/\(cleanNumber)"
+                        if !timestamp.isEmpty { stopsUrl += "/\(timestamp)" }
+                        
+                        guard let stUrl = URL(string: stopsUrl) else { return nil }
+                        var request = URLRequest(url: stUrl)
+                        request.timeoutInterval = 10.0
+                        
+                        do {
+                            let (stData, response) = try await URLSession.shared.data(for: request)
+                            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, !stData.isEmpty else { return nil }
+                            guard let json = try JSONSerialization.jsonObject(with: stData) as? [String: Any] else { return nil }
+                            return (targetLine, json)
+                        } catch {
+                            return nil
+                        }
+                    }
+                }
+                
+                var collected = [(String, [String: Any])]()
+                for await res in group {
+                    if let r = res {
+                        collected.append(r)
+                    }
+                }
+                return collected
             }
             
-            let subParts = pipes[1].components(separatedBy: "-")
-            guard subParts.count >= 2 else {
-                return await StopsResult(stops: [], status: TrainStatus(), errorMessage: "ID Stazione di origine non trovato.")
-            }
-            
-            let originID = subParts[1]
-            let timestamp = subParts.count >= 3 ? subParts[2] : ""
-            
-            var stopsUrl = "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(originID)/\(cleanNumber)"
-            if !timestamp.isEmpty { stopsUrl += "/\(timestamp)" }
-            
-            guard let stUrl = URL(string: stopsUrl) else {
-                return await StopsResult(stops: [], status: TrainStatus(), errorMessage: "URL fermate non valido.")
-            }
-            
-            let request = URLRequest(url: stUrl)
-            let (stData, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, !stData.isEmpty else {
+            guard !results.isEmpty else {
                 return await StopsResult(stops: [], status: TrainStatus(), errorMessage: "Dati in aggiornamento o temporaneamente non disponibili.")
             }
             
-            guard let json = try? JSONSerialization.jsonObject(with: stData) as? [String: Any] else {
-                return await StopsResult(stops: [], status: TrainStatus(), errorMessage: "Il server ha restituito dati illeggibili.")
+            let nowTs = Date().timeIntervalSince1970 * 1000.0
+            var bestJson: [String: Any]? = nil
+            var bestScore: Double = -1.0
+            
+            for (targetLine, json) in results {
+                let pipes = targetLine.components(separatedBy: "|")
+                let subParts = pipes.count >= 2 ? pipes[1].components(separatedBy: "-") : []
+                let tsStr = subParts.count >= 3 ? subParts[2] : ""
+                let trainTs = Double(tsStr) ?? nowTs
+                
+                let deltaDays = abs(nowTs - trainTs) / (1000.0 * 60 * 60 * 24)
+                let isDeparted = !(json["nonPartito"] as? Bool ?? true)
+                let isArrived = (json["arrivato"] as? Bool) ?? false
+                
+                let baseScore = (isDeparted && !isArrived) ? 10000.0 : 1000.0
+                let score = baseScore - (deltaDays * 100.0)
+                
+                if score > bestScore {
+                    bestScore = score
+                    bestJson = json
+                }
             }
+            
+            let json = bestJson ?? results[0].1
             
             var status = await TrainStatus()
             status.isDeparted = !(json["nonPartito"] as? Bool ?? true)
@@ -1803,10 +2204,10 @@ struct Haptics {
         }
     }
     
-    func startAutoRefresh(for rfiID: String, isDepartures: Bool) {
+    func startAutoRefresh(for station: Station, isDepartures: Bool) {
         refreshTimer?.cancel()
         refreshTimer = Timer.publish(every: 45, on: .main, in: .common).autoconnect().sink { [weak self] _ in
-            Task { await self?.fetchTrains(for: rfiID, isDepartures: isDepartures) }
+            Task { await self?.fetchTrains(for: station, isDepartures: isDepartures) }
         }
     }
     
@@ -1818,6 +2219,43 @@ struct Haptics {
     func syncLiveActivities() {
         let active = Activity<TrainLiveActivityAttributes>.activities.map { $0.attributes.trainNumber }
         self.activeLiveActivities = Set(active)
+        
+        // Sincronizza i token push correnti di tutte le Live Activities
+        Task {
+            if let deviceToken = self.apnsToken, !deviceToken.isEmpty {
+                for activity in Activity<TrainLiveActivityAttributes>.activities {
+                    if let pushToken = activity.pushToken {
+                        self.registerLiveActivityToken(pushToken: pushToken, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
+                    }
+                }
+            }
+        }
+    }
+    
+    func observeAllLiveActivityPushTokens() {
+        // Ascolta la creazione di NUOVE Live Activities
+        Task {
+            for await activity in Activity<TrainLiveActivityAttributes>.activityUpdates {
+                Task {
+                    for await tokenData in activity.pushTokenUpdates {
+                        if let deviceToken = self.apnsToken, !deviceToken.isEmpty {
+                            self.registerLiveActivityToken(pushToken: tokenData, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Ascolta gli aggiornamenti dei token per le Live Activities GIÀ ESISTENTI (es. riapertura app)
+        for activity in Activity<TrainLiveActivityAttributes>.activities {
+            Task {
+                for await tokenData in activity.pushTokenUpdates {
+                    if let deviceToken = self.apnsToken, !deviceToken.isEmpty {
+                        self.registerLiveActivityToken(pushToken: tokenData, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
+                    }
+                }
+            }
+        }
     }
     
     func backgroundLiveActivityUpdate() async {
@@ -1854,6 +2292,7 @@ enum TipError: Error {
 @MainActor
 class TipManager: ObservableObject {
     @Published var products: [Product] = []
+    @Published var isLoadingProducts: Bool = true
     @Published var purchaseState: PurchaseState = .idle
     
     private let productIDs = ["tip.cappuccino", "tip.colazione"]
@@ -1913,12 +2352,19 @@ class TipManager: ObservableObject {
     }
     
     func fetchProducts() async {
+        DispatchQueue.main.async { self.isLoadingProducts = true }
         await updatePurchases()
         do {
             let storeProducts = try await Product.products(for: productIDs)
-            self.products = storeProducts.sorted(by: { $0.price < $1.price })
+            DispatchQueue.main.async {
+                self.products = storeProducts.sorted(by: { $0.price < $1.price })
+                self.isLoadingProducts = false
+            }
         } catch {
             print("Errore nel caricamento dei prodotti da StoreKit: \(error)")
+            DispatchQueue.main.async {
+                self.isLoadingProducts = false
+            }
         }
     }
     

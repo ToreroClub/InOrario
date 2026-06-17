@@ -67,25 +67,67 @@ struct Provider: TimelineProvider {
             return ("Non disp.", .gray)
         }
         
-        let lines = responseStr.components(separatedBy: "\n")
-        let firstLine = lines.first ?? responseStr
+        let lines = responseStr.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        var targets = lines.filter { $0.contains("|\(cleanNumber)-") }
+        if targets.isEmpty, let firstLine = lines.first { targets = [firstLine] }
+        if targets.isEmpty { return ("Non disp.", .gray) }
         
-        let components = firstLine.components(separatedBy: "|")
-        let targetComponent = components.count > 1 ? components[1] : components[0]
-        
-        let dashComponents = targetComponent.components(separatedBy: "-")
-        guard dashComponents.count >= 2 else { return ("Non disp.", .gray) }
-        
-        let originID = dashComponents[1].trimmingCharacters(in: .whitespaces)
-        let dateAndTimestamp = dashComponents.count > 2 ? dashComponents[2].trimmingCharacters(in: .whitespaces) : ""
-        let dateStr = String(dateAndTimestamp.prefix(13))
-        
-        let stopsUrl = "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(originID)/\(cleanNumber)/\(dateStr)"
-        guard let sUrl = URL(string: stopsUrl),
-              let (sData, _) = try? await URLSession.shared.data(from: sUrl),
-              let json = try? JSONSerialization.jsonObject(with: sData) as? [String: Any] else {
-            return ("Non disp.", .gray)
+        let results: [(String, [String: Any])] = await withTaskGroup(of: (String, [String: Any])?.self) { group in
+            for targetLine in targets {
+                group.addTask {
+                    let pipes = targetLine.components(separatedBy: "|")
+                    let subParts = pipes.count > 1 ? pipes[1].components(separatedBy: "-") : []
+                    guard subParts.count >= 2 else { return nil }
+                    
+                    let originID = subParts[1].trimmingCharacters(in: .whitespaces)
+                    let timestamp = subParts.count >= 3 ? subParts[2].trimmingCharacters(in: .whitespaces) : ""
+                    let dateStr = String(timestamp.prefix(13))
+                    
+                    var stopsUrl = "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(originID)/\(cleanNumber)"
+                    if !dateStr.isEmpty { stopsUrl += "/\(dateStr)" }
+                    
+                    guard let sUrl = URL(string: stopsUrl),
+                          let (sData, response) = try? await URLSession.shared.data(from: sUrl),
+                          let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
+                          let json = try? JSONSerialization.jsonObject(with: sData) as? [String: Any] else {
+                        return nil
+                    }
+                    return (targetLine, json)
+                }
+            }
+            var collected = [(String, [String: Any])]()
+            for await res in group {
+                if let r = res { collected.append(r) }
+            }
+            return collected
         }
+        
+        guard !results.isEmpty else { return ("Non disp.", .gray) }
+        
+        let nowTs = Date().timeIntervalSince1970 * 1000.0
+        var bestJson: [String: Any]? = nil
+        var bestScore: Double = -1.0
+        
+        for (targetLine, json) in results {
+            let pipes = targetLine.components(separatedBy: "|")
+            let subParts = pipes.count > 1 ? pipes[1].components(separatedBy: "-") : []
+            let tsStr = subParts.count >= 3 ? subParts[2].trimmingCharacters(in: .whitespaces) : ""
+            let trainTs = Double(String(tsStr.prefix(13))) ?? nowTs
+            
+            let deltaDays = abs(nowTs - trainTs) / (1000.0 * 60 * 60 * 24)
+            let isDeparted = !(json["nonPartito"] as? Bool ?? true)
+            let isArrived = (json["arrivato"] as? Bool) ?? false
+            
+            let baseScore = (isDeparted && !isArrived) ? 10000.0 : 1000.0
+            let score = baseScore - (deltaDays * 100.0)
+            
+            if score > bestScore {
+                bestScore = score
+                bestJson = json
+            }
+        }
+        
+        let json = bestJson ?? results[0].1
         
         if let compRitardo = json["compRitardo"] as? [String], !compRitardo.isEmpty {
             let ritardoStr = compRitardo[0]

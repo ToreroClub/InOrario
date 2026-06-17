@@ -171,8 +171,10 @@ struct ProfileView: View {
     @Environment(\.dismiss) var dismiss
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @AppStorage("developerMockPurchases") private var developerMockPurchases = false
+    @AppStorage("isSecretPremium") private var isSecretPremium = false
     @StateObject private var tipManager = TipManager()
     @State private var showFeedbackSheet = false
+    @State private var secretCode = ""
     
     var body: some View {
         NavigationStack {
@@ -221,13 +223,20 @@ struct ProfileView: View {
                 }
                 
                 Section(header: Text("Offrimi un Caffè")) {
-                    if tipManager.products.isEmpty {
+                    if tipManager.isLoadingProducts {
                         HStack {
                             Spacer()
                             ProgressView("Caricamento offerte...")
                                 .padding()
                             Spacer()
                         }
+                    } else if tipManager.products.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Le donazioni non sono al momento disponibili.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     } else {
                         ForEach(tipManager.products, id: \.id) { product in
                             Button(action: {
@@ -284,7 +293,29 @@ struct ProfileView: View {
                     }
                 }
                 
-
+                Section(header: Text("Avanzate")) {
+                    if isSecretPremium {
+                        Text("Sbloccato.")
+                            .font(.headline)
+                            .foregroundColor(.green)
+                    } else {
+                        SecureField("Inserisci codice", text: $secretCode)
+                            .onSubmit {
+                                if secretCode.uppercased() == "GRAZIECARLO" {
+                                    isSecretPremium = true
+                                    Haptics.notify(.success)
+                                    manager.notificationLimitError = "Sbloccato."
+                                } else {
+                                    Haptics.notify(.error)
+                                    manager.notificationLimitError = "Codice non valido."
+                                }
+                                secretCode = ""
+                            }
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    }
+                }
+                
             }
             .navigationTitle("Impostazioni")
             .navigationBarTitleDisplayMode(.inline)
@@ -753,6 +784,16 @@ struct NotificationsSettingsView: View {
             }
         }
         .navigationTitle("Notifiche")
+        .onAppear {
+            // Enrich any existing favorites that are missing departure/arrival times
+            Task {
+                for train in manager.favoriteTrains {
+                    if train.departureTime == nil || train.arrivalTime == nil {
+                        await manager.enrichFavoriteTrainData(trainNumber: train.number)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -764,24 +805,56 @@ struct TrainNotificationConfigRow: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "train.side.front.car")
-                        .foregroundColor(.blue)
-                        .font(.title3)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Treno \(train.number)")
-                            .font(.headline)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "train.side.front.car")
+                    .foregroundColor(.blue)
+                    .font(.title3)
+                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 4) {
+                    let dummy = manager.createDummyTrain(from: train)
+                    Text("\(dummy.category) \(train.number)")
+                        .font(.headline)
+                    
+                    let descParts = train.description.components(separatedBy: " - ")
+                    let origin = descParts.first ?? train.description
+                    let destination = descParts.count > 1 ? descParts[1] : ""
+                    
+                    if !destination.isEmpty {
+                        Text("\(origin) → \(destination)")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                    } else {
                         Text(train.description)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
                     }
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .foregroundColor(.secondary)
+                        Text("\(train.departureTime ?? "--:--") → \(train.arrivalTime ?? "--:--")")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
-                Spacer()
-                Toggle("", isOn: Binding(
+            }
+            
+            Divider().padding(.vertical, 4)
+            
+            VStack(alignment: .leading, spacing: 14) {
+                Toggle(isOn: Binding(
                     get: { train.notifyDelay ?? false },
                     set: { newValue in
+                        if newValue {
+                            let limit = manager.getLimit()
+                            let activeCount = manager.favoriteTrains.filter { $0.notifyDelay == true && $0.id != train.id }.count
+                            if activeCount >= limit {
+                                Haptics.notify(.error)
+                                manager.notificationLimitError = "Puoi avere al massimo \(limit) notifica attiva alla volta. Disattivane un'altra per procedere."
+                                return
+                            }
+                        }
+                        
                         train.notifyDelay = newValue
                         if !newValue {
                             train.notifyDeparture = false
@@ -789,15 +862,12 @@ struct TrainNotificationConfigRow: View {
                         }
                         saveAndSync()
                     }
-                ))
-                .labelsHidden()
-            }
-            
-            if train.notifyDelay ?? false {
-                VStack(alignment: .leading, spacing: 10) {
-                    Divider()
-                        .padding(.vertical, 2)
-                    
+                )) {
+                    Text("Notifica variazione Ritardo")
+                        .font(.subheadline)
+                }
+                
+                if train.notifyDelay ?? false {
                     Toggle(isOn: Binding(
                         get: { train.notifyDeparture ?? false },
                         set: { newValue in
@@ -862,7 +932,6 @@ struct TrainNotificationConfigRow: View {
                         }
                     }
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(.vertical, 6)

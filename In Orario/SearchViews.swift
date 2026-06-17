@@ -354,52 +354,135 @@ struct SearchView: View {
                         if manager.isSearching {
                             HStack { Spacer(); ProgressView(); Spacer() }
                         } else if searchType == 1 {
-                            if manager.searchResults.isEmpty && !query.isEmpty {
-                                Text("Nessun treno trovato.").foregroundColor(.secondary)
+                            if query.isEmpty {
+                                if !manager.recentTrains.isEmpty {
+                                    Section(header: HStack {
+                                        Text("Ricerche Recenti")
+                                        Spacer()
+                                        Button("Cancella") {
+                                            manager.clearRecentTrains()
+                                            Haptics.play(.medium)
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                    }) {
+                                        ForEach(manager.recentTrains) { result in
+                                            let dummy = manager.createDummyTrain(from: result)
+                                            NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false).onAppear {
+                                                manager.addToRecentTrains(result)
+                                            }) {
+                                                HStack {
+                                                    Image(systemName: "clock").foregroundColor(.gray)
+                                                    VStack(alignment: .leading) {
+                                                        Text("Treno \(result.number)").font(.headline)
+                                                        Text(result.description).font(.caption).foregroundColor(.secondary)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Text("Digita il numero di un treno per cercarlo.").foregroundColor(.secondary)
+                                }
                             } else {
-                                ForEach(manager.searchResults) { result in
-                                    let dummy = manager.createDummyTrain(from: result)
-                                    NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false)) {
-                                        HStack {
-                                            Image(systemName: "train.side.front.car").foregroundColor(.blue)
-                                            VStack(alignment: .leading) {
-                                                Text("Treno \(result.number)").font(.headline)
-                                                Text(result.description).font(.caption).foregroundColor(.secondary)
+                                if manager.searchResults.isEmpty {
+                                    Text("Nessun treno trovato.").foregroundColor(.secondary)
+                                } else {
+                                    ForEach(manager.searchResults) { result in
+                                        let dummy = manager.createDummyTrain(from: result)
+                                        NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false).onAppear {
+                                            manager.addToRecentTrains(result)
+                                        }) {
+                                            HStack {
+                                                Image(systemName: "train.side.front.car").foregroundColor(.blue)
+                                                VStack(alignment: .leading) {
+                                                    Text("Treno \(result.number)").font(.headline)
+                                                    Text(result.description).font(.caption).foregroundColor(.secondary)
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         } else if searchType == 2 {
-                            if manager.searchStationResults.isEmpty && !query.isEmpty {
-                                Text("Nessuna stazione trovata.").foregroundColor(.secondary)
-                            } else {
-                                ForEach(manager.searchStationResults) { result in
-                                    HStack {
-                                        Image(systemName: "building.2.crop.circle.fill").foregroundColor(.orange)
-                                        
-                                        let possibleRFI = manager.getRfiID(for: result.nomeLungo)
-                                        let tempStation = Station(name: result.nomeLungo, rfiID: possibleRFI, vtID: result.vtID, lat: nil, lon: nil)
-                                        
-                                        NavigationLink(destination: SmartBoardView(station: tempStation)) {
-                                            Text(result.nomeLungo).font(.headline)
-                                        }
+                            if query.isEmpty {
+                                if !manager.recentStations.isEmpty {
+                                    Section(header: HStack {
+                                        Text("Ricerche Recenti")
                                         Spacer()
-                                        
-                                        Button {
-                                            if manager.isMyStation(vtID: result.vtID) {
-                                                manager.removeMyStation(vtID: result.vtID)
-                                            } else {
-                                                manager.addMyStation(name: result.nomeLungo, vtID: result.vtID)
-                                            }
-                                        } label: {
-                                            Image(systemName: manager.isMyStation(vtID: result.vtID) ? "checkmark.circle.fill" : "plus.circle")
-                                                .foregroundColor(.blue)
-                                                .font(.title2)
+                                        Button("Cancella") {
+                                            manager.clearRecentStations()
+                                            Haptics.play(.medium)
                                         }
-                                        .buttonStyle(PlainButtonStyle())
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                    }) {
+                                        ForEach(manager.recentStations) { result in
+                                            HStack {
+                                                Image(systemName: "clock").foregroundColor(.gray)
+                                                
+                                                let possibleRFI = manager.getRfiID(for: result.nomeLungo)
+                                                let tempStation = Station(name: result.nomeLungo, rfiID: possibleRFI, vtID: result.vtID, lat: nil, lon: nil)
+                                                
+                                                NavigationLink(destination: SmartBoardView(station: tempStation).onAppear {
+                                                    manager.addToRecentStations(result)
+                                                }) {
+                                                    Text(result.nomeLungo).font(.headline)
+                                                }
+                                                Spacer()
+                                                
+                                                Button {
+                                                    if manager.isMyStation(vtID: result.vtID) {
+                                                        manager.removeMyStation(vtID: result.vtID)
+                                                    } else {
+                                                        manager.addMyStation(name: result.nomeLungo, vtID: result.vtID)
+                                                    }
+                                                } label: {
+                                                    Image(systemName: manager.isMyStation(vtID: result.vtID) ? "checkmark.circle.fill" : "plus.circle")
+                                                        .foregroundColor(.blue)
+                                                        .font(.title2)
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
+                                            }
+                                            .padding(.vertical, 4)
+                                        }
                                     }
-                                    .padding(.vertical, 4)
+                                } else {
+                                    Text("Digita il nome di una stazione per cercarla.").foregroundColor(.secondary)
+                                }
+                            } else {
+                                if manager.searchStationResults.isEmpty {
+                                    Text("Nessuna stazione trovata.").foregroundColor(.secondary)
+                                } else {
+                                    ForEach(manager.searchStationResults) { result in
+                                        HStack {
+                                            Image(systemName: "building.2.crop.circle.fill").foregroundColor(.orange)
+                                            
+                                            let possibleRFI = manager.getRfiID(for: result.nomeLungo)
+                                            let tempStation = Station(name: result.nomeLungo, rfiID: possibleRFI, vtID: result.vtID, lat: nil, lon: nil)
+                                            
+                                            NavigationLink(destination: SmartBoardView(station: tempStation).onAppear {
+                                                manager.addToRecentStations(result)
+                                            }) {
+                                                Text(result.nomeLungo).font(.headline)
+                                            }
+                                            Spacer()
+                                            
+                                            Button {
+                                                if manager.isMyStation(vtID: result.vtID) {
+                                                    manager.removeMyStation(vtID: result.vtID)
+                                                } else {
+                                                    manager.addMyStation(name: result.nomeLungo, vtID: result.vtID)
+                                                }
+                                            } label: {
+                                                Image(systemName: manager.isMyStation(vtID: result.vtID) ? "checkmark.circle.fill" : "plus.circle")
+                                                    .foregroundColor(.blue)
+                                                    .font(.title2)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
                                 }
                             }
                         }

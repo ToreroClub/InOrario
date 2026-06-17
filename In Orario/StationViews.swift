@@ -205,7 +205,7 @@ struct StationBoardView: View {
                                 selectedTrain = train
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button { manager.toggleFavorite(trainNumber: train.number, description: train.destination) } label: {
+                                Button { manager.toggleFavorite(trainNumber: train.number, description: train.destination, departureTime: train.time) } label: {
                                     let isFav = manager.isFavorite(trainNumber: train.number)
                                     Label(isFav ? "Rimuovi" : "Preferito", systemImage: isFav ? "star.slash.fill" : "star.fill")
                                 }
@@ -217,7 +217,7 @@ struct StationBoardView: View {
             .listStyle(.insetGrouped)
             .refreshable {
                 Haptics.play(.light)
-                await manager.fetchTrains(for: station.rfiID ?? "", isDepartures: showingDepartures)
+                await manager.fetchTrains(for: station, isDepartures: showingDepartures)
             }
             
             Text("Dati in tempo reale da tabelloni RFI")
@@ -226,10 +226,13 @@ struct StationBoardView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedTrain) { t in NavigationStack { TrainStopsView(train: t) } }
-        .onAppear { manager.startAutoRefresh(for: station.rfiID ?? "", isDepartures: showingDepartures) }
+        .onAppear { manager.startAutoRefresh(for: station, isDepartures: showingDepartures) }
         .onDisappear { manager.stopAutoRefresh() }
         .onReceive(timer) { input in self.currentTime = input }
-        .task(id: showingDepartures) { await manager.fetchTrains(for: station.rfiID ?? "", isDepartures: showingDepartures) }
+        .task(id: showingDepartures) { await manager.fetchTrains(for: station, isDepartures: showingDepartures) }
+        .onChange(of: showingDepartures) { _, newValue in
+            manager.startAutoRefresh(for: station, isDepartures: newValue)
+        }
     }
 }
 
@@ -329,7 +332,7 @@ struct VTStationBoardView: View {
                             selectedTrain = train
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button { manager.toggleFavorite(trainNumber: train.number, description: train.destination) } label: {
+                            Button { manager.toggleFavorite(trainNumber: train.number, description: train.destination, departureTime: train.time) } label: {
                                 let isFav = manager.isFavorite(trainNumber: train.number)
                                 Label(isFav ? "Rimuovi" : "Preferito", systemImage: isFav ? "star.slash.fill" : "star.fill")
                             }

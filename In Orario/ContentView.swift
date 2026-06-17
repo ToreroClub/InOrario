@@ -65,7 +65,26 @@ struct ContentView: View {
     }
     
     var hasUrgentNews: Bool {
-        newsItems.contains { $0.isUrgent }
+        newsItems.contains { item in
+            if item.isUrgent {
+                // Se la notizia è uno sciopero, mostriamo "In Orario? No!" solo se è imminente (entro 48 ore)
+                if item.category == "sciopero", let dateStr = item.date {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd"
+                    formatter.timeZone = TimeZone(identifier: "Europe/Rome")
+                    if let strikeDate = formatter.date(from: dateStr) {
+                        let now = Date()
+                        let diff = strikeDate.timeIntervalSince(now)
+                        // Mostra "In Orario? No!" se lo sciopero inizia entro le prossime 48 ore (e non è finito da oltre 24 ore)
+                        return diff >= -86400 && diff <= 172800
+                    }
+                    return false
+                }
+                // Per notizie realtime o lavori urgenti, manteniamo il comportamento standard (sempre In Orario? No!)
+                return true
+            }
+            return false
+        }
     }
     
     
@@ -114,7 +133,8 @@ struct ContentView: View {
                                                 HStack {
                                                     Image(systemName: "train.side.front.car").foregroundColor(.blue)
                                                     VStack(alignment: .leading) {
-                                                        Text("Treno \(fav.number)").font(.headline)
+                                                        let depText = fav.departureTime != nil ? " • \(fav.departureTime!)" : ""
+                                                        Text("\(dummy.category) \(fav.number)\(depText)").font(.headline)
                                                         Text(fav.description).font(.caption).foregroundColor(.secondary)
                                                     }
                                                     Spacer()
@@ -251,6 +271,9 @@ struct ContentView: View {
                     locationManager.requestLocation()
                     await loadNews()
                     manager.loadFavorites()
+                    for train in manager.favoriteTrains {
+                        await manager.enrichFavoriteTrainData(trainNumber: train.number)
+                    }
                 }
             }
             .navigationTitle(appTitle)
@@ -369,6 +392,12 @@ struct ContentView: View {
                     showOnboarding = true
                 }
                 withAnimation(.spring()) { }
+                
+                Task {
+                    for train in manager.favoriteTrains {
+                        await manager.enrichFavoriteTrainData(trainNumber: train.number)
+                    }
+                }
             }
             .onChange(of: hasCompletedOnboarding) { oldValue, newValue in
                 if !newValue {
@@ -379,6 +408,11 @@ struct ContentView: View {
                 }
             }
             .task { await loadNews() }
+            .onChange(of: manager.strikeRegion) { oldValue, newValue in
+                Task {
+                    await loadNews()
+                }
+            }
             
         }
         .environmentObject(metroCache)
@@ -414,11 +448,19 @@ struct ContentView: View {
                 self.deepLinkTrain = dummy
             }
         }
+        .onChange(of: manager.deepLinkTrain?.number) { old, newNumber in
+            if let newNumber = newNumber {
+                let dummy = Train(category: "Treno", number: newNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
+                self.deepLinkTrain = dummy
+                manager.deepLinkTrain = nil
+            }
+        }
         
     }
     
     func loadNews() async {
-        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news") else { return }
+        let regionParam = manager.strikeRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)") else { return }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let decodedNews = try JSONDecoder().decode([NewsItem].self, from: data)

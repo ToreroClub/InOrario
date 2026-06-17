@@ -46,14 +46,8 @@ struct OnboardingView: View {
             iconColor: .purple
         ),
         OnboardingPage(
-            title: "Orari della Metropolitana",
-            description: "Esplora gli orari integrati della metropolitana di Milano direttamente dentro l'app, combinando i percorsi in modo intelligente.",
-            iconName: "tram",
-            iconColor: .teal
-        ),
-        OnboardingPage(
-            title: "Scioperi e GPS",
-            description: "Resta aggiornato su scioperi o disservizi con notizie ed ed elaborazioni intelligenti.\n\nConsenti l'accesso alla posizione per rilevare automaticamente le stazioni del Passante a te più vicine per una navigazione immediata!",
+            title: "Info Utili & Posizione",
+            description: "Resta aggiornato sul servizio ed ottimizza la navigazione:",
             iconName: "location.circle.fill",
             iconColor: .blue
         )
@@ -92,9 +86,7 @@ struct OnboardingView: View {
                             } else if index == 4 {
                                 OnboardingFeaturesView(page: pages[index])
                             } else if index == 5 {
-                                OnboardingCardView(page: pages[index], isLastPage: false) {}
-                            } else if index == 6 {
-                                OnboardingCardView(page: pages[index], isLastPage: true) {
+                                OnboardingNewsAndGPSView(page: pages[index]) {
                                     Haptics.play(.medium)
                                     locationManager.requestAuthorization()
                                 }
@@ -615,7 +607,7 @@ struct OnboardingFeaturesView: View {
     let page: OnboardingPage
     
     var body: some View {
-        VStack(spacing: 15) {
+        VStack(spacing: 12) {
             Text(page.title)
                 .font(.system(.title, design: .rounded))
                 .bold()
@@ -629,12 +621,14 @@ struct OnboardingFeaturesView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 30)
             
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 14) {
                 FeatureRow(icon: "iphone.circle.fill", color: .purple, title: "Live Activities & Dynamic Island", desc: "Segui l'andamento del treno direttamente sulla Schermata di Blocco e nell'Isola Dinamica.")
                 
                 FeatureRow(icon: "bolt.fill", color: .yellow, title: "Smart Routes", desc: "Algoritmo intelligente per trovare le migliori coincidenze tra treni regionali e metropolitane.")
                 
                 FeatureRow(icon: "bookmark.fill", color: .blue, title: "Treni Salvati", desc: "Tieni d'occhio i tuoi treni frequenti direttamente dalla dashboard principale.")
+                
+                FeatureRow(icon: "tram", color: .teal, title: "Orari della Metropolitana", desc: "Esplora gli orari integrati della metropolitana di Milano direttamente dentro l'app.")
                 
                 FeatureRow(icon: "square.grid.2x2.fill", color: .green, title: "Widget per la Schermata Home", desc: "Visualizza lo stato dei tuoi treni o del passante a colpo d'occhio senza aprire l'app.")
             }
@@ -645,6 +639,120 @@ struct OnboardingFeaturesView: View {
         }
     }
 }
+
+struct OnboardingNewsAndGPSView: View {
+    let page: OnboardingPage
+    var requestLocationAction: () -> Void
+    @EnvironmentObject var locationManager: LocationManager
+    
+    @State private var animateIcon = false
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Info Utili & Posizione")
+                .font(.system(.title, design: .rounded))
+                .bold()
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+            
+            Text("Resta aggiornato sul servizio ed ottimizza la navigazione:")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 30)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    // SEZIONE NEWS / SCIOPERI
+                    HStack(alignment: .top, spacing: 15) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.red.opacity(0.12))
+                                .frame(width: 46, height: 46)
+                            
+                            Image(systemName: "megaphone.fill")
+                                .font(.title3)
+                                .foregroundColor(.red)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Scioperi & News in Tempo Reale")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Text("Ricevi notifiche ed avvisi elaborati su scioperi, ritardi improvvisi o lavori sulla rete ferroviaria e metropolitana direttamente nella scheda News dell'app.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .lineSpacing(2)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground).opacity(0.5))
+                    .cornerRadius(16)
+                    
+                    // SEZIONE GPS / POSIZIONE
+                    HStack(alignment: .top, spacing: 15) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.12))
+                                .frame(width: 46, height: 46)
+                                .scaleEffect(animateIcon ? 1.05 : 0.95)
+                            
+                            Image(systemName: "location.fill")
+                                .font(.title3)
+                                .foregroundColor(.blue)
+                                .scaleEffect(animateIcon ? 1.08 : 0.92)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Stazioni Vicine con il GPS")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Text("Consenti l'uso della tua posizione per trovare all'istante le stazioni e le fermate del Passante a te più vicine, facilitando la consultazione rapida degli orari.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .lineSpacing(2)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground).opacity(0.5))
+                    .cornerRadius(16)
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                            animateIcon = true
+                        }
+                    }
+                    
+                    // BUTTON CONSENTI GPS
+                    Button(action: {
+                        Haptics.play(.medium)
+                        requestLocationAction()
+                    }) {
+                        HStack {
+                            Image(systemName: "location.circle.fill")
+                            Text("Consenti Posizione GPS")
+                        }
+                        .font(.subheadline.bold())
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(22)
+                        .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.top, 10)
+                }
+                .padding(.horizontal, 30)
+                .padding(.bottom, 20)
+            }
+            
+            Spacer()
+        }
+    }
+}
+
 
 struct FeatureRow: View {
     let icon: String

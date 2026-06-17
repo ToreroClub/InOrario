@@ -8,6 +8,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        
+        let ignoreAction = UNNotificationAction(identifier: "IGNORE_STRIKE", title: "Sì lo so, non avvisarmi più", options: [.destructive])
+        let strikeCategory = UNNotificationCategory(identifier: "STRIKE_CATEGORY", actions: [ignoreAction], intentIdentifiers: [], options: [])
+        UNUserNotificationCenter.current().setNotificationCategories([strikeCategory])
+        
         return true
     }
     
@@ -29,6 +34,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     // Mostra le notifiche anche ad app aperta
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound, .badge])
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        if response.actionIdentifier == "IGNORE_STRIKE" {
+            if let strikeId = response.notification.request.content.userInfo["strike_id"] as? String {
+                manager?.ignoreStrike(strikeId: strikeId)
+            }
+        } else {
+            if let trainNumber = response.notification.request.content.userInfo["train_number"] as? String {
+                DispatchQueue.main.async {
+                    self.manager?.deepLinkTrain = Train(category: "Treno", number: trainNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
+                }
+            }
+        }
+        completionHandler()
     }
 }
 
