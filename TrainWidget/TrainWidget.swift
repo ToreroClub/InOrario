@@ -171,7 +171,7 @@ struct TrainWidgetEntryView : View {
 
     private var isUnlocked: Bool {
         let defaults = UserDefaults(suiteName: "group.carlo.InOrario")
-        return (defaults?.bool(forKey: "tip.cappuccino") ?? false) || (defaults?.bool(forKey: "tip.colazione") ?? false)
+        return (defaults?.bool(forKey: "tip.colazionee") ?? false)
     }
 
     var body: some View {

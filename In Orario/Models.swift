@@ -421,17 +421,11 @@ struct SuburbanData {
         let rogoredo = Station(name: "Milano Rogoredo", rfiID: "1720", vtID: "S01820", lat: 45.4333, lon: 9.2389)
         let forlanini = Station(name: "Forlanini", rfiID: "3169", vtID: "S01492", lat: 45.4625, lon: 9.2368)
         
-        let domodossola = Station(name: "Milano Domodossola", rfiID: nil, vtID: "S01067", lat: 45.4811, lon: 9.1619)
-        let cadorna = Station(name: "Milano Cadorna", rfiID: nil, vtID: "S01066", lat: 45.4686, lon: 9.1752)
+
         
         let saronno = Station(name: "Saronno", rfiID: nil, vtID: "S01933", lat: 45.6264, lon: 9.0336)
         let greco = Station(name: "Milano Greco Pirelli", rfiID: "1711", vtID: "S01326", lat: 45.5129, lon: 9.2141)
-        let lambrate = Station(name: "Milano Lambrate", rfiID: "1712", vtID: "S01701", lat: 45.4849, lon: 9.2373)
-        let romana = Station(name: "Milano Scalo Romana", rfiID: "1717", vtID: "S01632", lat: 45.4458, lon: 9.2131)
-        let tibaldi = Station(name: "Milano Tibaldi", rfiID: "3251", vtID: "S01022", lat: 45.4436, lon: 9.1840)
-        let romolo = Station(name: "Milano Romolo", rfiID: "58", vtID: "S01032", lat: 45.4432, lon: 9.1678)
-        let cristoforo = Station(name: "Milano S. Cristoforo", rfiID: "1721", vtID: "S01630", lat: 45.4425, lon: 9.1302)
-        let albairate = Station(name: "Albairate-Vermezzo", rfiID: "1734", vtID: "S01035", lat: 45.4044, lon: 8.9575)
+
         
         let garibaldiSup = Station(name: "Milano P. Garibaldi", rfiID: "1715", vtID: "S01058", lat: 45.4844, lon: 9.1887)
         let rhoFiera = Station(name: "Rho Fiera", rfiID: "3098", vtID: "S01026", lat: 45.5215, lon: 9.0883)
@@ -496,10 +490,7 @@ struct SuburbanData {
         let certosaPavia = Station(name: "Certosa di Pavia", rfiID: "1069", vtID: "S01803", lat: 45.2562, lon: 9.1583)
         let pavia = Station(name: "Pavia", rfiID: "2046", vtID: "S01860", lat: 45.1868, lon: 9.1625)
         
-        let tunnelOvestBovisa = [bovisa, lancetti, garibaldiPassante, repubblica, venezia, dateo, vittoria, rogoredo]
-        let tunnelOvestCertosa = [rhoFiera, certosa, villapizzone, lancetti, garibaldiPassante, repubblica, venezia, dateo, vittoria, forlanini]
-        let ramoCadorna = [bovisa, domodossola, cadorna]
-        let cinturaS9 = [saronno, greco, lambrate, forlanini, romana, tibaldi, romolo, cristoforo, albairate]
+
         let superficieS11 = [greco, garibaldiSup, villapizzone, certosa, rhoFiera]
         
         let lineS1Stations = [saronno, caronno, cesate, garbagnateM, garbagnateP, bollateN, bollateC, novate, quartoOggiaro, bovisa, lancetti, garibaldiPassante, repubblica, venezia, dateo, vittoria, rogoredo, sanDonato, borgolombardo, sanGiuliano, melegnano, tavazzano, lodi]

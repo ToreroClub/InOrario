@@ -247,7 +247,9 @@ struct Haptics {
         
         NotificationCenter.default.addObserver(forName: NSNotification.Name("PurchasesUpdated"), object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
-            self.syncRemoteNotifications()
+            Task { @MainActor in
+                self.syncRemoteNotifications()
+            }
         }
         
         NotificationCenter.default.addObserver(
@@ -815,7 +817,7 @@ struct Haptics {
             return Int(delayStr)
         }
         
-        let cancelledCount = trainsFetched.filter { $0.delay.lowercased().contains("soppresso") || $0.delay.lowercased().contains("cancellato") }.count
+        _ = trainsFetched.filter { $0.delay.lowercased().contains("soppresso") || $0.delay.lowercased().contains("cancellato") }.count
         
         if trainsFetched.isEmpty {
             return
@@ -1328,6 +1330,7 @@ struct Haptics {
         if !remoteNotificationsEnabled {
             print("[syncRemoteNotifications] Notifiche globali disabilitate. Cancello tutte le registrazioni.")
             // Unregister all
+            unregisterDeviceForStrikes(token: token)
             Task {
                 for train in favoriteTrains {
                     unregisterTrainForPush(trainNumber: train.number, token: token)
@@ -1378,8 +1381,7 @@ struct Haptics {
     func registerDeviceForStrikes(token: String) {
         guard remoteNotificationsEnabled else { return }
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/register") else { return }
-        
-        let region = strikeRegion
+            let region = hasSupport() ? strikeRegion : "Tutte"
         let payload: [String: Any] = [
             "token": token,
             "platform": "ios",
@@ -1394,7 +1396,7 @@ struct Haptics {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
             URLSession.shared.dataTask(with: request) { data, response, error in
                 if let error = error {
-                    print("Errore invio registrazione dispositivo: \(error.localizedDescription)")
+                    print("Errore registrazione dispositivo per scioperi: \(error.localizedDescription)")
                 } else {
                     print("Registrato dispositivo per scioperi con regione: \(region)")
                 }
@@ -1403,8 +1405,38 @@ struct Haptics {
             print("Errore serializzazione payload registrazione dispositivo: \(error.localizedDescription)")
         }
     }
+    
+    func unregisterDeviceForStrikes(token: String) {
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/unregister") else { return }
+        
+        let payload: [String: Any] = [
+            "token": token
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            URLSession.shared.dataTask(with: request) { data, response, error in
+                if let error = error {
+                    print("Errore disattivazione dispositivo generale: \(error.localizedDescription)")
+                } else {
+                    print("Dispositivo generale e notifiche scioperi disattivati con successo.")
+                }
+            }.resume()
+        } catch {
+            print("Errore serializzazione payload disattivazione dispositivo: \(error.localizedDescription)")
+        }
+    }
+    
+    func hasSupport() -> Bool {
+        return UserDefaults.standard.bool(forKey: "tip.colazionee")
+    }
+    
     func getLimit() -> Int {
-        if UserDefaults.standard.bool(forKey: "isSecretPremium") { return 99 }
+        if hasSupport() { return 10 }
         return 1
     }
     
@@ -1433,7 +1465,7 @@ struct Haptics {
             "station_pass_name": stationPassName,
             "notify_departure": notifyDeparture,
             "limit": limit,
-            "strike_region": strikeRegion,
+            "strike_region": hasSupport() ? strikeRegion : "Tutte",
             "departure_time": trainPref?.departureTime ?? "",
             "arrival_time": trainPref?.arrivalTime ?? ""
         ]
@@ -1453,7 +1485,11 @@ struct Haptics {
                         print("[registerTrainForPush] Registrato con successo treno \(trainNumber) per notifiche push")
                     } else if httpResponse.statusCode == 403 {
                         DispatchQueue.main.async {
-                            self.notificationLimitError = "Puoi monitorare al massimo \(limit) treno/i alla volta per il tuo livello."
+                            if self.hasSupport() {
+                                self.notificationLimitError = "Puoi monitorare al massimo \(limit) treni alla volta per il tuo livello."
+                            } else {
+                                self.notificationLimitError = "La gestione delle notifiche in tempo reale comporta costi di server continui per ciascun treno monitorato. Se trovi utile l'app, considera di sostenere lo sviluppo indipendente con un piccolo contributo: sbloccherai il monitoraggio fino a 10 treni contemporaneamente e le notifiche personalizzate per gli scioperi della tua regione."
+                            }
                         }
                     }
                 }
@@ -2295,7 +2331,7 @@ class TipManager: ObservableObject {
     @Published var isLoadingProducts: Bool = true
     @Published var purchaseState: PurchaseState = .idle
     
-    private let productIDs = ["tip.cappuccino", "tip.colazione"]
+    private let productIDs = ["tip.colazionee"]
     private var transactionListener: Task<Void, Error>?
     
     init() {
@@ -2317,36 +2353,17 @@ class TipManager: ObservableObject {
     }
     
     func updatePurchases() async {
-        if UserDefaults.standard.bool(forKey: "developerMockPurchases") {
-            UserDefaults.standard.set(true, forKey: "tip.cappuccino")
-            UserDefaults.standard.set(true, forKey: "tip.colazione")
-            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
-                groupDefaults.set(true, forKey: "tip.cappuccino")
-                groupDefaults.set(true, forKey: "tip.colazione")
-            }
-            NotificationCenter.default.post(name: NSNotification.Name("PurchasesUpdated"), object: nil)
-            return
-        }
-        var hasCappuccino = false
-        var hasColazione = false
-        do {
-            for await result in StoreKit.Transaction.currentEntitlements {
-                if case .verified(let transaction) = result {
-                    if transaction.productID == "tip.cappuccino" {
-                        hasCappuccino = true
-                    } else if transaction.productID == "tip.colazione" {
-                        hasColazione = true
-                    }
+        var hasColazionee = false
+        for await result in StoreKit.Transaction.currentEntitlements {
+            if case .verified(let transaction) = result {
+                if transaction.productID == "tip.colazionee" {
+                    hasColazionee = true
                 }
             }
-        } catch {
-            print("Errore nel recupero degli acquisti StoreKit: \(error)")
         }
-        UserDefaults.standard.set(hasCappuccino, forKey: "tip.cappuccino")
-        UserDefaults.standard.set(hasColazione, forKey: "tip.colazione")
+        UserDefaults.standard.set(hasColazionee, forKey: "tip.colazionee")
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
-            groupDefaults.set(hasCappuccino, forKey: "tip.cappuccino")
-            groupDefaults.set(hasColazione, forKey: "tip.colazione")
+            groupDefaults.set(hasColazionee, forKey: "tip.colazionee")
         }
         NotificationCenter.default.post(name: NSNotification.Name("PurchasesUpdated"), object: nil)
     }
@@ -2410,20 +2427,15 @@ class TipManager: ObservableObject {
     }
     
     private func deliver(_ transaction: StoreKit.Transaction) async {
-        let isCappuccino = transaction.productID == "tip.cappuccino"
-        let isColazione = transaction.productID == "tip.colazione"
+        let isColazionee = transaction.productID == "tip.colazionee"
         
-        if isCappuccino {
-            UserDefaults.standard.set(true, forKey: "tip.cappuccino")
-        } else if isColazione {
-            UserDefaults.standard.set(true, forKey: "tip.colazione")
+        if isColazionee {
+            UserDefaults.standard.set(true, forKey: "tip.colazionee")
         }
         
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
-            if isCappuccino {
-                groupDefaults.set(true, forKey: "tip.cappuccino")
-            } else if isColazione {
-                groupDefaults.set(true, forKey: "tip.colazione")
+            if isColazionee {
+                groupDefaults.set(true, forKey: "tip.colazionee")
             }
         }
         NotificationCenter.default.post(name: NSNotification.Name("PurchasesUpdated"), object: nil)

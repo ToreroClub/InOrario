@@ -84,7 +84,11 @@ struct TrainStopsView: View {
                                 let limit = manager.getLimit()
                                 if manager.activeLiveActivities.count >= limit {
                                     Haptics.notify(.error)
-                                    manager.notificationLimitError = "Puoi avere al massimo \(limit) Live Activity attiva alla volta. Disattivane un'altra per procedere."
+                                    if manager.hasSupport() {
+                                        manager.notificationLimitError = "Puoi avere al massimo \(limit) Live Activity attive alla volta. Disattivane un'altra per procedere."
+                                    } else {
+                                        manager.notificationLimitError = "La gestione delle notifiche in tempo reale comporta costi di server continui per ciascun treno monitorato. Se trovi utile l'app, considera di sostenere lo sviluppo indipendente con un piccolo contributo: sbloccherai il monitoraggio fino a 10 treni contemporaneamente e le notifiche personalizzate per gli scioperi della tua regione."
+                                    }
                                 } else {
                                     startLiveActivity(train: train)
                                 }

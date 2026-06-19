@@ -665,6 +665,7 @@
         <ul class="nav-links">
             <li><a href="#features">Funzionalità</a></li>
             <li><a href="#passante">Passante</a></li>
+            <li><a href="#help">Supporto</a></li>
             <li><a href="#download">Download</a></li>
         </ul>
         <a href="#download" class="nav-download">Scarica l'app</a>
@@ -934,6 +935,53 @@
     </div>
 </section>
 
+<!-- HELP / SUPPORTO -->
+<section id="help" style="background: var(--bg-card); border-top: 1px solid var(--border); padding: 80px 24px;">
+    <div class="container" style="max-width: 800px; margin: 0 auto;">
+        <div class="eyebrow" style="text-align: center;">Supporto</div>
+        <h2 class="section-title" style="font-size: 32px; text-align: center; margin-bottom: 16px;">Hai bisogno di aiuto?</h2>
+        <p class="section-sub" style="text-align: center; max-width: 580px; margin: 0 auto 48px; color: var(--text-2);">
+            Hai riscontrato un problema con l'applicazione o hai un suggerimento per migliorarla? Scrivici direttamente.
+        </p>
+
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 32px; margin-bottom: 40px;">
+            <h3 style="font-size: 18px; margin-bottom: 20px; color: var(--text);">Invia una richiesta di assistenza</h3>
+            <form action="mailto:help@toreroclub.com" method="post" enctype="text/plain" style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-2);">Indirizzo Email</label>
+                    <input type="email" name="email" required placeholder="La tua email..." style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--border)'">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-2);">Messaggio o Descrizione del problema</label>
+                    <textarea name="message" rows="5" required placeholder="Descrivi il problema o la tua richiesta..." style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; resize: vertical; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+                </div>
+                <button type="submit" class="btn" style="background: var(--orange); color: #000; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; width: fit-content; align-self: flex-start; margin-top: 8px;">
+                    Invia email di supporto
+                </button>
+            </form>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text);">Domande frequenti (FAQ)</h3>
+            
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--orange);">L'app è gratuita?</h4>
+                <p style="font-size: 14px; color: var(--text-2);">Sì, In Orario è completamente gratuita, open-source e non contiene annunci pubblicitari o abbonamenti traccianti.</p>
+            </div>
+
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--orange);">I dati in tempo reale sono precisi?</h4>
+                <p style="font-size: 14px; color: var(--text-2);">I dati in tempo reale (ritardi, orari, stazioni) provengono direttamente dai sistemi informativi di Rete Ferroviaria Italiana (RFI). L'accuratezza dipende dallo stato di aggiornamento di tali sistemi.</p>
+            </div>
+
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--orange);">Come posso segnalare un errore sui passanti o stazioni?</h4>
+                <p style="font-size: 14px; color: var(--text-2);">Puoi usare il form qui sopra oppure inviare direttamente una segnalazione a <a href="mailto:help@toreroclub.com" style="color: var(--text); text-decoration: underline;">help@toreroclub.com</a> allegando eventuali dettagli.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- PRIVACY POLICY -->
 <section id="privacy" style="background: var(--bg); border-top: 1px solid var(--border);">
     <div class="container" style="max-width: 800px; margin: 0 auto; padding-top: 20px;">
@@ -1003,6 +1051,7 @@
             <div class="footer-links">
                 <a href="#features">Funzionalità</a>
                 <a href="#passante">Passante Ferroviario</a>
+                <a href="#help">Supporto</a>
                 <a href="#download">Download</a>
                 <a href="https://github.com/ToreroClub/InOrario" target="_blank" rel="noopener">GitHub</a>
                 <a href="#privacy">Privacy Policy</a>

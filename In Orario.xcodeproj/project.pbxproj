@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2390EF5D2FAA8B59007DFB3C /* TrainWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2390EF492FAA8B58007DFB3C /* TrainWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		23A637B02FE4690F00020D3F /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23A637AF2FE4690F00020D3F /* StoreKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +37,7 @@
 
 /* Begin PBXFileReference section */
 		2390EF492FAA8B58007DFB3C /* TrainWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TrainWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		23A637AF2FE4690F00020D3F /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		23A7E2A52FC75B4D00F8356C /* In Orario?.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "In Orario?.entitlements"; sourceTree = "<group>"; };
 		23A7E2A62FC75B8A00F8356C /* TrainWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TrainWidgetExtension.entitlements; sourceTree = "<group>"; };
 		23C4E8C22F992D4200CF3B22 /* In Orario?.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "In Orario?.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -87,12 +89,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				23A637B02FE4690F00020D3F /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		23A637AE2FE4690F00020D3F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				23A637AF2FE4690F00020D3F /* StoreKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		23C4E8B92F992D4200CF3B22 = {
 			isa = PBXGroup;
 			children = (
@@ -100,6 +111,7 @@
 				23A7E2A52FC75B4D00F8356C /* In Orario?.entitlements */,
 				23C4E8C42F992D4200CF3B22 /* In Orario */,
 				2390EF4F2FAA8B58007DFB3C /* TrainWidget */,
+				23A637AE2FE4690F00020D3F /* Frameworks */,
 				23C4E8C32F992D4200CF3B22 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -250,7 +262,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = TrainWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9H7K68M6U6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainWidget/Info.plist;
@@ -262,7 +274,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario.TrainWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -282,7 +294,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = TrainWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9H7K68M6U6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainWidget/Info.plist;
@@ -294,7 +306,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario.TrainWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -439,7 +451,7 @@
 				CODE_SIGN_ENTITLEMENTS = "In Orario?.entitlements";
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9H7K68M6U6;
 				ENABLE_PREVIEWS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -461,7 +473,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -484,7 +496,7 @@
 				CODE_SIGN_ENTITLEMENTS = "In Orario?.entitlements";
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9H7K68M6U6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -505,7 +517,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0;
+				MARKETING_VERSION = 2.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

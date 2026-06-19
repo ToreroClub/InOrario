@@ -7,9 +7,87 @@ struct PassanteNodeView: View {
     let isLast: Bool
     let isNearby: Bool
     var lineColor: Color = .orange
+    var lineId: String? = nil
     
+    @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var locationManager: LocationManager
     @State private var animationScale: CGFloat = 1.0
     @State private var animationOpacity: Double = 1.0
+    
+    private var arrivalsLines: [String]? {
+        guard isNearby, let lineId = lineId else { return nil }
+        let trainsOfLine = manager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
+        if trainsOfLine.isEmpty { return nil }
+        
+        var destMinMins: [String: Int] = [:]
+        for train in trainsOfLine {
+            let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato")
+            if isCancelled { continue }
+            
+            let delayMinutes = Int(train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "").replacingOccurrences(of: "R: ", with: "")) ?? 0
+            
+            let parts = train.time.split(separator: ":")
+            guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else { continue }
+            
+            let calendar = Calendar.current
+            let now = Date()
+            var components = calendar.dateComponents([.year, .month, .day], from: now)
+            components.hour = hour
+            components.minute = minute
+            components.second = 0
+            
+            guard let baseDate = calendar.date(from: components) else { continue }
+            guard var targetDate = calendar.date(byAdding: .minute, value: delayMinutes, to: baseDate) else { continue }
+            
+            let diffWithNow = targetDate.timeIntervalSince(now)
+            if diffWithNow < -43200 { 
+                if let adjustedDate = calendar.date(byAdding: .day, value: 1, to: targetDate) { targetDate = adjustedDate }
+            } else if diffWithNow > 43200 { 
+                if let adjustedDate = calendar.date(byAdding: .day, value: -1, to: targetDate) { targetDate = adjustedDate }
+            }
+            
+            let diffInSeconds = targetDate.timeIntervalSince(now)
+            let diffInMinutes = Int(round(diffInSeconds / 60.0))
+            
+            if diffInMinutes < 0 { continue }
+            
+            let d = train.destination.lowercased()
+            let shortDest: String
+            if d.contains("novara") { shortDest = "NOV" }
+            else if d.contains("pioltello") { shortDest = "PIOLT" }
+            else if d.contains("treviglio") { shortDest = "TREV" }
+            else if d.contains("varese") { shortDest = "VAR" }
+            else if d.contains("gallarate") { shortDest = "GALL" }
+            else if d.contains("saronno") { shortDest = "SAR" }
+            else if d.contains("lodi") { shortDest = "LODI" }
+            else if d.contains("mariano") { shortDest = "MAR" }
+            else if d.contains("seveso") { shortDest = "SEV" }
+            else if d.contains("camnago") { shortDest = "CAMN" }
+            else if d.contains("pavia") { shortDest = "PAV" }
+            else if d.contains("bovisa") { shortDest = "BOV" }
+            else if d.contains("rogoredo") { shortDest = "ROG" }
+            else if d.contains("melegnano") { shortDest = "MEL" }
+            else if d.contains("cadorna") { shortDest = "CAD" }
+            else if d.contains("garibaldi") { shortDest = "GAR" }
+            else if d.contains("certosa") { shortDest = "CRT" }
+            else if d.contains("rho") { shortDest = "RHO" }
+            else { shortDest = String(train.destination.prefix(5).uppercased()) }
+            
+            let currentMin = destMinMins[shortDest] ?? Int.max
+            if diffInMinutes < currentMin {
+                destMinMins[shortDest] = diffInMinutes
+            }
+        }
+        
+        if destMinMins.isEmpty { return nil }
+        
+        let sortedDests = destMinMins.sorted { $0.value < $1.value }
+        let arrivalStrings = sortedDests.map { dest, mins in
+            let timeText = mins == 0 ? "ora" : "\(mins)m"
+            return "\(dest) \(timeText)"
+        }
+        return arrivalStrings
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -48,8 +126,36 @@ struct PassanteNodeView: View {
                     .shadow(color: isNearby ? lineColor.opacity(0.8) : .clear, radius: isNearby ? (animationScale * 5) : 0)
             }
             .frame(width: 65)
+            
+            Group {
+                if let arrLines = arrivalsLines, !arrLines.isEmpty {
+                    VStack(spacing: 2) {
+                        ForEach(arrLines, id: \.self) { line in
+                            Text(line)
+                                .font(.system(size: 11, weight: .heavy))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.5)
+                        }
+                    }
+                } else if isNearby {
+                    Text("...")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundColor(.primary)
+                } else {
+                    Text(" ")
+                        .font(.system(size: 11, weight: .heavy))
+                }
+            }
+            .frame(width: 65, height: 28, alignment: .top)
+            .padding(.top, 8)
         }
         .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 0.5) {
+            Haptics.play(.heavy)
+            locationManager.manualNearbyStation = station
+            manager.selectPassanteStation(station)
+        }
         .onAppear {
             if isNearby {
                 DispatchQueue.main.async {

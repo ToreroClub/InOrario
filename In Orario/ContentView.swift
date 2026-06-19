@@ -57,6 +57,8 @@ struct ContentView: View {
     @State private var selectedFavoriteTrain: Train? = nil
     @State private var isPulsing = false
     
+    let passanteTimer = Timer.publish(every: 45, on: .main, in: .common).autoconnect()
+    
     var appTitle: String {
         if hasUrgentNews {
             return "In Orario? No!"
@@ -225,9 +227,10 @@ struct ContentView: View {
                                                         ScrollView(.horizontal, showsIndicators: false) {
                                                             HStack(spacing: 0) {
                                                                 ForEach(Array(visibleStations.enumerated()), id: \.element.id) { index, station in
-                                                                    let isNearby = (locationManager.nearbyStation?.rfiID == station.rfiID) || (locationManager.nearbyStation?.name == station.name)
+                                                                    let activeNearby = locationManager.manualNearbyStation ?? locationManager.nearbyStation
+                                                                    let isNearby = (activeNearby?.rfiID == station.rfiID) || (activeNearby?.name == station.name)
                                                                     NavigationLink(destination: SmartBoardView(station: station)) {
-                                                                        PassanteNodeView(station: station, isFirst: index == 0, isLast: index == visibleStations.count - 1, isNearby: isNearby, lineColor: line.color)
+                                                                        PassanteNodeView(station: station, isFirst: index == 0, isLast: index == visibleStations.count - 1, isNearby: isNearby, lineColor: line.color, lineId: line.id)
                                                                     }
                                                                 }
                                                             }
@@ -416,7 +419,7 @@ struct ContentView: View {
             
         }
         .environmentObject(metroCache)
-        .alert("Limite Raggiunto", isPresented: Binding(
+        .alert(manager.hasSupport() ? "Limite Raggiunto" : "Limite gratuito raggiunto", isPresented: Binding(
             get: { manager.notificationLimitError != nil },
             set: { if !$0 { manager.notificationLimitError = nil } }
         )) {
@@ -455,11 +458,18 @@ struct ContentView: View {
                 manager.deepLinkTrain = nil
             }
         }
-        
+        .onReceive(passanteTimer) { _ in
+            if isPassanteExpanded {
+                Task {
+                    await manager.fetchPassanteLive()
+                }
+            }
+        }
     }
     
     func loadNews() async {
-        let regionParam = manager.strikeRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
+        let effectiveRegion = manager.hasSupport() ? manager.strikeRegion : "Tutte"
+        let regionParam = effectiveRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)") else { return }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)

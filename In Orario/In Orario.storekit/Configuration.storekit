@@ -2,7 +2,11 @@
   "appPolicies" : {
     "eula" : "",
     "policies" : [
-
+      {
+        "locale" : "it",
+        "policyText" : "",
+        "policyURL" : "https://inorario.toreroclub.com/#privacy"
+      }
     ]
   },
   "identifier" : "0A66494A",
@@ -11,26 +15,16 @@
   ],
   "products" : [
     {
-      "displayPrice" : "2.99",
+      "displayPrice" : "3.99",
       "familyShareable" : false,
       "internalID" : "E4DD0933",
       "localizations" : [
 
       ],
-      "productID" : "tip.colazione",
+      "productID" : "tip.colazionee",
+      "promotionalImageID" : "6571899E",
       "referenceName" : "Colazione Pendolare 🥐",
-      "type" : "Consumable"
-    },
-    {
-      "displayPrice" : "1.99",
-      "familyShareable" : false,
-      "internalID" : "1F9BA730",
-      "localizations" : [
-
-      ],
-      "productID" : "tip.cappuccino",
-      "referenceName" : "Cappuccino 🥛",
-      "type" : "Consumable"
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {

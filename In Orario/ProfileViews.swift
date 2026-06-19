@@ -170,11 +170,9 @@ struct ProfileView: View {
     @EnvironmentObject var manager: TrainManager
     @Environment(\.dismiss) var dismiss
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
-    @AppStorage("developerMockPurchases") private var developerMockPurchases = false
-    @AppStorage("isSecretPremium") private var isSecretPremium = false
+
     @StateObject private var tipManager = TipManager()
     @State private var showFeedbackSheet = false
-    @State private var secretCode = ""
     
     var body: some View {
         NavigationStack {
@@ -230,45 +228,68 @@ struct ProfileView: View {
                                 .padding()
                             Spacer()
                         }
-                    } else if tipManager.products.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Le donazioni non sono al momento disponibili.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 4)
                     } else {
-                        ForEach(tipManager.products, id: \.id) { product in
-                            Button(action: {
-                                Task {
-                                    await tipManager.purchase(product)
+                        if tipManager.products.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Le donazioni non sono al momento disponibili.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        } else {
+                            ForEach(tipManager.products, id: \.id) { product in
+                                Button(action: {
+                                    Task {
+                                        await tipManager.purchase(product)
+                                    }
+                                }) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(defaultName(for: product.id))
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+                                            Text(defaultDescription(for: product.id))
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        Spacer()
+                                        if tipManager.purchaseState == .purchasing {
+                                            ProgressView()
+                                        } else {
+                                            Text(product.displayPrice)
+                                                .font(.subheadline.bold())
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background(Color.orange)
+                                                .cornerRadius(8)
+                                        }
+                                    }
                                 }
-                            }) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(defaultName(for: product.id))
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        Text(defaultDescription(for: product.id))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
-                                    if tipManager.purchaseState == .purchasing {
-                                        ProgressView()
-                                    } else {
-                                        Text(product.displayPrice)
-                                            .font(.subheadline.bold())
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(Color.orange)
-                                            .cornerRadius(8)
-                                    }
+                                .disabled(tipManager.purchaseState == .purchasing)
+                            }
+                        }
+                        
+                        Button(action: {
+                            Haptics.play(.medium)
+                            Task {
+                                do {
+                                    try await AppStore.sync()
+                                    await tipManager.updatePurchases()
+                                } catch {
+                                    print("Errore ripristino acquisti: \(error)")
                                 }
                             }
-                            .disabled(tipManager.purchaseState == .purchasing)
+                        }) {
+                            HStack {
+                                Spacer()
+                                Text("Ripristina Acquisti")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                Spacer()
+                            }
                         }
+                        .padding(.vertical, 4)
                     }
                 }
                 
@@ -291,29 +312,29 @@ struct ProfileView: View {
                             .foregroundColor(.blue)
                             .font(.headline)
                     }
+                    
+                    Link(destination: URL(string: "https://inorario.toreroclub.com")!) {
+                        Label("Informativa sulla Privacy", systemImage: "lock.shield.fill")
+                            .foregroundColor(.green)
+                            .font(.headline)
+                    }
                 }
                 
-                Section(header: Text("Avanzate")) {
-                    if isSecretPremium {
-                        Text("Sbloccato.")
-                            .font(.headline)
-                            .foregroundColor(.green)
-                    } else {
-                        SecureField("Inserisci codice", text: $secretCode)
-                            .onSubmit {
-                                if secretCode.uppercased() == "GRAZIECARLO" {
-                                    isSecretPremium = true
-                                    Haptics.notify(.success)
-                                    manager.notificationLimitError = "Sbloccato."
-                                } else {
-                                    Haptics.notify(.error)
-                                    manager.notificationLimitError = "Codice non valido."
-                                }
-                                secretCode = ""
-                            }
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
+
+                
+                Section(footer:
+                    HStack {
+                        Spacer()
+                        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+                        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+                        Text("In Orario v\(version) (\(build))")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Spacer()
                     }
+                    .padding(.top, 8)
+                ) {
+                    EmptyView()
                 }
                 
             }
@@ -358,16 +379,14 @@ struct ProfileView: View {
     
     private func defaultName(for id: String) -> String {
         switch id {
-        case "tip.cappuccino": return "Cappuccino 🥛"
-        case "tip.colazione": return "Colazione Pendolare 🥐"
+        case "tip.colazionee": return "Colazione Pendolare 🥐"
         default: return "Mancia generica"
         }
     }
     
     private func defaultDescription(for id: String) -> String {
         switch id {
-        case "tip.cappuccino": return "Un aiuto per coprire i costi dei server."
-        case "tip.colazione": return "Caffè e brioche per dare il massimo dell'energia."
+        case "tip.colazionee": return "Caffè e brioche per dare il massimo dell'energia."
         default: return "Sostieni lo sviluppo dell'app."
         }
     }
@@ -490,7 +509,7 @@ struct FeedbackFormView: View {
         
         Task {
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (_, response) = try await URLSession.shared.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     isSending = false
                     showSuccessAlert = true
@@ -739,7 +758,17 @@ struct NotificationsSettingsView: View {
                             .foregroundColor(.red)
                             .font(.headline)
                         Spacer()
-                        Picker("", selection: $manager.strikeRegion) {
+                        Picker("", selection: Binding(
+                            get: { manager.hasSupport() ? manager.strikeRegion : "Tutte" },
+                            set: { newValue in
+                                if manager.hasSupport() {
+                                    manager.strikeRegion = newValue
+                                } else if newValue != "Tutte" {
+                                    Haptics.notify(.error)
+                                    manager.notificationLimitError = "La selezione della regione è disponibile solo con il supporto Premium. Se ritieni utile l'app, considera gentilmente di sostenere lo sviluppo indipendente."
+                                }
+                            }
+                        )) {
                             Text("Nazionale / Tutte").tag("Tutte")
                             ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
                                 Text(region).tag(region)
@@ -850,7 +879,11 @@ struct TrainNotificationConfigRow: View {
                             let activeCount = manager.favoriteTrains.filter { $0.notifyDelay == true && $0.id != train.id }.count
                             if activeCount >= limit {
                                 Haptics.notify(.error)
-                                manager.notificationLimitError = "Puoi avere al massimo \(limit) notifica attiva alla volta. Disattivane un'altra per procedere."
+                                if manager.hasSupport() {
+                                    manager.notificationLimitError = "Puoi avere al massimo \(limit) notifiche attive alla volta. Disattivane un'altra per procedere."
+                                } else {
+                                    manager.notificationLimitError = "La gestione delle notifiche in tempo reale comporta costi di server continui per ciascun treno monitorato. Se trovi utile l'app, considera di sostenere lo sviluppo indipendente con un piccolo contributo: sbloccherai il monitoraggio fino a 10 treni contemporaneamente e le notifiche personalizzate per gli scioperi della tua regione."
+                                }
                                 return
                             }
                         }

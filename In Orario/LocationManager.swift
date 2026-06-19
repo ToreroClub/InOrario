@@ -10,6 +10,7 @@ import Combine
         }
     }
     @Published var nearbyStation: Station?
+    @Published var manualNearbyStation: Station?
     
     override init() {
         super.init()
