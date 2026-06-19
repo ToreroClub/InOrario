@@ -888,6 +888,10 @@ struct TrainNotificationConfigRow: View {
                             }
                         }
                         
+                        if newValue {
+                            manager.disableLiveActivitiesForNonPremium()
+                        }
+                        
                         train.notifyDelay = newValue
                         if !newValue {
                             train.notifyDeparture = false
@@ -901,6 +905,23 @@ struct TrainNotificationConfigRow: View {
                 }
                 
                 if train.notifyDelay ?? false {
+                    if manager.hasSupport() {
+                        DaySelectorView(activeDays: $train.activeDays) {
+                            saveAndSync()
+                        }
+                        .padding(.leading, 8)
+                        .padding(.vertical, 4)
+                    } else {
+                        // User without premium won't see DaySelectorView, meaning notifications are automatically one-shot
+                        // We can ensure activeDays is nil when not premium
+                        let _ = {
+                            if train.activeDays != nil && !train.activeDays!.isEmpty {
+                                train.activeDays = nil
+                                saveAndSync()
+                            }
+                        }()
+                    }
+                    
                     Toggle(isOn: Binding(
                         get: { train.notifyDeparture ?? false },
                         set: { newValue in
@@ -964,6 +985,58 @@ struct TrainNotificationConfigRow: View {
                             loadStops()
                         }
                     }
+                    
+                    Toggle(isOn: Binding(
+                        get: { train.notifyPlatformChange ?? false },
+                        set: { newValue in
+                            train.notifyPlatformChange = newValue
+                            saveAndSync()
+                            if newValue {
+                                loadStops()
+                            }
+                        }
+                    )) {
+                        Text("Notifica cambio binario in stazione")
+                            .font(.subheadline)
+                    }
+                    .padding(.leading, 8)
+                    
+                    if train.notifyPlatformChange ?? false {
+                        HStack {
+                            Text("Seleziona stazione:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            
+                            if isLoadingStops {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else if !stops.isEmpty {
+                                Picker("", selection: Binding(
+                                    get: { train.platformChangeStationName ?? stops.first?.stationName ?? "" },
+                                    set: { newValue in
+                                        train.platformChangeStationName = newValue
+                                        saveAndSync()
+                                    }
+                                )) {
+                                    ForEach(stops) { stop in
+                                        Text(stop.stationName).tag(stop.stationName)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            } else {
+                                Button("Riprova caricamento") {
+                                    loadStops()
+                                }
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                            }
+                        }
+                        .padding(.leading, 24)
+                        .onAppear {
+                            loadStops()
+                        }
+                    }
                 }
             }
         }
@@ -992,6 +1065,64 @@ struct TrainNotificationConfigRow: View {
                 isLoadingStops = false
             }
         }
+    }
+}
+
+struct DaySelectorView: View {
+    @Binding var activeDays: [Int]?
+    let onToggle: () -> Void
+    
+    let days = [
+        (1, "L"),
+        (2, "M"),
+        (3, "M"),
+        (4, "G"),
+        (5, "V"),
+        (6, "S"),
+        (7, "D")
+    ]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Giorni attivi:")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 6) {
+                ForEach(days, id: \.0) { dayNum, label in
+                    let isSelected = activeDays == nil || activeDays!.contains(dayNum)
+                    Button(action: {
+                        toggleDay(dayNum)
+                    }) {
+                        Text(label)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .frame(width: 28, height: 28)
+                            .background(isSelected ? Color.blue : Color(.systemGray6))
+                            .foregroundColor(isSelected ? .white : .primary)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+    
+    private func toggleDay(_ dayNum: Int) {
+        var current = activeDays ?? [1, 2, 3, 4, 5, 6, 7]
+        if current.contains(dayNum) {
+            current.removeAll(where: { $0 == dayNum })
+        } else {
+            current.append(dayNum)
+            current.sort()
+        }
+        
+        if current.count == 7 {
+            activeDays = nil
+        } else {
+            activeDays = current
+        }
+        onToggle()
     }
 }
 

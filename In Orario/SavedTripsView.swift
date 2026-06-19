@@ -150,6 +150,24 @@ struct FavoriteRouteSolutionView: View {
                                     }
                                     .padding(.vertical, 6)
                                 }
+                                .contextMenu {
+                                    let validSegments = solution.segments.filter { $0.trainCategory != "Trasporto Urbano" && !$0.trainNumber.isEmpty }
+                                    if !validSegments.isEmpty {
+                                        ForEach(validSegments) { segment in
+                                            Button(action: {
+                                                let desc = "\(segment.origin) - \(segment.destination)"
+                                                manager.toggleFavorite(trainNumber: segment.trainNumber, description: desc, departureTime: segment.departureTime)
+                                                Haptics.play(.medium)
+                                            }) {
+                                                let isFav = manager.favoriteTrains.contains(where: { $0.number == segment.trainNumber })
+                                                Label(
+                                                    isFav ? "Rimuovi \(segment.trainCategory) \(segment.trainNumber) dai Preferiti" : "Aggiungi \(segment.trainCategory) \(segment.trainNumber) ai Preferiti",
+                                                    systemImage: isFav ? "star.slash.fill" : "star.fill"
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

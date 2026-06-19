@@ -90,6 +90,7 @@ struct TrainStopsView: View {
                                         manager.notificationLimitError = "La gestione delle notifiche in tempo reale comporta costi di server continui per ciascun treno monitorato. Se trovi utile l'app, considera di sostenere lo sviluppo indipendente con un piccolo contributo: sbloccherai il monitoraggio fino a 10 treni contemporaneamente e le notifiche personalizzate per gli scioperi della tua regione."
                                     }
                                 } else {
+                                    manager.disableTrainNotificationsForNonPremium()
                                     startLiveActivity(train: train)
                                 }
                             }

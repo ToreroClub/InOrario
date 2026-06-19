@@ -85,6 +85,18 @@ struct LiveTrainBand: View {
             }
             .padding(.vertical, 4)
         }
+        .contextMenu {
+            if segment.trainCategory != "Trasporto Urbano" {
+                Button(action: {
+                    let desc = "\(segment.origin) - \(segment.destination)"
+                    manager.toggleFavorite(trainNumber: segment.trainNumber, description: desc, departureTime: segment.departureTime)
+                    Haptics.play(.medium)
+                }) {
+                    let isFav = manager.favoriteTrains.contains(where: { $0.number == segment.trainNumber })
+                    Label(isFav ? "Rimuovi dai Preferiti" : "Aggiungi ai Preferiti", systemImage: isFav ? "star.slash.fill" : "star.fill")
+                }
+            }
+        }
         .onChange(of: isExpanded) { oldValue, newValue in
             if newValue && liveStatus == nil && segment.trainCategory != "Trasporto Urbano" {
                 Task {
@@ -311,6 +323,24 @@ struct TravelSearchView: View {
                                 }
                             }
                             .padding(.vertical, 4)
+                        }
+                        .contextMenu {
+                            let validSegments = solution.segments.filter { $0.trainCategory != "Trasporto Urbano" && !$0.trainNumber.isEmpty }
+                            if !validSegments.isEmpty {
+                                ForEach(validSegments) { segment in
+                                    Button(action: {
+                                        let desc = "\(segment.origin) - \(segment.destination)"
+                                        manager.toggleFavorite(trainNumber: segment.trainNumber, description: desc, departureTime: segment.departureTime)
+                                        Haptics.play(.medium)
+                                    }) {
+                                        let isFav = manager.favoriteTrains.contains(where: { $0.number == segment.trainNumber })
+                                        Label(
+                                            isFav ? "Rimuovi \(segment.trainCategory) \(segment.trainNumber) dai Preferiti" : "Aggiungi \(segment.trainCategory) \(segment.trainNumber) ai Preferiti",
+                                            systemImage: isFav ? "star.slash.fill" : "star.fill"
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

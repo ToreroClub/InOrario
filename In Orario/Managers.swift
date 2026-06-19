@@ -263,6 +263,8 @@ struct Haptics {
         if self.remoteNotificationsEnabled {
             UIApplication.shared.registerForRemoteNotifications()
         }
+        
+        checkAndCleanOneShotNotifications()
     }
     
     private func loadRFIStations() {
@@ -1440,6 +1442,82 @@ struct Haptics {
         return 1
     }
     
+    func checkAndCleanOneShotNotifications() {
+        let lastCleanDateStr = UserDefaults.standard.string(forKey: "lastOneShotCleanDate")
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "Europe/Rome")
+        
+        let now = Date()
+        let hour = Calendar.current.component(.hour, from: now)
+        // Se siamo prima delle 03:00, consideriamo il "giorno del treno" come ieri
+        let trainDayDate = hour < 3 ? Calendar.current.date(byAdding: .day, value: -1, to: now)! : now
+        let currentTrainDayStr = formatter.string(from: trainDayDate)
+        
+        if lastCleanDateStr != currentTrainDayStr {
+            var updated = false
+            for i in 0..<favoriteTrains.count {
+                let train = favoriteTrains[i]
+                let activeDays = train.activeDays ?? []
+                if activeDays.isEmpty {
+                    // È una notifica one-shot
+                    if (train.notifyDelay == true || train.notifyDeparture == true || train.notifyStationPass == true || train.notifyPlatformChange == true) {
+                        favoriteTrains[i].notifyDelay = false
+                        favoriteTrains[i].notifyDeparture = false
+                        favoriteTrains[i].notifyStationPass = false
+                        favoriteTrains[i].notifyPlatformChange = false
+                        updated = true
+                        
+                        // Deregistra dal server
+                        if let token = apnsToken {
+                            unregisterTrainForPush(trainNumber: train.number, token: token)
+                        }
+                    }
+                }
+            }
+            if updated {
+                saveFavorites()
+            }
+            UserDefaults.standard.set(currentTrainDayStr, forKey: "lastOneShotCleanDate")
+        }
+    }
+    
+    func disableTrainNotificationsForNonPremium() {
+        guard !hasSupport() else { return }
+        var updated = false
+        for i in 0..<favoriteTrains.count {
+            let train = favoriteTrains[i]
+            if (train.notifyDelay == true || train.notifyDeparture == true || train.notifyStationPass == true || train.notifyPlatformChange == true) {
+                favoriteTrains[i].notifyDelay = false
+                favoriteTrains[i].notifyDeparture = false
+                favoriteTrains[i].notifyStationPass = false
+                favoriteTrains[i].notifyPlatformChange = false
+                updated = true
+                
+                if let token = apnsToken {
+                    unregisterTrainForPush(trainNumber: train.number, token: token)
+                }
+            }
+        }
+        if updated {
+            saveFavorites()
+            notificationLimitError = "Le notifiche treni sono state disattivate per fare spazio alla Live Activity (Esclusività funzioni Base)."
+        }
+    }
+    
+    func disableLiveActivitiesForNonPremium() {
+        guard !hasSupport() else { return }
+        if !activeLiveActivities.isEmpty {
+            for act in Activity<TrainLiveActivityAttributes>.activities {
+                Task {
+                    await act.end(nil, dismissalPolicy: .immediate)
+                }
+            }
+            activeLiveActivities.removeAll()
+            notificationLimitError = "La Live Activity è stata disattivata per fare spazio alle Notifiche Treni (Esclusività funzioni Base)."
+        }
+    }
+    
     func registerTrainForPush(trainNumber: String, token: String) {
         print("[registerTrainForPush] Tentativo di registrazione per treno \(trainNumber)...")
         if !remoteNotificationsEnabled {
@@ -1453,10 +1531,12 @@ struct Haptics {
         let notifyStationPass = trainPref?.notifyStationPass ?? false
         let stationPassName = trainPref?.stationPassName ?? ""
         let notifyDeparture = trainPref?.notifyDeparture ?? false
+        let notifyPlatformChange = trainPref?.notifyPlatformChange ?? false
+        let platformChangeStationName = trainPref?.platformChangeStationName ?? ""
         
         let limit = getLimit()
         
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "token": token,
             "platform": "ios",
             "train_number": trainNumber,
@@ -1467,8 +1547,14 @@ struct Haptics {
             "limit": limit,
             "strike_region": hasSupport() ? strikeRegion : "Tutte",
             "departure_time": trainPref?.departureTime ?? "",
-            "arrival_time": trainPref?.arrivalTime ?? ""
+            "arrival_time": trainPref?.arrivalTime ?? "",
+            "notify_platform_change": notifyPlatformChange,
+            "platform_change_station_name": platformChangeStationName
         ]
+        
+        if let activeDays = trainPref?.activeDays {
+            payload["active_days"] = activeDays
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -1647,12 +1733,21 @@ struct Haptics {
         } catch { self.isSearching = false }
     }
     
+    private func isValidStationName(_ name: String) -> Bool {
+        let lower = name.lowercased()
+        if lower.contains("bivio") || lower.contains("bivi ") || lower.contains("biv.") || lower.hasSuffix(" bivi") { return false }
+        if lower.hasPrefix("pc ") || lower.contains(" pc ") || lower.hasSuffix(" pc") || lower.contains("p.c.") || lower.contains("/pc") { return false }
+        if lower.hasPrefix("pm ") || lower.contains(" pm ") || lower.hasSuffix(" pm") || lower.contains("p.m.") || lower.contains("/pm") { return false }
+        if lower.contains("posto di movimento") || lower.contains("posto di comunicazione") { return false }
+        return true
+    }
+    
     func searchStations(query: String) async {
         guard query.count >= 2 else { self.searchStationResults = []; return }
         self.isSearching = true
         
         let lowerQ = query.lowercased()
-        let hits = allRFIStations.filter { $0.name.lowercased().contains(lowerQ) }
+        let hits = allRFIStations.filter { $0.name.lowercased().contains(lowerQ) && isValidStationName($0.name) }
         
         var results: [VTSearchStation] = []
         for r in hits {
@@ -1680,7 +1775,8 @@ struct Haptics {
         
         do {
             let (data, _) = try await URLSession.shared.data(for: request)
-            self.searchTrenitaliaLocations = (try? JSONDecoder().decode([TrenitaliaLocation].self, from: data)) ?? []
+            let decoded = (try? JSONDecoder().decode([TrenitaliaLocation].self, from: data)) ?? []
+            self.searchTrenitaliaLocations = decoded.filter { isValidStationName($0.name) }
             self.isSearching = false
         } catch { self.isSearching = false }
     }
@@ -1830,7 +1926,7 @@ struct Haptics {
     func searchRFIStationsLocally(query: String) {
         guard query.count >= 2 else { self.searchRFIStationResults = []; return }
         let lowerQuery = query.lowercased()
-        self.searchRFIStationResults = self.allRFIStations.filter { $0.name.lowercased().contains(lowerQuery) }
+        self.searchRFIStationResults = self.allRFIStations.filter { $0.name.lowercased().contains(lowerQuery) && isValidStationName($0.name) }
     }
     
     

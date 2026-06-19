@@ -171,6 +171,11 @@ struct SavedTrain: Codable, Identifiable, Equatable {
     var notifyDeparture: Bool? = false
     var departureTime: String? = nil
     var arrivalTime: String? = nil
+    
+    var activeDays: [Int]? = nil
+    var lastNotifiedPlatform: String? = nil
+    var notifyPlatformChange: Bool? = false
+    var platformChangeStationName: String? = nil
 }
 
 struct VTSearchStation: Codable, Identifiable {
