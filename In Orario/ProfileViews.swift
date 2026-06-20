@@ -533,6 +533,10 @@ struct CustomizeDashboardView: View {
     @State private var showNewSmartRouteSheet = false
     @State private var homeDestInput = ""
     
+    @AppStorage("rememberMyStationsState") private var rememberMyStationsState = false
+    @AppStorage("rememberFavoriteTrainsState") private var rememberFavoriteTrainsState = false
+    @AppStorage("rememberPassanteState") private var rememberPassanteState = false
+    
     var body: some View {
         List {
             Section(header: Text("Ordine Sezioni Dashboard")) {
@@ -543,6 +547,32 @@ struct CustomizeDashboardView: View {
                     Haptics.play(.medium)
                     manager.sectionOrder.move(fromOffsets: from, toOffset: to)
                     manager.saveSectionOrder()
+                }
+            }
+            
+            Section(header: Text("Comportamento Espansione"), footer: Text("Scegli se mantenere in memoria lo stato aperto o chiuso delle varie sezioni.")) {
+                Toggle("Ricorda stato Stazioni Preferite", isOn: Binding(
+                    get: { rememberMyStationsState },
+                    set: { newValue in
+                        rememberMyStationsState = newValue
+                        Haptics.play(.medium)
+                    }
+                ))
+                Toggle("Ricorda stato Treni Preferiti", isOn: Binding(
+                    get: { rememberFavoriteTrainsState },
+                    set: { newValue in
+                        rememberFavoriteTrainsState = newValue
+                        Haptics.play(.medium)
+                    }
+                ))
+                if !manager.selectedSuburbanLines.isEmpty {
+                    Toggle("Ricorda stato Passante", isOn: Binding(
+                        get: { rememberPassanteState },
+                        set: { newValue in
+                            rememberPassanteState = newValue
+                            Haptics.play(.medium)
+                        }
+                    ))
                 }
             }
             

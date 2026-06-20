@@ -85,7 +85,7 @@ struct Haptics {
     @Published var recentStations: [VTSearchStation] = []
     
     @Published var userName: String = ""
-    @Published var useSpecialPassanteView: Bool = true
+    @Published var useSpecialPassanteView: Bool = false
     @Published var iCloudSyncEnabled: Bool = true
     
     private var refreshTimer: AnyCancellable?
@@ -1702,6 +1702,23 @@ struct Haptics {
             saveFavorites()
             Haptics.notify(.success)
         }
+    }
+    
+    func removeStationFromMyStations(stationId: String) {
+        if let idx = myStations.firstIndex(where: { $0.id == stationId }) {
+            myStations.remove(at: idx)
+            saveFavorites()
+        }
+    }
+    
+    func moveFavoriteTrains(from source: IndexSet, to destination: Int) {
+        favoriteTrains.move(fromOffsets: source, toOffset: destination)
+        saveFavorites()
+    }
+    
+    func moveMyStations(from source: IndexSet, to destination: Int) {
+        myStations.move(fromOffsets: source, toOffset: destination)
+        saveFavorites()
     }
     
     func removeMyStation(vtID: String) {

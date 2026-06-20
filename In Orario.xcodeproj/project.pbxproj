@@ -193,11 +193,12 @@
 				};
 			};
 			buildConfigurationList = 23C4E8BD2F992D4200CF3B22 /* Build configuration list for PBXProject "In Orario" */;
-			developmentRegion = en;
+			developmentRegion = it;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				it,
 			);
 			mainGroup = 23C4E8B92F992D4200CF3B22;
 			minimizedProjectReferenceProxies = 1;

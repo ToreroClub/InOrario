@@ -23,14 +23,14 @@
 	<dict>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<key>viaggiatreno.it</key>
+			<key>iechub.rfi.it</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
 				<key>NSIncludesSubdomains</key>
 				<true/>
 			</dict>
-			<key>iechub.rfi.it</key>
+			<key>viaggiatreno.it</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>

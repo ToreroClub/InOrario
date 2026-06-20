@@ -56,6 +56,15 @@ struct ContentView: View {
     @State private var deepLinkTrain: Train? = nil
     @State private var selectedFavoriteTrain: Train? = nil
     @State private var isPulsing = false
+    @State private var editMode: EditMode = .inactive
+    
+    @AppStorage("rememberPassanteState") private var rememberPassanteState = false
+    @AppStorage("rememberFavoriteTrainsState") private var rememberFavoriteTrainsState = false
+    @AppStorage("rememberMyStationsState") private var rememberMyStationsState = false
+    
+    @AppStorage("storedIsPassanteExpanded") private var storedIsPassanteExpanded = false
+    @AppStorage("storedIsFavoritesExpanded") private var storedIsFavoritesExpanded = true
+    @AppStorage("storedIsMyStationsExpanded") private var storedIsMyStationsExpanded = true
     
     let passanteTimer = Timer.publish(every: 45, on: .main, in: .common).autoconnect()
     
@@ -153,11 +162,22 @@ struct ContentView: View {
                                                     Label("Rimuovi", systemImage: "trash.fill")
                                                 }
                                             }
+                                            }
+                                        }
+                                        .onMove { from, to in
+                                            manager.moveFavoriteTrains(from: from, to: to)
                                         }
                                     } label: {
                                         Label("I miei Treni", systemImage: "star.fill").font(.headline).foregroundColor(.yellow).padding(.vertical, 4)
+                                            .onLongPressGesture {
+                                                Haptics.play(.medium)
+                                                withAnimation {
+                                                    editMode = editMode == .active ? .inactive : .active
+                                                }
+                                            }
                                     }
                                     .onChange(of: isFavoritesExpanded) { oldValue, newValue in
+                                        if rememberFavoriteTrainsState { storedIsFavoritesExpanded = newValue }
                                         Haptics.play(.light)
                                     }
                                 }
@@ -186,14 +206,25 @@ struct ContentView: View {
                                                     Label("Rimuovi", systemImage: "trash.fill")
                                                 }
                                             }
+                                            }
+                                        }
+                                        .onMove { from, to in
+                                            manager.moveMyStations(from: from, to: to)
                                         }
                                     } label: {
                                         Label("Le Mie Stazioni", systemImage: "building.2.crop.circle.fill")
                                             .font(.headline)
                                             .foregroundColor(.blue)
                                             .padding(.vertical, 4)
+                                            .onLongPressGesture {
+                                                Haptics.play(.medium)
+                                                withAnimation {
+                                                    editMode = editMode == .active ? .inactive : .active
+                                                }
+                                            }
                                     }
                                     .onChange(of: isMyStationsExpanded) { oldValue, newValue in
+                                        if rememberMyStationsState { storedIsMyStationsExpanded = newValue }
                                         Haptics.play(.light)
                                     }
                                 }
@@ -254,7 +285,9 @@ struct ContentView: View {
                                             .foregroundColor(.orange)
                                             .padding(.vertical, 4)
                                     }
+                                    }
                                     .onChange(of: isPassanteExpanded) { oldValue, newValue in
+                                        if rememberPassanteState { storedIsPassanteExpanded = newValue }
                                         Haptics.play(.light)
                                         if newValue {
                                             Task {
@@ -367,6 +400,7 @@ struct ContentView: View {
                     }
                 }
             }
+            .environment(\.editMode, $editMode)
             .sheet(isPresented: $showSearchSheet, onDismiss: { manager.loadFavorites() }) { SearchView() }
             .sheet(isPresented: $showProfile) { ProfileView() }
             .sheet(isPresented: $showNewsCenter) { NewsCenterView(news: allNewsItems) }
@@ -384,6 +418,9 @@ struct ContentView: View {
                     }
             }
             .onAppear {
+                if rememberPassanteState { isPassanteExpanded = storedIsPassanteExpanded }
+                if rememberFavoriteTrainsState { isFavoritesExpanded = storedIsFavoritesExpanded }
+                if rememberMyStationsState { isMyStationsExpanded = storedIsMyStationsExpanded }
                 manager.loadFavorites()
                 manager.syncLiveActivities()
                 if hasCompletedOnboarding {
