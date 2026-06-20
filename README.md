@@ -27,9 +27,11 @@ Se cerchi la versione Android dell’app:
 
 👉 https://github.com/ToreroClub/InOrario-Android
 
+👉 Beta testing: https://play.google.com/apps/testing/com.carlo.inorario
+
 ## 🍎 Versione iOS
 
-👉 Puoi partecipare al beta testing tramite [TestFlight](https://testflight.apple.com/join/CfHeUYvr)
+👉 https://apps.apple.com/app/in-orario/id6773419855
 
 ---
 
