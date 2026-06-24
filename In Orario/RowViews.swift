@@ -10,13 +10,15 @@ struct PassanteNodeView: View {
     var lineId: String? = nil
     
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var locationManager: LocationManager
     @State private var animationScale: CGFloat = 1.0
     @State private var animationOpacity: Double = 1.0
     
     private var arrivalsLines: [String]? {
         guard isNearby, let lineId = lineId else { return nil }
-        let trainsOfLine = manager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
+        guard passanteManager.selectedPassanteStation.matches(station) else { return nil }
+        let trainsOfLine = passanteManager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
         if trainsOfLine.isEmpty { return nil }
         
         var destMinMins: [String: Int] = [:]
@@ -154,7 +156,7 @@ struct PassanteNodeView: View {
         .onLongPressGesture(minimumDuration: 0.5) {
             Haptics.play(.heavy)
             locationManager.manualNearbyStation = station
-            manager.selectPassanteStation(station)
+            passanteManager.selectPassanteStation(station, manager: manager)
         }
         .onAppear {
             if isNearby {
@@ -174,7 +176,8 @@ struct MetroRowView: View {
     @EnvironmentObject var cache: MetroCache
     
     var body: some View {
-        let cacheKey = "\(metro.pdfID ?? "")_\(metro.direction)"
+        let line = String(metro.name.prefix(2))
+        let cacheKey = "\(line)_\(metro.pdfID ?? "")_\(metro.direction)_"
         let isOffline = cache.isOfflineMode[cacheKey] ?? false
         
         HStack(spacing: 12) {
@@ -193,11 +196,14 @@ struct MetroRowView: View {
                 case .frequency(let text):
                     Text(text).font(.system(.caption, design: .rounded)).bold().foregroundColor(.primary)
                 case .exact(let deps):
+                    let showDestination = line == "M2" || (line == "M1" && metro.direction == 1)
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(deps, id: \.self) { d in
                             HStack {
                                 Text(d.timeString).bold()
-                                if let dest = d.destinationName { Text(dest).font(.caption2).foregroundColor(.secondary).textCase(.uppercase) }
+                                if showDestination, let dest = d.destinationName {
+                                    Text(dest).font(.caption2).foregroundColor(.secondary).textCase(.uppercase)
+                                }
                             }
                         }
                     }
@@ -220,6 +226,7 @@ struct TrainRowView: View {
     var showPassanteTag: Bool = false
     var stationName: String? = nil
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     @State private var pulseScale: CGFloat = 1.0
     @State private var pulseOpacity: Double = 1.0
@@ -253,7 +260,7 @@ struct TrainRowView: View {
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     
-                    if showPassanteTag, let branch = manager.getPassanteBranch(for: train) {
+                    if showPassanteTag, let branch = passanteManager.getPassanteBranch(for: train) {
                         let bColor: Color = (branch == "Bovisa" || branch == "Rogoredo") ? .red : .orange
                         Text(branch.uppercased())
                             .font(.system(size: 9, weight: .black, design: .rounded))
@@ -271,12 +278,12 @@ struct TrainRowView: View {
                 HStack {
                     Text(train.delay)
                         .foregroundColor(train.delay.contains("In orario") ? .green : .red)
-                        .scaleEffect(train.delay.contains("In orario") ? pulseScale : 1.0)
-                        .opacity(train.delay.contains("In orario") ? pulseOpacity : 1.0)
+                        .scaleEffect(isDelayed ? pulseScale : 1.0)
+                        .opacity(isDelayed ? pulseOpacity : 1.0)
                         
                     let displayPlatform: String = {
                         if let station = stationName {
-                            return manager.resolvedPlatform(for: station, train: train)
+                            return passanteManager.resolvedPlatform(for: station, train: train)
                         }
                         return train.platform
                     }()
@@ -295,7 +302,7 @@ struct TrainRowView: View {
         .background(manager.isHomeFilterActive && isCancelled ? Color.red.opacity(0.15) : (manager.isHomeFilterActive && isDelayed ? Color.orange.opacity(0.08) : Color.clear))
         .cornerRadius(8)
         .onAppear {
-            if train.delay.contains("In orario") {
+            if isDelayed {
                 DispatchQueue.main.async {
                     withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                         pulseScale = 1.1

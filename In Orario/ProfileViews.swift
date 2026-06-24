@@ -72,6 +72,7 @@ struct NewsCenterView: View {
 struct SuburbanFavoriteRouteCardView: View {
     let route: SuburbanRoute
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -168,6 +169,7 @@ struct SuburbanFavoriteRouteCardView: View {
 
 struct ProfileView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @Environment(\.dismiss) var dismiss
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
 
@@ -530,6 +532,7 @@ struct FeedbackFormView: View {
 
 struct CustomizeDashboardView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @State private var showNewSmartRouteSheet = false
     @State private var homeDestInput = ""
     
@@ -565,7 +568,7 @@ struct CustomizeDashboardView: View {
                         Haptics.play(.medium)
                     }
                 ))
-                if !manager.selectedSuburbanLines.isEmpty {
+                if !passanteManager.selectedSuburbanLines.isEmpty {
                     Toggle("Ricorda stato Passante", isOn: Binding(
                         get: { rememberPassanteState },
                         set: { newValue in
@@ -674,14 +677,15 @@ struct CustomizeDashboardView: View {
 
 struct CustomizePassanteView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     var body: some View {
         List {
             Section(header: Text("Vista Speciale Stazioni"), footer: Text("Quando attivo, il passante raggruppa le partenze in Ovest ed Est. Se disattivato, vedrai la lista classica Arrivi/Partenze.")) {
                 Toggle(isOn: Binding(
-                    get: { manager.useSpecialPassanteView },
+                    get: { passanteManager.useSpecialPassanteView },
                     set: { newValue in
-                        manager.useSpecialPassanteView = newValue
+                        passanteManager.useSpecialPassanteView = newValue
                         manager.saveFavorites()
                         Haptics.play(.medium)
                     }
@@ -694,17 +698,17 @@ struct CustomizePassanteView: View {
             ForEach(SuburbanData.shared.allLines) { line in
                 if line.stations.isEmpty {
                     Toggle(isOn: Binding(
-                        get: { manager.selectedSuburbanLines.contains(line.id) },
-                        set: { _ in manager.toggleSuburbanLine(line.id) }
+                        get: { passanteManager.selectedSuburbanLines.contains(line.id) },
+                        set: { _ in passanteManager.toggleSuburbanLine(line.id) }
                     )) {
                         Text(line.name).font(.headline).foregroundColor(line.color)
                     }
                 } else {
                     Section {
-                        if manager.selectedSuburbanLines.contains(line.id) {
+                        if passanteManager.selectedSuburbanLines.contains(line.id) {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 15) {
-                                    let hiddenForLine = manager.hiddenSuburbanStations[line.id] ?? []
+                                    let hiddenForLine = passanteManager.hiddenSuburbanStations[line.id] ?? []
                                     ForEach(line.stations) { station in
                                         let isHidden = hiddenForLine.contains(station.name)
                                         
@@ -715,7 +719,7 @@ struct CustomizePassanteView: View {
                                         .overlay(
                                             Button(action: {
                                                 Haptics.play(.light)
-                                                manager.toggleHiddenStation(lineId: line.id, stationName: station.name)
+                                                passanteManager.toggleHiddenStation(lineId: line.id, stationName: station.name)
                                             }) {
                                                 Image(systemName: isHidden ? "plus.circle.fill" : "minus.circle.fill")
                                                     .foregroundColor(isHidden ? .green : .red)
@@ -738,16 +742,16 @@ struct CustomizePassanteView: View {
                             Text(line.name).font(.headline).foregroundColor(line.color)
                             Spacer()
                             Toggle("", isOn: Binding(
-                                get: { manager.selectedSuburbanLines.contains(line.id) },
+                                get: { passanteManager.selectedSuburbanLines.contains(line.id) },
                                 set: { _ in
                                     Haptics.play(.medium)
-                                    manager.toggleSuburbanLine(line.id)
+                                    passanteManager.toggleSuburbanLine(line.id)
                                 }
                             ))
                             .labelsHidden()
                         }
                     } footer: {
-                        if manager.selectedSuburbanLines.contains(line.id) {
+                        if passanteManager.selectedSuburbanLines.contains(line.id) {
                             Text("Tocca il tasto - per nascondere le stazioni che non ti interessano, o + per ripristinarle.")
                         }
                     }
@@ -760,6 +764,7 @@ struct CustomizePassanteView: View {
 
 struct NotificationsSettingsView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     var body: some View {
         List {
@@ -783,32 +788,40 @@ struct NotificationsSettingsView: View {
             
             if manager.remoteNotificationsEnabled {
                 Section(header: Text("Area Geografica Scioperi")) {
-                    HStack {
-                        Label("Filtro Scioperi", systemImage: "globe")
+                    Toggle(isOn: $manager.strikeNotificationsEnabled) {
+                        Label("Notifiche Scioperi", systemImage: "bell.badge.fill")
                             .foregroundColor(.red)
                             .font(.headline)
-                        Spacer()
-                        Picker("", selection: Binding(
-                            get: { manager.hasSupport() ? manager.strikeRegion : "Tutte" },
-                            set: { newValue in
-                                if manager.hasSupport() {
-                                    manager.strikeRegion = newValue
-                                } else if newValue != "Tutte" {
-                                    Haptics.notify(.error)
-                                    manager.notificationLimitError = "La selezione della regione è disponibile solo con il supporto Premium. Se ritieni utile l'app, considera gentilmente di sostenere lo sviluppo indipendente."
+                    }
+                    
+                    if manager.strikeNotificationsEnabled {
+                        HStack {
+                            Label("Filtro Scioperi", systemImage: "globe")
+                                .foregroundColor(.red)
+                                .font(.headline)
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { manager.hasSupport() ? manager.strikeRegion : "Tutte" },
+                                set: { newValue in
+                                    if manager.hasSupport() {
+                                        manager.strikeRegion = newValue
+                                    } else if newValue != "Tutte" {
+                                        Haptics.notify(.error)
+                                        manager.notificationLimitError = "La selezione della regione è disponibile solo con il supporto Premium. Se ritieni utile l'app, considera gentilmente di sostenere lo sviluppo indipendente."
+                                    }
+                                }
+                            )) {
+                                Text("Nazionale / Tutte").tag("Tutte")
+                                ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
+                                    Text(region).tag(region)
                                 }
                             }
-                        )) {
-                            Text("Nazionale / Tutte").tag("Tutte")
-                            ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
-                                Text(region).tag(region)
-                            }
+                            .pickerStyle(.menu)
                         }
-                        .pickerStyle(.menu)
+                        Text("Riceverai avvisi e notifiche sugli scioperi nazionali e per la regione selezionata.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
-                    Text("Riceverai avvisi e notifiche sugli scioperi nazionali e per la regione selezionata.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
                 }
                 
                 Section(header: Text("Notifiche Treni Preferiti"), footer: Text("Le notifiche automatiche ti avvisano se il treno è in ritardo o quando passa dalla stazione scelta.")) {
@@ -859,6 +872,7 @@ struct NotificationsSettingsView: View {
 struct TrainNotificationConfigRow: View {
     @Binding var train: SavedTrain
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @State private var stops: [Stop] = []
     @State private var isLoadingStops = false
     
@@ -905,16 +919,25 @@ struct TrainNotificationConfigRow: View {
                     get: { train.notifyDelay ?? false },
                     set: { newValue in
                         if newValue {
-                            let limit = manager.getLimit()
-                            let activeCount = manager.favoriteTrains.filter { $0.notifyDelay == true && $0.id != train.id }.count
-                            if activeCount >= limit {
-                                Haptics.notify(.error)
-                                if manager.hasSupport() {
-                                    manager.notificationLimitError = "Puoi avere al massimo \(limit) notifiche attive alla volta. Disattivane un'altra per procedere."
-                                } else {
-                                    manager.notificationLimitError = "La gestione delle notifiche in tempo reale comporta costi di server continui per ciascun treno monitorato. Se trovi utile l'app, considera di sostenere lo sviluppo indipendente con un piccolo contributo: sbloccherai il monitoraggio fino a 10 treni contemporaneamente e le notifiche personalizzate per gli scioperi della tua regione."
+                            if !manager.hasSupport() {
+                                // For free users, automatically disable notifications for all other trains
+                                for i in 0..<manager.favoriteTrains.count {
+                                    if manager.favoriteTrains[i].id != train.id && (manager.favoriteTrains[i].notifyDelay ?? false) {
+                                        manager.favoriteTrains[i].notifyDelay = false
+                                        manager.favoriteTrains[i].notifyDeparture = false
+                                        manager.favoriteTrains[i].notifyStationPass = false
+                                        manager.favoriteTrains[i].notifyPlatformChange = false
+                                    }
                                 }
-                                return
+                            } else {
+                                // For premium users, enforce the limit of 10
+                                let limit = manager.getLimit()
+                                let activeCount = manager.favoriteTrains.filter { $0.notifyDelay == true && $0.id != train.id }.count
+                                if activeCount >= limit {
+                                    Haptics.notify(.error)
+                                    manager.notificationLimitError = "Puoi avere al massimo \(limit) notifiche attive alla volta. Disattivane un'altra per procedere."
+                                    return
+                                }
                             }
                         }
                         
@@ -926,6 +949,7 @@ struct TrainNotificationConfigRow: View {
                         if !newValue {
                             train.notifyDeparture = false
                             train.notifyStationPass = false
+                            train.notifyPlatformChange = false
                         }
                         saveAndSync()
                     }

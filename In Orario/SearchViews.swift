@@ -11,6 +11,7 @@ struct LiveTrainBand: View {
     @State private var isExpanded = false
     @State private var liveStatus: StopsResult?
     @State private var isLoading = false
+    @State private var showClassicStops = false
     
     var body: some View {
         DisclosureGroup(isExpanded: $isExpanded) {
@@ -86,7 +87,14 @@ struct LiveTrainBand: View {
             .padding(.vertical, 4)
         }
         .contextMenu {
-            if segment.trainCategory != "Trasporto Urbano" {
+            if segment.trainCategory != "Trasporto Urbano" && !segment.trainNumber.isEmpty {
+                Button(action: {
+                    showClassicStops = true
+                    Haptics.play(.medium)
+                }) {
+                    Label("Segui Treno (Classico)", systemImage: "clock.badge.checkmark.fill")
+                }
+                
                 Button(action: {
                     let desc = "\(segment.origin) - \(segment.destination)"
                     manager.toggleFavorite(trainNumber: segment.trainNumber, description: desc, departureTime: segment.departureTime)
@@ -95,6 +103,20 @@ struct LiveTrainBand: View {
                     let isFav = manager.favoriteTrains.contains(where: { $0.number == segment.trainNumber })
                     Label(isFav ? "Rimuovi dai Preferiti" : "Aggiungi ai Preferiti", systemImage: isFav ? "star.slash.fill" : "star.fill")
                 }
+            }
+        }
+        .sheet(isPresented: $showClassicStops) {
+            let dummy = Train(
+                category: segment.trainCategory,
+                number: segment.trainNumber,
+                destination: segment.destination,
+                time: segment.departureTime,
+                delay: "",
+                platform: ""
+            )
+            NavigationStack {
+                TrainStopsView(train: dummy, showCloseButton: true)
+                    .environmentObject(manager)
             }
         }
         .onChange(of: isExpanded) { oldValue, newValue in

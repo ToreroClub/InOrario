@@ -80,6 +80,15 @@ enum DayType: String, Codable {
     }
 }
 
+struct MetroDepartureItem: Codable, Hashable {
+    let time: String
+    let destination: String
+}
+
+struct MetroDeparturesResponse: Codable {
+    let departures: [MetroDepartureItem]
+}
+
 struct MetroDeparture: Codable, Hashable {
     let min: Int
     let color: String
@@ -158,6 +167,23 @@ struct MetroLine: Identifiable, Equatable {
     var direction: Int = 0
     var customFrequencies: [DayType: String]? = nil
     var destinations: [String: String]? = nil
+
+    var directionLabel: String {
+        switch colorName {
+        case "red":
+            return direction == 0 ? "Sesto FS" : "Rho Fiera / Bisceglie"
+        case "green":
+            return direction == 0 ? "Cologno / Gessate" : "Abbiategrasso / Assago"
+        case "yellow":
+            return direction == 0 ? "San Donato" : "Comasina"
+        case "blue":
+            return direction == 0 ? "San Cristoforo" : "Linate"
+        case "purple":
+            return direction == 0 ? "Bignami" : "San Siro"
+        default:
+            return name
+        }
+    }
 }
 
 struct SavedTrain: Codable, Identifiable, Equatable {
@@ -202,11 +228,20 @@ struct RFIStation: Codable, Identifiable, Hashable {
     let name: String
     let rfiID: String?
     let vtID: String?
+    let lat: Double?
+    let lon: Double?
+    
+    var coordinate: CLLocationCoordinate2D? {
+        guard let lat = lat, let lon = lon else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
     
     enum CodingKeys: String, CodingKey {
         case name
         case rfiID = "id"
         case vtID
+        case lat
+        case lon
     }
 }
 
@@ -280,7 +315,7 @@ struct Train: Identifiable, Sendable {
     }
 }
 
-struct TrainStatus: Sendable {
+struct TrainStatus: Codable, Sendable {
     var lastStation: String = "--"
     var lastTime: String = "--"
     var statusMessage: String = "In attesa di dati..."
@@ -296,6 +331,8 @@ struct Stop: Identifiable, Sendable {
     let actualTime: String?
     let delay: Int
     let estimatedTime: String?
+    let plannedPlatform: String?
+    let actualPlatform: String?
 }
 
 struct Station: Identifiable, Codable, Hashable {
@@ -314,47 +351,133 @@ struct Station: Identifiable, Codable, Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: Station, rhs: Station) -> Bool { lhs.id == rhs.id }
     
-    var metroLines: [MetroLine] {
-        switch name {
-        case "Rho Fiera":
-            return [MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "504", direction: 0, customFrequencies: [.feriali: "Ogni 4' - 9'", .sabato: "Ogni 7' - 9'"])]
-        case "Porta Garibaldi", "P. Garibaldi Passante":
-            return [
-                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "682", direction: 0, customFrequencies: [.feriali: "Gobba: 2'-4'   Gessate: 5'-12'   Cologno: 5'-12'", .sabato: "Gobba: 5'   Gessate: 10'-12'   Cologno: 10'"], destinations: ["orange": "Gessate", "blue": "Cologno N.", "black": "C. Gobba"]),
-                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "682", direction: 1, customFrequencies: [.feriali: "Famagosta: 2'-4'   Abbiategrasso: 5'-7'   Assago: 5'-12'", .sabato: "Famagosta: 4'-5'   Abbiategrasso: 9'-10'   Assago: 10'-11'"], destinations: ["orange": "Assago", "blue": "Abbiategrasso", "black": "Famagosta"]),
-                MetroLine(name: "M5 Bignami", colorName: "purple", pdfID: "308", direction: 0),
-                MetroLine(name: "M5 San Siro", colorName: "purple", pdfID: "308", direction: 1)
-            ]
-        case "Milano Centrale":
-            return [
-                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "680", direction: 0, customFrequencies: [.feriali: "Gobba: 2'-4'   Gessate: 5'-12'   Cologno: 5'-12'", .sabato: "Gobba: 5'   Gessate: 10'-12'   Cologno: 10'"], destinations: ["orange": "Gessate", "blue": "Cologno N.", "black": "C. Gobba"]),
-                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "680", direction: 1, customFrequencies: [.feriali: "Famagosta: 2'-4'   Abbiategrasso: 5'-7'   Assago: 5'-12'", .sabato: "Famagosta: 4'-5'   Abbiategrasso: 9'-10'   Assago: 10'-11'"], destinations: ["orange": "Assago", "blue": "Abbiategrasso", "black": "Famagosta"]),
-                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "731", direction: 0),
-                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "731", direction: 1)
-            ]
-        case "Repubblica":
-            return [
-                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "732", direction: 0),
-                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "732", direction: 1)
-            ]
-        case "Porta Venezia":
-            return [
-                MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "536", direction: 1, customFrequencies: [.feriali: "Pagano: 2'-4'   Rho: 4'-11'   Bisceglie: 4'-8'", .sabato: "Pagano: 3'-5'   Rho: 7'-9'   Bisceglie: 7'-11'"], destinations: ["orange": "Rho Fiera", "blue": "Bisceglie", "black": "Pagano"]),
-                MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "536", direction: 0, customFrequencies: [.feriali: "Ogni 2' - 3'", .sabato: "Ogni 3' - 4'", .festivo: "Ogni 5' - 8'"])
-            ]
-        case "Dateo":
-            return [
-                MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "336", direction: 0),
-                MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "336", direction: 1)
-            ]
-        case "Forlanini":
-            return [
-                MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "339", direction: 0),
-                MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "339", direction: 1)
-            ]
-        default:
-            return []
+    func matches(_ other: Station) -> Bool {
+        if let r1 = self.rfiID, let r2 = other.rfiID, !r1.isEmpty, !r2.isEmpty {
+            if r1 == r2 { return true }
         }
+        if let v1 = self.vtID, let v2 = other.vtID, !v1.isEmpty, !v2.isEmpty {
+            if v1 == v2 { return true }
+        }
+        let n1 = self.name.lowercased()
+            .replacingOccurrences(of: "milano ", with: "")
+            .replacingOccurrences(of: " passante", with: "")
+            .replacingOccurrences(of: " sotterranea", with: "")
+            .replacingOccurrences(of: " politecnico", with: "")
+            .replacingOccurrences(of: "p. garibaldi", with: "porta garibaldi")
+            .replacingOccurrences(of: "p.garibaldi", with: "porta garibaldi")
+            .replacingOccurrences(of: "porta garibaldi passante", with: "porta garibaldi")
+            .replacingOccurrences(of: "p. garibaldi passante", with: "porta garibaldi")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let n2 = other.name.lowercased()
+            .replacingOccurrences(of: "milano ", with: "")
+            .replacingOccurrences(of: " passante", with: "")
+            .replacingOccurrences(of: " sotterranea", with: "")
+            .replacingOccurrences(of: " politecnico", with: "")
+            .replacingOccurrences(of: "p. garibaldi", with: "porta garibaldi")
+            .replacingOccurrences(of: "p.garibaldi", with: "porta garibaldi")
+            .replacingOccurrences(of: "porta garibaldi passante", with: "porta garibaldi")
+            .replacingOccurrences(of: "p. garibaldi passante", with: "porta garibaldi")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if n1 == n2 { return true }
+        if n1.count > 3 && n2.count > 3 {
+            if n1.contains(n2) || n2.contains(n1) { return true }
+        }
+        return false
+    }
+    
+    var metroLines: [MetroLine] {
+        let upperName = self.name.uppercased()
+        if upperName.contains("RHO FIERA") {
+            return [
+                MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "RHO FIERAMILANO", direction: 0)
+            ]
+        } else if upperName.contains("GARIBALDI") {
+            return [
+                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "GARIBALDI FS", direction: 0),
+                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "GARIBALDI FS", direction: 1),
+                MetroLine(name: "M5 Bignami", colorName: "purple", pdfID: "GARIBALDI FS", direction: 0),
+                MetroLine(name: "M5 San Siro", colorName: "purple", pdfID: "GARIBALDI FS", direction: 1)
+            ]
+        } else if upperName.contains("CENTRALE") {
+            return [
+                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "CENTRALE FS", direction: 0),
+                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "CENTRALE FS", direction: 1),
+                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "CENTRALE FS", direction: 0),
+                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "CENTRALE FS", direction: 1)
+            ]
+        } else if upperName.contains("REPUBBLICA") {
+            return [
+                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "REPUBBLICA", direction: 0),
+                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "REPUBBLICA", direction: 1)
+            ]
+        } else if upperName.contains("VENEZIA") {
+            return [
+                MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "P.TA VENEZIA", direction: 0),
+                MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "P.TA VENEZIA", direction: 1)
+            ]
+        } else if upperName.contains("DATEO") {
+            return [
+                MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "DATEO", direction: 0),
+                MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "DATEO", direction: 1)
+            ]
+        } else if upperName.contains("FORLANINI") {
+            return [
+                MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "STAZIONE FORLANINI", direction: 0),
+                MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "STAZIONE FORLANINI", direction: 1)
+            ]
+        } else if upperName.contains("SESTO S") || upperName.contains("SESTO SAN GIOVANNI") {
+            return [
+                MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "SESTO 1 MAGGIO FS", direction: 1)
+            ]
+        } else if upperName.contains("CADORNA") {
+            return [
+                MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "CADORNA FN M1", direction: 0),
+                MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "CADORNA FN M1", direction: 1),
+                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "CADORNA FN M2", direction: 0),
+                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "CADORNA FN M2", direction: 1)
+            ]
+        } else if upperName.contains("LAMBRATE") {
+            return [
+                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "LAMBRATE FS", direction: 0),
+                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "LAMBRATE FS", direction: 1)
+            ]
+        } else if upperName.contains("GENOVA") {
+            return [
+                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "PORTA GENOVA FS", direction: 0),
+                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "PORTA GENOVA FS", direction: 1)
+            ]
+        } else if upperName.contains("ROMOLO") {
+            return [
+                MetroLine(name: "M2 Nord", colorName: "green", pdfID: "ROMOLO", direction: 0),
+                MetroLine(name: "M2 Sud", colorName: "green", pdfID: "ROMOLO", direction: 1)
+            ]
+        } else if upperName.contains("AFFORI") {
+            return [
+                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "AFFORI FN", direction: 0),
+                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "AFFORI FN", direction: 1)
+            ]
+        } else if upperName.contains("ROMANA") {
+            return [
+                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "PORTA ROMANA", direction: 0),
+                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "PORTA ROMANA", direction: 1)
+            ]
+        } else if upperName.contains("ROGOREDO") {
+            return [
+                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "ROGOREDO FS", direction: 0),
+                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "ROGOREDO FS", direction: 1)
+            ]
+        } else if upperName.contains("CRISTOFORO") {
+            return [
+                MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "SAN CRISTOFORO FS", direction: 0),
+                MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "SAN CRISTOFORO FS", direction: 1)
+            ]
+        } else if upperName.contains("DOMODOSSOLA") {
+            return [
+                MetroLine(name: "M5 Bignami", colorName: "purple", pdfID: "DOMODOSSOLA FN", direction: 0),
+                MetroLine(name: "M5 San Siro", colorName: "purple", pdfID: "DOMODOSSOLA FN", direction: 1)
+            ]
+        }
+        return []
     }
 }
 

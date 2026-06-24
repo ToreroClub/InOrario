@@ -28,38 +28,33 @@ import Combine
         manager.requestLocation()
     }
     
+    private var allReferenceStations: [Station] = []
+    
+    private func loadStationsIfNeeded() {
+        guard allReferenceStations.isEmpty else { return }
+        if let url = Bundle.main.url(forResource: "rfi_stations", withExtension: "json"),
+           let data = try? Data(contentsOf: url),
+           let decoded = try? JSONDecoder().decode([RFIStation].self, from: data) {
+            self.allReferenceStations = decoded.compactMap { rfi in
+                guard rfi.lat != nil, rfi.lon != nil else { return nil }
+                return Station(
+                    name: rfi.name,
+                    rfiID: rfi.rfiID,
+                    vtID: rfi.vtID,
+                    lat: rfi.lat,
+                    lon: rfi.lon
+                )
+            }
+        }
+    }
+    
     private func updateNearbyStation() {
         guard let userLoc = userLocation else {
             self.nearbyStation = nil
             return
         }
         
-        let passanteStations = [
-            Station(name: "Rho Fiera", rfiID: "3098", vtID: "S01026", lat: 45.5215, lon: 9.0883),
-            Station(name: "Certosa", rfiID: "1708", vtID: "S01027", lat: 45.5085, lon: 9.1272),
-            Station(name: "Villapizzone", rfiID: "3099", vtID: "S01057", lat: 45.4998, lon: 9.1465),
-            Station(name: "Lancetti", rfiID: "1713", vtID: "S01059", lat: 45.4925, lon: 9.1751),
-            Station(name: "P. Garibaldi Passante", rfiID: "1714", vtID: "S01058", lat: 45.4844, lon: 9.1887),
-            Station(name: "Repubblica", rfiID: "1719", vtID: "S01060", lat: 45.4795, lon: 9.1963),
-            Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01061", lat: 45.4746, lon: 9.2052),
-            Station(name: "Dateo", rfiID: "3468", vtID: "S01062", lat: 45.4682, lon: 9.2158),
-            Station(name: "Porta Vittoria", rfiID: "1718", vtID: "S01063", lat: 45.4613, lon: 9.2227),
-            Station(name: "Forlanini", rfiID: "3169", vtID: "S01064", lat: 45.4625, lon: 9.2368)
-        ]
-        
-        let mainStations = [
-            Station(name: "Magenta", rfiID: "1618", vtID: "S01021", lat: 45.4641, lon: 8.8845),
-            Station(name: "Rho Fiera", rfiID: "3098", vtID: "S01026", lat: 45.5215, lon: 9.0883),
-            Station(name: "Porta Garibaldi", rfiID: "1715", vtID: "S01058", lat: 45.4844, lon: 9.1887),
-            Station(name: "Milano Centrale", rfiID: "1728", vtID: "S01700", lat: 45.4849, lon: 9.2033),
-            Station(name: "Vittuone-Arluno", rfiID: "3119", vtID: "S01023", lat: 45.4921, lon: 8.9568),
-            Station(name: "Pregnana Milanese", rfiID: "381", vtID: "S01024", lat: 45.5036, lon: 9.0069),
-            Station(name: "Novara", rfiID: "1917", vtID: "S01017", lat: 45.4524, lon: 8.6253),
-            Station(name: "Trecate", rfiID: "2909", vtID: "S01019", lat: 45.4374, lon: 8.7428),
-            Station(name: "Rho", rfiID: "2345", vtID: "S01025", lat: 45.5262, lon: 9.0402)
-        ]
-        
-        let allReferenceStations = mainStations + passanteStations
+        loadStationsIfNeeded()
         
         let sortedCandidates = allReferenceStations.compactMap { s -> (Station, Double)? in
             guard let c = s.coordinate else { return nil }
@@ -67,7 +62,8 @@ import Combine
             return (s, dist)
         }.sorted(by: { $0.1 < $1.1 })
         
-        if let closest = sortedCandidates.first, closest.1 < 15000 {
+        // Se la stazione più vicina è entro 5 km, considerala vicina
+        if let closest = sortedCandidates.first, closest.1 < 5000 {
             self.nearbyStation = closest.0
         } else {
             self.nearbyStation = nil
@@ -84,7 +80,12 @@ import Combine
     
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let loc = locations.last {
-            print("Posizione GPS aggiornata con successo: \(loc.coordinate.latitude), \(loc.coordinate.longitude)")
+            let age = abs(loc.timestamp.timeIntervalSinceNow)
+            if age > 60 {
+                print("Posizione GPS ignorata perché obsoleta (cached da \(age) secondi)")
+                return
+            }
+            print("Posizione GPS aggiornata con successo: \(loc.coordinate.latitude), \(loc.coordinate.longitude) (accuratezza: \(loc.horizontalAccuracy)m)")
             Task { @MainActor in self.userLocation = loc }
         }
     }

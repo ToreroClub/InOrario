@@ -13,6 +13,7 @@ struct OnboardingView: View {
     @State private var currentPage = 0
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     let pages = [
         OnboardingPage(
@@ -38,6 +39,12 @@ struct OnboardingView: View {
             description: "Monitora lo stato del Passante di Milano e del relativo Tunnel sotterraneo in un'unica schermata. Seleziona qui sotto le tue linee suburbane preferite da tenere sott'occhio:",
             iconName: "tram.fill",
             iconColor: .green
+        ),
+        OnboardingPage(
+            title: "Coincidenze Metropolitana",
+            description: "Interscambi treno-metropolitana calcolati al secondo in base alla conformazione di ciascuna stazione.",
+            iconName: "arrow.triangle.turn.up.right.diamond.fill",
+            iconColor: .red
         ),
         OnboardingPage(
             title: "Funzioni Smart & Widget",
@@ -84,8 +91,10 @@ struct OnboardingView: View {
                             } else if index == 3 {
                                 OnboardingPassanteLinePickerView(page: pages[index])
                             } else if index == 4 {
-                                OnboardingFeaturesView(page: pages[index])
+                                OnboardingMetroInterchangesView(page: pages[index])
                             } else if index == 5 {
+                                OnboardingFeaturesView(page: pages[index])
+                            } else if index == 6 {
                                 OnboardingNewsAndGPSView(page: pages[index]) {
                                     Haptics.play(.medium)
                                     locationManager.requestAuthorization()
@@ -196,6 +205,7 @@ struct OnboardingCardView: View {
 
 struct OnboardingHomeStationPickerView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @State private var homeDestInput = ""
     @State private var hasSaved = false
     
@@ -400,6 +410,7 @@ struct OnboardingHomeStationPickerView: View {
 
 struct OnboardingFavoriteRoutesView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     @State private var originName = ""
     @State private var originID = ""
@@ -535,6 +546,7 @@ struct OnboardingFavoriteRoutesView: View {
 struct OnboardingPassanteLinePickerView: View {
     let page: OnboardingPage
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     var body: some View {
         VStack(spacing: 12) {
@@ -559,10 +571,10 @@ struct OnboardingPassanteLinePickerView: View {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(SuburbanData.shared.allLines) { line in
-                        let isSelected = manager.selectedSuburbanLines.contains(line.id)
+                        let isSelected = passanteManager.selectedSuburbanLines.contains(line.id)
                         Button(action: {
                             Haptics.play(.light)
-                            manager.toggleSuburbanLine(line.id)
+                            passanteManager.toggleSuburbanLine(line.id)
                         }) {
                             Text(line.id)
                                 .font(.system(.headline, design: .rounded))
@@ -621,19 +633,23 @@ struct OnboardingFeaturesView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 30)
             
-            VStack(alignment: .leading, spacing: 14) {
-                FeatureRow(icon: "iphone.circle.fill", color: .purple, title: "Live Activities & Dynamic Island", desc: "Segui l'andamento del treno direttamente sulla Schermata di Blocco e nell'Isola Dinamica.")
-                
-                FeatureRow(icon: "bolt.fill", color: .yellow, title: "Smart Routes", desc: "Algoritmo intelligente per trovare le migliori coincidenze tra treni regionali e metropolitane.")
-                
-                FeatureRow(icon: "bookmark.fill", color: .blue, title: "Treni Salvati", desc: "Tieni d'occhio i tuoi treni frequenti direttamente dalla dashboard principale.")
-                
-                FeatureRow(icon: "tram", color: .teal, title: "Orari della Metropolitana", desc: "Esplora gli orari integrati della metropolitana di Milano direttamente dentro l'app.")
-                
-                FeatureRow(icon: "square.grid.2x2.fill", color: .green, title: "Widget per la Schermata Home", desc: "Visualizza lo stato dei tuoi treni o del passante a colpo d'occhio senza aprire l'app.")
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 14) {
+                    FeatureRow(icon: "iphone.circle.fill", color: .purple, title: "Live Activities & Dynamic Island", desc: "Segui l'andamento del treno direttamente sulla Schermata di Blocco e nell'Isola Dinamica.")
+                    
+                    FeatureRow(icon: "bolt.fill", color: .yellow, title: "Smart Routes", desc: "Algoritmo intelligente per trovare le migliori coincidenze tra treni regionali e metropolitane.")
+                    
+                    FeatureRow(icon: "bookmark.fill", color: .blue, title: "Treni Salvati", desc: "Tieni d'occhio i tuoi treni frequenti direttamente dalla dashboard principale.")
+                    
+                    FeatureRow(icon: "exclamationmark.bubble.fill", color: .orange, title: "Segnalazioni in Tempo Reale", desc: "Segnala affollamento, temperatura o blocchi del treno in un lampo per aiutare i viaggiatori.")
+                    
+                    FeatureRow(icon: "tram", color: .teal, title: "Orari della Metropolitana", desc: "Esplora gli orari integrati della metropolitana di Milano direttamente dentro l'app.")
+                    
+                    FeatureRow(icon: "square.grid.2x2.fill", color: .green, title: "Widget per la Schermata Home", desc: "Visualizza lo stato dei tuoi treni o del passante a colpo d'occhio senza aprire l'app.")
+                }
+                .padding(.horizontal, 30)
+                .padding(.top, 10)
             }
-            .padding(.horizontal, 30)
-            .padding(.top, 10)
             
             Spacer()
         }
@@ -778,5 +794,135 @@ struct FeatureRow: View {
                     .lineLimit(2)
             }
         }
+    }
+}
+
+struct OnboardingMetroInterchangesView: View {
+    let page: OnboardingPage
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Text(page.title)
+                .font(.system(.title, design: .rounded))
+                .bold()
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+            
+            Text(page.description)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 30)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Come funziona
+                    HStack(alignment: .top, spacing: 15) {
+                        Image(systemName: "hand.tap.fill")
+                            .font(.title3)
+                            .foregroundColor(.blue)
+                            .frame(width: 40, height: 40)
+                            .background(Color.blue.opacity(0.12))
+                            .cornerRadius(10)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Anteprima con Pressione Prolungata")
+                                .font(.subheadline.bold())
+                            Text("Dalla vista di un treno basta tenere premuto sulla fermata di interscambio (es. Centrale, Garibaldi, Dateo) per vedere al volo le partenze metro in tempo reale.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineSpacing(2)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground).opacity(0.5))
+                    .cornerRadius(16)
+                    
+                    Divider().padding(.vertical, 4)
+                    
+                    Text("Stima di Fattibilità dell'Interscambio")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.primary)
+                    
+                    Text("L'app confronta l'orario di arrivo stimato del treno con le partenze reali della metro, calcolando i tempi fisici di camminata specifici per ogni stazione:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineSpacing(2)
+                    
+                    VStack(spacing: 12) {
+                        FeasibilityTutorialRow(
+                            icon: "checkmark.circle.fill",
+                            color: .green,
+                            bg: Color.green.opacity(0.1),
+                            title: "Ce la fai comodo",
+                            desc: "Il tempo a disposizione è ampiamente sufficiente per raggiungere la banchina della metro camminando normalmente."
+                        )
+                        
+                        FeasibilityTutorialRow(
+                            icon: "figure.walk",
+                            color: .orange,
+                            bg: Color.orange.opacity(0.08),
+                            title: "Sbrigati",
+                            desc: "Il margine è ridotto. Devi camminare a passo molto svelto per non perdere la corsa."
+                        )
+                        
+                        FeasibilityTutorialRow(
+                            icon: "bolt.fill",
+                            color: .orange,
+                            bg: Color.orange.opacity(0.12),
+                            title: "Corri!",
+                            desc: "La coincidenza è al limite. Se vuoi prendere questa metro, devi correre."
+                        )
+                        
+                        FeasibilityTutorialRow(
+                            icon: "xmark.circle.fill",
+                            color: .red,
+                            bg: Color.red.opacity(0.1),
+                            title: "Non ce la fai",
+                            desc: "La metropolitana parte troppo presto rispetto all'arrivo del treno. Non è fisicamente possibile prenderla."
+                        )
+                    }
+                    .padding(.top, 4)
+                }
+                .padding(.horizontal, 30)
+                .padding(.bottom, 20)
+            }
+            
+            Spacer()
+        }
+    }
+}
+
+struct FeasibilityTutorialRow: View {
+    let icon: String
+    let color: Color
+    let bg: Color
+    let title: String
+    let desc: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(bg)
+                    .frame(width: 26, height: 26)
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(color)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.bold())
+                    .foregroundColor(color)
+                Text(desc)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 4)
     }
 }

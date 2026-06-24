@@ -7,6 +7,7 @@ struct PassanteTunnelThermometerView: View {
     let avgDelay: Int
     
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @AppStorage("showOuterSuburbanStations") var showOuterSuburbanStations = false
     
     var color: Color {
@@ -14,9 +15,9 @@ struct PassanteTunnelThermometerView: View {
     }
     
     var resolvedTrackColor: Color {
-        let activeLinesForTrack = manager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
+        let activeLinesForTrack = passanteManager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
         if activeLinesForTrack.count == 1, let singleLine = activeLinesForTrack.first {
-            let trainsOfLine = manager.passanteTunnelTrains.filter { train in
+            let trainsOfLine = passanteManager.passanteTunnelTrains.filter { train in
                 let cat = train.category.uppercased()
                 let dest = train.destination.lowercased()
                 if cat == singleLine { return true }
@@ -114,7 +115,7 @@ struct PassanteTunnelThermometerView: View {
     let s13Stations: Set<String> = ["Milano Bovisa", "Lancetti", "P. Garibaldi Passante", "Repubblica", "Porta Venezia", "Dateo", "Porta Vittoria", "Milano Rogoredo", "Locate Triulzi", "Pieve Emanuele", "Villamaggiore", "Certosa di Pavia", "Pavia"]
 
     func getEstimatedStationName(for train: Train) -> String? {
-        guard let status = manager.passanteLiveStatuses[train.number] else {
+        guard let status = passanteManager.passanteLiveStatuses[train.number] else {
             return nil
         }
         
@@ -197,7 +198,7 @@ struct PassanteTunnelThermometerView: View {
     }
     
     var body: some View {
-        let refStationName = manager.selectedPassanteStation.name
+        let refStationName = passanteManager.selectedPassanteStation.name
         let cleanRefName: String = {
             let lower = refStationName.lowercased()
             if lower.contains("venezia") { return "Porta Venezia" }
@@ -220,7 +221,7 @@ struct PassanteTunnelThermometerView: View {
         let isCongested = trackColor == .red
         
         let activeStationsList: [String] = {
-            let activeLines = manager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
+            let activeLines = passanteManager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
             let onlyCertosa = !activeLines.isEmpty && activeLines.allSatisfy { ["S5", "S6"].contains($0) }
             let onlyBovisa = !activeLines.isEmpty && activeLines.allSatisfy { ["S1", "S2", "S12", "S13"].contains($0) }
             
@@ -234,7 +235,7 @@ struct PassanteTunnelThermometerView: View {
                         for lineId in activeLines {
                             let lineStations = lineId == "S5" ? s5Stations : s6Stations
                             if lineStations.contains(stationName) {
-                                let hidden = manager.hiddenSuburbanStations[lineId] ?? []
+                                let hidden = passanteManager.hiddenSuburbanStations[lineId] ?? []
                                 if !hidden.contains(stationName) {
                                     return true
                                 }
@@ -260,7 +261,7 @@ struct PassanteTunnelThermometerView: View {
                             default: lineStations = s13Stations
                             }
                             if lineStations.contains(stationName) {
-                                let hidden = manager.hiddenSuburbanStations[lineId] ?? []
+                                let hidden = passanteManager.hiddenSuburbanStations[lineId] ?? []
                                 if !hidden.contains(stationName) {
                                     return true
                                 }
@@ -309,7 +310,7 @@ struct PassanteTunnelThermometerView: View {
         }()
         
         let linesToProcess: [String] = {
-            let activeLines = manager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
+            let activeLines = passanteManager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
             if activeLines.isEmpty {
                 return ["S5", "S6"]
             }
@@ -320,7 +321,7 @@ struct PassanteTunnelThermometerView: View {
         let lineArrivals: [LineArrivalInfo] = {
             var result: [LineArrivalInfo] = []
             for lineId in linesToProcess {
-                let trainsOfLine = manager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
+                let trainsOfLine = passanteManager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
                 
                 var destMinMins: [String: Int] = [:]
                 for train in trainsOfLine {
@@ -365,6 +366,42 @@ struct PassanteTunnelThermometerView: View {
                     Text(statusMessage)
                         .font(.caption.bold())
                         .foregroundColor(color)
+                    
+                    HStack(spacing: 8) {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color(hex: passanteManager.passanteTunnelWestHealthColor))
+                                .frame(width: 6, height: 6)
+                            Text(passanteManager.passanteTunnelWestHealthMessage)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color(hex: passanteManager.passanteTunnelEastHealthColor))
+                                .frame(width: 6, height: 6)
+                            Text(passanteManager.passanteTunnelEastHealthMessage)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.top, 2)
+                    
+                    if !passanteManager.passanteSelectedLinesAlerts.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(passanteManager.passanteSelectedLinesAlerts, id: \.self) { alert in
+                                Text("⚠️ \(alert)")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
                     
                     if !lineArrivals.isEmpty {
                         ForEach(lineArrivals) { info in
@@ -414,9 +451,9 @@ struct PassanteTunnelThermometerView: View {
                 ForEach(activeStationsList, id: \.self) { stationName in
                     let isSelected = (stationName == cleanRefName)
                     
-                    let trainsAtStation = manager.passanteTunnelTrains.filter { train in
+                    let trainsAtStation = passanteManager.passanteTunnelTrains.filter { train in
                         let line = train.category.uppercased()
-                        if !manager.selectedSuburbanLines.isEmpty && !manager.selectedSuburbanLines.contains(line) {
+                        if !passanteManager.selectedSuburbanLines.isEmpty && !passanteManager.selectedSuburbanLines.contains(line) {
                             return false
                         }
                         return getEstimatedStationName(for: train) == stationName
@@ -485,7 +522,7 @@ struct PassanteTunnelThermometerView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 6) {
                                     ForEach(trainsAtStation, id: \.id) { train in
-                                        let direction = manager.getPassanteDirection(for: train) ?? "Est"
+                                        let direction = passanteManager.getPassanteDirection(for: train) ?? "Est"
                                         let isWest = direction == "Ovest"
                                         let line = train.category.uppercased()
                                         let lineColorHex = SuburbanData.shared.allLines.first(where: { $0.id == line })?.hexColor ?? "#8e8e93"
@@ -526,8 +563,8 @@ struct PassanteTunnelThermometerView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         if !isSelected {
-                            let newStation = stationForName(stationName, manager: manager)
-                            manager.selectPassanteStation(newStation)
+                            let newStation = stationForName(stationName, manager: manager, passanteManager: passanteManager)
+                            passanteManager.selectPassanteStation(newStation, manager: manager)
                             Haptics.play(.medium)
                         }
                     }
@@ -635,7 +672,7 @@ fileprivate let passanteOuterStationLookup: [String: (rfiID: String?, vtID: Stri
     "Melegnano": ("1688", "S01822")
 ]
 
-func stationForName(_ name: String, manager: TrainManager) -> Station {
+func stationForName(_ name: String, manager: TrainManager, passanteManager: PassanteManager) -> Station {
     let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
     if let ids = passanteOuterStationLookup[cleanName] {
         return Station(name: cleanName, rfiID: ids.rfiID, vtID: ids.vtID, lat: nil, lon: nil)
@@ -676,13 +713,14 @@ func stationForName(_ name: String, manager: TrainManager) -> Station {
 
 struct PassanteDepartureBoardView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var locationManager: LocationManager
     @AppStorage("showOuterSuburbanStations") var showOuterSuburbanStations = false
     
     var relevantStations: [Station] {
-        let allStations = manager.passanteStationsForUser
+        let allStations = passanteManager.passanteStationsForUser
         
-        let activeLines = manager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
+        let activeLines = passanteManager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
         let onlyCertosa = !activeLines.isEmpty && activeLines.allSatisfy { ["S5", "S6"].contains($0) }
         let onlyBovisa = !activeLines.isEmpty && activeLines.allSatisfy { ["S1", "S2", "S12", "S13"].contains($0) }
         
@@ -725,7 +763,7 @@ struct PassanteDepartureBoardView: View {
                     for lineId in activeLines {
                         let lineStations = lineId == "S5" ? s5Sts : s6Sts
                         if lineStations.contains(stationName) {
-                            let hidden = manager.hiddenSuburbanStations[lineId] ?? []
+                            let hidden = passanteManager.hiddenSuburbanStations[lineId] ?? []
                             if !hidden.contains(stationName) {
                                 return true
                             }
@@ -751,7 +789,7 @@ struct PassanteDepartureBoardView: View {
                         default: lineStations = s13Sts
                         }
                         if lineStations.contains(stationName) {
-                            let hidden = manager.hiddenSuburbanStations[lineId] ?? []
+                            let hidden = passanteManager.hiddenSuburbanStations[lineId] ?? []
                             if !hidden.contains(stationName) {
                                 return true
                             }
@@ -777,7 +815,7 @@ struct PassanteDepartureBoardView: View {
             if let existing = allStations.first(where: { $0.name == name }) {
                 return existing
             }
-            return stationForName(name, manager: manager)
+            return stationForName(name, manager: manager, passanteManager: passanteManager)
         }
         
         return filteredStations
@@ -796,10 +834,10 @@ struct PassanteDepartureBoardView: View {
                     ScrollViewReader { proxy in
                         HStack(spacing: 8) {
                             ForEach(relevantStations) { station in
-                                let isSelected = manager.selectedPassanteStation.name == station.name
+                                let isSelected = passanteManager.selectedPassanteStation.name == station.name
                                 Button {
                                     Haptics.play(.medium)
-                                    manager.selectPassanteStation(station)
+                                    passanteManager.selectPassanteStation(station, manager: manager)
                                 } label: {
                                     HStack(spacing: 4) {
                                         if isSelected {
@@ -823,10 +861,10 @@ struct PassanteDepartureBoardView: View {
                         .padding(.vertical, 2)
                         .onAppear {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                proxy.scrollTo(manager.selectedPassanteStation.name)
+                                proxy.scrollTo(passanteManager.selectedPassanteStation.name)
                             }
                         }
-                        .onChange(of: manager.selectedPassanteStation.name) { _, newName in
+                        .onChange(of: passanteManager.selectedPassanteStation.name) { _, newName in
                             withAnimation { proxy.scrollTo(newName) }
                         }
                     }
@@ -835,8 +873,8 @@ struct PassanteDepartureBoardView: View {
             
             Divider()
             
-            let allTrains = manager.passanteTrains
-            if manager.isLoadingPassanteBoard && allTrains.isEmpty {
+            let allTrains = passanteManager.passanteTrains
+            if passanteManager.isLoadingPassanteBoard && allTrains.isEmpty {
                 HStack {
                     Spacer()
                     ProgressView("Caricamento treni...")
@@ -859,7 +897,7 @@ struct PassanteDepartureBoardView: View {
                 }
                 .padding(.vertical, 20)
             } else {
-                let activeLines = manager.selectedSuburbanLines
+                let activeLines = passanteManager.selectedSuburbanLines
                 let onlyCertosa = !activeLines.isEmpty && activeLines.allSatisfy { ["S5", "S6"].contains($0) }
                 let onlyBovisa = !activeLines.isEmpty && activeLines.allSatisfy { ["S1", "S2", "S12", "S13"].contains($0) }
                 
@@ -868,7 +906,7 @@ struct PassanteDepartureBoardView: View {
                         PassanteBranchView(
                             label: "← Direzione Ovest (Rho / Varese)",
                             color: .orange,
-                            trains: manager.passanteTrainsViaRho.filter { t in
+                            trains: passanteManager.passanteTrainsViaRho.filter { t in
                                 let cat = t.category.uppercased()
                                 return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                             },
@@ -877,7 +915,7 @@ struct PassanteDepartureBoardView: View {
                         PassanteBranchView(
                             label: "Direzione Est (Forlanini / Treviglio) →",
                             color: .orange,
-                            trains: manager.passanteTrainsViaForlanini.filter { t in
+                            trains: passanteManager.passanteTrainsViaForlanini.filter { t in
                                 let cat = t.category.uppercased()
                                 return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                             },
@@ -889,7 +927,7 @@ struct PassanteDepartureBoardView: View {
                         PassanteBranchView(
                             label: "← Direzione Ovest (Bovisa / Saronno)",
                             color: .red,
-                            trains: manager.passanteTrainsViaBovisa.filter { t in
+                            trains: passanteManager.passanteTrainsViaBovisa.filter { t in
                                 let cat = t.category.uppercased()
                                 return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                             },
@@ -898,7 +936,7 @@ struct PassanteDepartureBoardView: View {
                         PassanteBranchView(
                             label: "Direzione Est (Rogoredo / Pavia / Lodi) →",
                             color: .red,
-                            trains: manager.passanteTrainsViaRogoredo.filter { t in
+                            trains: passanteManager.passanteTrainsViaRogoredo.filter { t in
                                 let cat = t.category.uppercased()
                                 return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                             },
@@ -911,17 +949,17 @@ struct PassanteDepartureBoardView: View {
                             PassanteBranchView(
                                 label: "← Bovisa",
                                 color: .red,
-                                trains: manager.passanteTrainsViaBovisa.filter { t in
+                                trains: passanteManager.passanteTrainsViaBovisa.filter { t in
                                     let cat = t.category.uppercased()
-                                    return manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                                 }
                             )
                             PassanteBranchView(
                                 label: "Forlanini →",
                                 color: .orange,
-                                trains: manager.passanteTrainsViaForlanini.filter { t in
+                                trains: passanteManager.passanteTrainsViaForlanini.filter { t in
                                     let cat = t.category.uppercased()
-                                    return manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                                 }
                             )
                         }
@@ -929,29 +967,29 @@ struct PassanteDepartureBoardView: View {
                             PassanteBranchView(
                                 label: "← Rho",
                                 color: .orange,
-                                trains: manager.passanteTrainsViaRho.filter { t in
+                                trains: passanteManager.passanteTrainsViaRho.filter { t in
                                     let cat = t.category.uppercased()
-                                    return manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                                 }
                             )
                             PassanteBranchView(
                                 label: "Rogoredo →",
                                 color: .red,
-                                trains: manager.passanteTrainsViaRogoredo.filter { t in
+                                trains: passanteManager.passanteTrainsViaRogoredo.filter { t in
                                     let cat = t.category.uppercased()
-                                    return manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
                                 }
                             )
                         }
                         
-                        let filteredBovisa = manager.passanteTrainsViaBovisa.filter { t in manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(t.category.uppercased()) }
-                        let filteredRho = manager.passanteTrainsViaRho.filter { t in manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(t.category.uppercased()) }
-                        let filteredForlanini = manager.passanteTrainsViaForlanini.filter { t in manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(t.category.uppercased()) }
-                        let filteredRogoredo = manager.passanteTrainsViaRogoredo.filter { t in manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(t.category.uppercased()) }
+                        let filteredBovisa = passanteManager.passanteTrainsViaBovisa.filter { t in passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(t.category.uppercased()) }
+                        let filteredRho = passanteManager.passanteTrainsViaRho.filter { t in passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(t.category.uppercased()) }
+                        let filteredForlanini = passanteManager.passanteTrainsViaForlanini.filter { t in passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(t.category.uppercased()) }
+                        let filteredRogoredo = passanteManager.passanteTrainsViaRogoredo.filter { t in passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(t.category.uppercased()) }
                         
                         let classified = filteredBovisa + filteredRho + filteredForlanini + filteredRogoredo
                         let unclassified = allTrains.filter { t in
-                            let isPreferred = manager.selectedSuburbanLines.isEmpty || manager.selectedSuburbanLines.contains(t.category.uppercased())
+                            let isPreferred = passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(t.category.uppercased())
                             return isPreferred && !classified.contains(where: { $0.id == t.id })
                         }
                         if !unclassified.isEmpty {
@@ -1026,6 +1064,7 @@ struct PassanteBranchView: View {
 struct SmartConnectorRouteView: View {
     let route: SuburbanRoute
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     
     var body: some View {
 
@@ -1209,6 +1248,7 @@ struct SmartConnectorRouteView: View {
 
 struct PassanteQuickSetupView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @Environment(\.dismiss) var dismiss
     
     @State private var originName = ""
@@ -1290,6 +1330,7 @@ struct PassanteQuickSetupView: View {
 
 struct PassanteTunnelStatusButton: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var locationManager: LocationManager
     @Binding var showThermometerSheet: Bool
     
@@ -1297,15 +1338,14 @@ struct PassanteTunnelStatusButton: View {
         Button {
             Haptics.play(.light)
             if let nearby = locationManager.nearbyStation,
-               manager.passanteStationsForUser.contains(where: { $0.name == nearby.name }),
-               let st = manager.passanteStationsForUser.first(where: { $0.name == nearby.name }) {
-                manager.selectedPassanteStation = st
+               let st = passanteManager.passanteStationsForUser.first(where: { $0.matches(nearby) }) {
+                passanteManager.selectedPassanteStation = st
             }
             showThermometerSheet = true
-            Task { await manager.fetchPassanteLive() }
+            Task { await passanteManager.fetchPassanteLive(manager: manager) }
         } label: {
             Image(systemName: "info.circle.fill")
-                .foregroundColor(Color(hex: manager.passanteTunnelHealthColor).opacity(0.8))
+                .foregroundColor(Color(hex: passanteManager.passanteTunnelHealthColor).opacity(0.8))
                 .font(.body)
                 .padding(.vertical, 8)
                 .padding(.leading, 16)
@@ -1317,27 +1357,42 @@ struct PassanteTunnelStatusButton: View {
 
 struct PassanteTunnelStatusHeaderView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @State private var showThermometerSheet = false
     
     var body: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(Color(hex: manager.passanteTunnelHealthColor))
-                .frame(width: 8, height: 8)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color(hex: passanteManager.passanteTunnelHealthColor))
+                    .frame(width: 8, height: 8)
+                
+                Text("\(passanteManager.passanteTunnelHealthMessage)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(Color(hex: passanteManager.passanteTunnelHealthColor))
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                PassanteTunnelStatusButton(showThermometerSheet: $showThermometerSheet)
+            }
             
-            Text("\(manager.passanteTunnelHealthMessage)")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(Color(hex: manager.passanteTunnelHealthColor))
-                .lineLimit(1)
-            
-            Spacer()
-            
-            PassanteTunnelStatusButton(showThermometerSheet: $showThermometerSheet)
+            if !passanteManager.passanteSelectedLinesAlerts.isEmpty {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(passanteManager.passanteSelectedLinesAlerts, id: \.self) { alert in
+                        Text("⚠️ \(alert)")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.orange)
+                    }
+                }
+                .padding(.leading, 16)
+                .padding(.bottom, 4)
+            }
         }
         .padding(.leading, 12)
         .padding(.trailing, 12)
-        .padding(.vertical, 0)
-        .background(Color(hex: manager.passanteTunnelHealthColor).opacity(0.12))
+        .padding(.vertical, 6)
+        .background(Color(hex: passanteManager.passanteTunnelHealthColor).opacity(0.12))
         .cornerRadius(8)
         .contentShape(Rectangle())
         .sheet(isPresented: $showThermometerSheet) {
@@ -1351,8 +1406,11 @@ struct PassanteTunnelStatusHeaderView: View {
 
 struct PassanteTunnelDetailView: View {
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @Environment(\.dismiss) var dismiss
     @AppStorage("showOuterSuburbanStations") var showOuterSuburbanStations = false
+    @Environment(\.scenePhase) var scenePhase
+
     
     @State private var currentTab = 0
     
@@ -1369,7 +1427,7 @@ struct PassanteTunnelDetailView: View {
                 .padding(.horizontal)
                 .padding(.top, 14)
                 
-                let activeLines = manager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
+                let activeLines = passanteManager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
                 let isMixed = !activeLines.isEmpty && 
                               !(activeLines.allSatisfy { ["S5", "S6"].contains($0) } || 
                                 activeLines.allSatisfy { ["S1", "S2", "S12", "S13"].contains($0) })
@@ -1396,9 +1454,9 @@ struct PassanteTunnelDetailView: View {
                     ScrollView {
                         VStack(spacing: 16) {
                             PassanteTunnelThermometerView(
-                                statusMessage: manager.passanteTunnelHealthMessage,
-                                statusColorHex: manager.passanteTunnelHealthColor,
-                                avgDelay: manager.passanteTunnelAverageDelay
+                                statusMessage: passanteManager.passanteTunnelHealthMessage,
+                                statusColorHex: passanteManager.passanteTunnelHealthColor,
+                                avgDelay: passanteManager.passanteTunnelAverageDelay
                             )
                         }
                         .padding(.horizontal)
@@ -1408,10 +1466,10 @@ struct PassanteTunnelDetailView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
-                            if manager.useSpecialPassanteView {
+                            if passanteManager.useSpecialPassanteView {
                                 PassanteDepartureBoardView()
                             } else {
-                                StationBoardView(station: manager.selectedPassanteStation)
+                                StationBoardView(station: passanteManager.selectedPassanteStation)
                             }
                         }
                         .padding(.horizontal)
@@ -1420,7 +1478,7 @@ struct PassanteTunnelDetailView: View {
                     }
                 }
             }
-            .navigationTitle("Dettagli Tunnel")
+            .navigationTitle("Dettagli")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -1428,8 +1486,17 @@ struct PassanteTunnelDetailView: View {
                 }
             }
             .onReceive(timer) { _ in
+                guard scenePhase == .active else { return }
                 Task {
-                    await manager.fetchPassanteLive()
+                    await passanteManager.fetchPassanteLive(manager: manager, includePositions: currentTab == 0)
+                }
+            }
+            .task {
+                await passanteManager.fetchPassanteLive(manager: manager, includePositions: currentTab == 0)
+            }
+            .onChange(of: currentTab) { _, newValue in
+                Task {
+                    await passanteManager.fetchPassanteLive(manager: manager, includePositions: newValue == 0)
                 }
             }
         }

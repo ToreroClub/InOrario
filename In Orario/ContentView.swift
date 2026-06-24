@@ -37,7 +37,10 @@ struct NewsBannerView: View {
 struct ContentView: View {
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var metroCache: MetroCache
+    @Environment(\.scenePhase) var scenePhase
+
     
     @State private var newsItems: [NewsItem] = []
     @State private var allNewsItems: [NewsItem] = []
@@ -46,6 +49,7 @@ struct ContentView: View {
     @State private var isFavoritesExpanded = true
     @State private var isMyStationsExpanded = true
     @State private var showSearchSheet = false
+    @State private var showHistorySheet = false
     @State private var showProfile = false
     @State private var showNewsCenter = false
     @State private var showOnboarding = false
@@ -162,7 +166,6 @@ struct ContentView: View {
                                                     Label("Rimuovi", systemImage: "trash.fill")
                                                 }
                                             }
-                                            }
                                         }
                                         .onMove { from, to in
                                             manager.moveFavoriteTrains(from: from, to: to)
@@ -206,7 +209,6 @@ struct ContentView: View {
                                                     Label("Rimuovi", systemImage: "trash.fill")
                                                 }
                                             }
-                                            }
                                         }
                                         .onMove { from, to in
                                             manager.moveMyStations(from: from, to: to)
@@ -231,52 +233,30 @@ struct ContentView: View {
                             }
                             
                         case .passante:
-                            if !manager.selectedSuburbanLines.isEmpty {
+                            if !passanteManager.selectedSuburbanLines.isEmpty {
                                 Section {
                                     DisclosureGroup(isExpanded: $isPassanteExpanded) {
                                         VStack(alignment: .leading, spacing: 15) {
                                             
-                                            if manager.userUsesTunnel {
+                                            if passanteManager.userUsesTunnel {
                                                 PassanteTunnelStatusHeaderView()
                                             }
                                             
                                             
-                                            let selectedLines = SuburbanData.shared.allLines.filter { manager.selectedSuburbanLines.contains($0.id) }
+                                            let selectedLines = SuburbanData.shared.allLines.filter { passanteManager.selectedSuburbanLines.contains($0.id) }
                                             ForEach(selectedLines) { line in
-                                                let hiddenForLine = manager.hiddenSuburbanStations[line.id] ?? []
+                                                let hiddenForLine = passanteManager.hiddenSuburbanStations[line.id] ?? []
                                                 let visibleStations = line.stations.filter { !hiddenForLine.contains($0.name) }
-                                                
-                                                if !visibleStations.isEmpty {
-                                                    VStack(alignment: .leading, spacing: 0) {
-                                                        Text(line.name)
-                                                            .font(.caption)
-                                                            .fontWeight(.bold)
-                                                            .foregroundColor(line.color)
-                                                            .padding(.top, 5)
-                                                            .padding(.horizontal, 10)
                                                         
-                                                        ScrollView(.horizontal, showsIndicators: false) {
-                                                            HStack(spacing: 0) {
-                                                                ForEach(Array(visibleStations.enumerated()), id: \.element.id) { index, station in
-                                                                    let activeNearby = locationManager.manualNearbyStation ?? locationManager.nearbyStation
-                                                                    let isNearby = (activeNearby?.rfiID == station.rfiID) || (activeNearby?.name == station.name)
-                                                                    NavigationLink(destination: SmartBoardView(station: station)) {
-                                                                        PassanteNodeView(station: station, isFirst: index == 0, isLast: index == visibleStations.count - 1, isNearby: isNearby, lineColor: line.color, lineId: line.id)
-                                                                    }
-                                                                }
+                                                        if !visibleStations.isEmpty {
+                                                            let activeNearby = locationManager.manualNearbyStation ?? locationManager.nearbyStation
+                                                            SuburbanLineView(line: line, visibleStations: visibleStations, activeNearby: activeNearby)
+                                                            
+                                                            if line.id != selectedLines.last?.id {
+                                                                Divider().padding(.vertical, 5)
                                                             }
-                                                            .padding(.bottom, 20)
-                                                            .padding(.top, 20)
-                                                            .padding(.horizontal, 10)
                                                         }
                                                     }
-                                                    .listRowInsets(EdgeInsets())
-                                                    
-                                                    if line.id != selectedLines.last?.id {
-                                                        Divider().padding(.vertical, 5)
-                                                    }
-                                                }
-                                            }
                                         }
                                         .padding(.vertical, 10)
                                     } label: {
@@ -285,13 +265,12 @@ struct ContentView: View {
                                             .foregroundColor(.orange)
                                             .padding(.vertical, 4)
                                     }
-                                    }
                                     .onChange(of: isPassanteExpanded) { oldValue, newValue in
                                         if rememberPassanteState { storedIsPassanteExpanded = newValue }
                                         Haptics.play(.light)
                                         if newValue {
                                             Task {
-                                                await manager.fetchPassanteLive()
+                                                await passanteManager.fetchPassanteLive(manager: manager)
                                             }
                                         }
                                     }
@@ -309,6 +288,9 @@ struct ContentView: View {
                     manager.loadFavorites()
                     for train in manager.favoriteTrains {
                         await manager.enrichFavoriteTrainData(trainNumber: train.number)
+                    }
+                    if isPassanteExpanded {
+                        await passanteManager.fetchPassanteLive(manager: manager)
                     }
                 }
             }
@@ -395,6 +377,11 @@ struct ContentView: View {
                         
                         Button {
                             Haptics.play(.medium)
+                            showHistorySheet = true
+                        } label: { Image(systemName: "clock.arrow.circlepath").fontWeight(.medium) }
+                        
+                        Button {
+                            Haptics.play(.medium)
                             showSearchSheet = true
                         } label: { Image(systemName: "magnifyingglass").fontWeight(.bold) }
                     }
@@ -402,6 +389,7 @@ struct ContentView: View {
             }
             .environment(\.editMode, $editMode)
             .sheet(isPresented: $showSearchSheet, onDismiss: { manager.loadFavorites() }) { SearchView() }
+            .sheet(isPresented: $showHistorySheet) { HistoryView() }
             .sheet(isPresented: $showProfile) { ProfileView() }
             .sheet(isPresented: $showNewsCenter) { NewsCenterView(news: allNewsItems) }
             .sheet(isPresented: $showNewSmartRouteSheet) {
@@ -438,6 +426,16 @@ struct ContentView: View {
                         await manager.enrichFavoriteTrainData(trainNumber: train.number)
                     }
                 }
+                
+                if isPassanteExpanded {
+                    Task {
+                        await passanteManager.fetchPassanteLive(manager: manager)
+                    }
+                }
+                
+                if let initialNearby = locationManager.manualNearbyStation ?? locationManager.nearbyStation {
+                    syncPassanteStation(initialNearby)
+                }
             }
             .onChange(of: hasCompletedOnboarding) { oldValue, newValue in
                 if !newValue {
@@ -451,6 +449,20 @@ struct ContentView: View {
             .onChange(of: manager.strikeRegion) { oldValue, newValue in
                 Task {
                     await loadNews()
+                }
+            }
+            .onChange(of: locationManager.nearbyStation) { oldValue, newValue in
+                if let newStation = newValue {
+                    if locationManager.manualNearbyStation == nil {
+                        syncPassanteStation(newStation)
+                    }
+                }
+            }
+            .onChange(of: locationManager.manualNearbyStation) { oldValue, newValue in
+                if let newStation = newValue {
+                    syncPassanteStation(newStation)
+                } else if let gpsStation = locationManager.nearbyStation {
+                    syncPassanteStation(gpsStation)
                 }
             }
             
@@ -495,10 +507,22 @@ struct ContentView: View {
                 manager.deepLinkTrain = nil
             }
         }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if newPhase == .active {
+                print("App tornata attiva, aggiorno posizione e passante...")
+                locationManager.requestLocation()
+                if isPassanteExpanded {
+                    Task {
+                        await passanteManager.fetchPassanteLive(manager: manager)
+                    }
+                }
+            }
+        }
         .onReceive(passanteTimer) { _ in
+            guard scenePhase == .active else { return }
             if isPassanteExpanded {
                 Task {
-                    await manager.fetchPassanteLive()
+                    await passanteManager.fetchPassanteLive(manager: manager)
                 }
             }
         }
@@ -521,5 +545,162 @@ struct ContentView: View {
             print("Errore fetch news: \(error)")
         }
     }
+    
+    func syncPassanteStation(_ station: Station) {
+        var canonicalStation: Station? = nil
+        for line in SuburbanData.shared.allLines {
+            if let matched = line.stations.first(where: { $0.matches(station) }) {
+                canonicalStation = matched
+                break
+            }
+        }
+        
+        guard let canonical = canonicalStation else { return }
+        
+        if passanteManager.selectedPassanteStation.matches(canonical) {
+            return
+        }
+        
+        passanteManager.selectedPassanteStation = canonical
+        if isPassanteExpanded {
+            Task {
+                await passanteManager.fetchPassanteLive(manager: manager)
+            }
+        }
+    }
 }
 
+func isStationNearby(station: Station, activeNearby: Station?) -> Bool {
+    guard let activeNearby = activeNearby else { return false }
+    return station.matches(activeNearby)
+}
+
+struct SuburbanLineView: View {
+    let line: SuburbanLine
+    let visibleStations: [Station]
+    let activeNearby: Station?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(line.name)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(line.color)
+                .padding(.top, 5)
+                .padding(.horizontal, 10)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(0..<visibleStations.count, id: \.self) { index in
+                        let station = visibleStations[index]
+                        let isNearby = isStationNearby(station: station, activeNearby: activeNearby)
+                        
+                        NavigationLink(destination: SmartBoardView(station: station)) {
+                            PassanteNodeView(
+                                station: station,
+                                isFirst: index == 0,
+                                isLast: index == visibleStations.count - 1,
+                                isNearby: isNearby,
+                                lineColor: line.color,
+                                lineId: line.id
+                            )
+                        }
+                    }
+                }
+                .padding(.bottom, 20)
+                .padding(.top, 20)
+                .padding(.horizontal, 10)
+            }
+        }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
+        .padding(.vertical, 5)
+    }
+}
+
+struct HistoryView: View {
+    @EnvironmentObject var manager: TrainManager
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                if manager.viewedRecentTrains.isEmpty && manager.viewedRecentStations.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "clock.badge.slash")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray)
+                        Text("Cronologia vuota")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text("I treni e le stazioni che aprirai appariranno qui automaticamente.")
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .padding(.top, 50)
+                    .listRowBackground(Color.clear)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    if !manager.viewedRecentTrains.isEmpty {
+                        Section(header: HStack {
+                            Text("Treni visti di recente")
+                            Spacer()
+                            Button("Cancella") {
+                                manager.clearViewedRecentTrains()
+                                Haptics.play(.medium)
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        }) {
+                            ForEach(manager.viewedRecentTrains) { result in
+                                let dummy = manager.createDummyTrain(from: result)
+                                NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false)) {
+                                    HStack {
+                                        Image(systemName: "train.side.front.car").foregroundColor(.blue)
+                                        VStack(alignment: .leading) {
+                                            Text("Treno \(result.number)").font(.headline)
+                                            Text(result.description).font(.caption).foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if !manager.viewedRecentStations.isEmpty {
+                        Section(header: HStack {
+                            Text("Stazioni viste di recente")
+                            Spacer()
+                            Button("Cancella") {
+                                manager.clearViewedRecentStations()
+                                Haptics.play(.medium)
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        }) {
+                            ForEach(manager.viewedRecentStations) { result in
+                                let possibleRFI = manager.getRfiID(for: result.nomeLungo)
+                                let tempStation = Station(name: result.nomeLungo, rfiID: possibleRFI, vtID: result.vtID, lat: nil, lon: nil)
+                                
+                                NavigationLink(destination: SmartBoardView(station: tempStation)) {
+                                    HStack {
+                                        Image(systemName: "building.2.crop.circle.fill").foregroundColor(.orange)
+                                        Text(result.nomeLungo).font(.headline)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Cronologia Recenti")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Chiudi") { dismiss() }
+                }
+            }
+        }
+    }
+}

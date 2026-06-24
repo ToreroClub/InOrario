@@ -56,6 +56,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 struct InOrario: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var manager = TrainManager()
+    @StateObject private var passanteManager = PassanteManager()
     @StateObject private var metroCache = MetroCache()
     @StateObject private var locationManager = LocationManager()
     @Environment(\.scenePhase) private var scenePhase
@@ -64,6 +65,7 @@ struct InOrario: App {
         WindowGroup {
             ContentView()
                 .environmentObject(manager)
+                .environmentObject(passanteManager)
                 .environmentObject(metroCache)
                 .environmentObject(locationManager)
                 .onAppear {
