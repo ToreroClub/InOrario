@@ -1,7 +1,5 @@
 ## 🚄 In Orario
 
-In Orario nasce da una cosa molto semplice: essere pendolari e non sapere mai davvero cosa sta succedendo in stazione.
-
 Ritardi, cambi binario all’ultimo secondo, treni che spariscono dai tabelloni… chi viaggia in treno in Italia conosce bene la situazione.
 
 Questa app prova a rendere tutto un po’ più chiaro e veloce.
