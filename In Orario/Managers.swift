@@ -260,7 +260,17 @@ struct Haptics {
         NSUbiquitousKeyValueStore.default.synchronize()
         
         if self.remoteNotificationsEnabled {
-            UIApplication.shared.registerForRemoteNotifications()
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                if settings.authorizationStatus == .notDetermined {
+                    DispatchQueue.main.async {
+                        self.requestNotificationPermission()
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
+            }
         }
         
         loadViewedRecentTrains()
@@ -978,8 +988,13 @@ struct Haptics {
             return
         }
         
-        // Registra sempre il dispositivo generale per gli scioperi
-        registerDeviceForStrikes(token: token)
+        // Se l'utente usa l'IA locale (o è utente gratuito), NON lo registriamo per gli scioperi sul server
+        let useLocalAI = !hasSupport() || AIFeatureManager.shared.preferLocalAI
+        if !useLocalAI {
+            registerDeviceForStrikes(token: token)
+        } else {
+            unregisterDeviceForStrikes(token: token)
+        }
         
         for train in favoriteTrains {
             if train.notifyDelay ?? false {
@@ -1009,15 +1024,71 @@ struct Haptics {
         }
     }
     
+    func getDeviceModelName() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce("") { identifier, element in
+            guard let value = element.value as? Int8, value != 0 else { return identifier }
+            return identifier + String(UnicodeScalar(UInt8(value)))
+        }
+        
+        switch identifier {
+        case "iPhone10,1", "iPhone10,4": return "iPhone 8"
+        case "iPhone10,2", "iPhone10,5": return "iPhone 8 Plus"
+        case "iPhone10,3", "iPhone10,6": return "iPhone X"
+        case "iPhone11,2": return "iPhone XS"
+        case "iPhone11,4", "iPhone11,6": return "iPhone XS Max"
+        case "iPhone11,8": return "iPhone XR"
+        case "iPhone12,1": return "iPhone 11"
+        case "iPhone12,3": return "iPhone 11 Pro"
+        case "iPhone12,5": return "iPhone 11 Pro Max"
+        case "iPhone12,8": return "iPhone SE (2nd Gen)"
+        case "iPhone13,1": return "iPhone 12 mini"
+        case "iPhone13,2": return "iPhone 12"
+        case "iPhone13,3": return "iPhone 12 Pro"
+        case "iPhone13,4": return "iPhone 12 Pro Max"
+        case "iPhone14,4": return "iPhone 13 mini"
+        case "iPhone14,5": return "iPhone 13"
+        case "iPhone14,2": return "iPhone 13 Pro"
+        case "iPhone14,3": return "iPhone 13 Pro Max"
+        case "iPhone14,6": return "iPhone SE (3rd Gen)"
+        case "iPhone14,7": return "iPhone 14"
+        case "iPhone14,8": return "iPhone 14 Plus"
+        case "iPhone15,2": return "iPhone 14 Pro"
+        case "iPhone15,3": return "iPhone 14 Pro Max"
+        case "iPhone15,4": return "iPhone 15"
+        case "iPhone15,5": return "iPhone 15 Plus"
+        case "iPhone16,1": return "iPhone 15 Pro"
+        case "iPhone16,2": return "iPhone 15 Pro Max"
+        case "iPhone17,1": return "iPhone 16 Pro"
+        case "iPhone17,2": return "iPhone 16 Pro Max"
+        case "iPhone17,3": return "iPhone 16"
+        case "iPhone17,4": return "iPhone 16 Plus"
+        case "i386", "x86_64", "arm64": return "iPhone Simulator"
+        default: return identifier.isEmpty ? "iPhone" : identifier
+        }
+    }
+    
     func registerDeviceForStrikes(token: String) {
         guard remoteNotificationsEnabled else { return }
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/register") else { return }
         let region = hasSupport() ? strikeRegion : "Tutte"
+        
+        let model = getDeviceModelName()
+        let os = "iOS \(UIDevice.current.systemVersion)"
+        let ai = hasSupport() ? (AIFeatureManager.shared.preferLocalAI ? "local" : "cloud") : (AIFeatureManager.shared.isLocalModelInstalled ? "local" : "none")
+        let support = hasSupport()
+        
         let payload: [String: Any] = [
             "token": token,
             "platform": "ios",
             "strike_region": region,
-            "strike_enabled": strikeNotificationsEnabled
+            "strike_enabled": strikeNotificationsEnabled,
+            "device_model": model,
+            "os_version": os,
+            "ai_engine": ai,
+            "has_support": support
         ]
         
         Task {
@@ -1150,6 +1221,11 @@ struct Haptics {
         
         let limit = getLimit()
         
+        let model = "\(UIDevice.current.model) (\(UIDevice.current.name))"
+        let os = "iOS \(UIDevice.current.systemVersion)"
+        let ai = hasSupport() ? (AIFeatureManager.shared.preferLocalAI ? "local" : "cloud") : (AIFeatureManager.shared.isLocalModelInstalled ? "local" : "none")
+        let support = hasSupport()
+        
         var payload: [String: Any] = [
             "token": token,
             "platform": "ios",
@@ -1163,7 +1239,11 @@ struct Haptics {
             "departure_time": trainPref?.departureTime ?? "",
             "arrival_time": trainPref?.arrivalTime ?? "",
             "notify_platform_change": notifyPlatformChange,
-            "platform_change_station_name": platformChangeStationName
+            "platform_change_station_name": platformChangeStationName,
+            "device_model": model,
+            "os_version": os,
+            "ai_engine": ai,
+            "has_support": support
         ]
         
         if let activeDays = trainPref?.activeDays {
@@ -1952,10 +2032,31 @@ struct Haptics {
         if result.errorMessage == nil {
             let globalDelay = result.status.statusMessage.contains("Soppresso") ? 0 : (result.stops.last?.delay ?? 0)
             let delayStr = globalDelay > 0 ? "+\(globalDelay)'" : "In orario"
+            let stops = result.stops
+            let lastStation = result.status.lastStation
+            let isArrived = result.status.isArrived
+            
+            var progressVal: Double = 0.0
+            if isArrived {
+                progressVal = 1.0
+            } else if !stops.isEmpty {
+                if stops.count == 1 {
+                    progressVal = 1.0
+                } else {
+                    let lastClean = lastStation.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    if let idx = stops.firstIndex(where: { 
+                        $0.stationName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == lastClean 
+                    }) {
+                        progressVal = Double(idx) / Double(stops.count - 1)
+                    }
+                }
+            }
+            
             let updatedState = TrainLiveActivityAttributes.ContentState(
                 delay: delayStr,
                 statusMessage: result.status.statusMessage,
-                lastStation: result.status.lastStation
+                lastStation: lastStation,
+                progress: progressVal
             )
             
             for activity in Activity<TrainLiveActivityAttributes>.activities {
@@ -2119,6 +2220,120 @@ struct Haptics {
         else if saved.number.hasPrefix("24") || saved.number.hasPrefix("10") { cat = "S" }
         else if saved.number.hasPrefix("9") { cat = "FR" }
         return Train(category: cat, number: saved.number, destination: saved.description.capitalized, time: "--:--", delay: "In orario", platform: "--")
+    }
+    // MARK: - Hybrid AI / Fetching News
+    
+    func fetchStrikesAndNews() async -> [NewsItem] {
+        let aiManager = AIFeatureManager.shared
+        let isPremium = hasSupport()
+        let regionParam = strikeRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
+        let smartSummaryEnabled = UserDefaults.standard.object(forKey: "ai_smartSummaryEnabled") as? Bool ?? true
+        
+        var result: [NewsItem]
+        // SOLO gli utenti premium usano il Cloud backend
+        if isPremium && !aiManager.preferLocalAI {
+            async let backendTask = fetchFromBackend(regionParam: regionParam)
+            async let trenitaliaTask = LocalScrapingService.shared.scrapeTrenitalia(region: strikeRegion)
+            let backendItems = await backendTask
+            let localItems = await trenitaliaTask
+            result = backendItems + localItems.filter { $0.category == "realtime" }
+            
+            result.sort { a, b in
+                if a.isUrgent != b.isUrgent { return a.isUrgent }
+                let catA = a.category ?? ""
+                let catB = b.category ?? ""
+                if catA == "sciopero" && catB != "sciopero" { return true }
+                if catB == "sciopero" && catA != "sciopero" { return false }
+                return true
+            }
+        } else if aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled && smartSummaryEnabled {
+            let canRun = isPremium || aiManager.canRunFreeLocalAI()
+            if canRun {
+                let items = await executeLocalScrapingAndAI(region: strikeRegion)
+                if !isPremium {
+                    aiManager.recordLocalAIExecution()
+                    saveCache(items: items)
+                }
+                result = items
+            } else {
+                // Quota giornaliera esaurita: usa cache se disponibile, altrimenti scraping diretto
+                if let cached = loadCache() {
+                    result = cached
+                } else {
+                    result = await executeRawScraping(region: strikeRegion)
+                }
+            }
+        } else {
+            result = await executeRawScraping(region: strikeRegion)
+        }
+        
+        return filterExpiredStrikes(result)
+    }
+    
+    private func filterExpiredStrikes(_ items: [NewsItem]) -> [NewsItem] {
+        let fmt1 = DateFormatter()
+        fmt1.dateFormat = "dd/MM/yyyy"
+        fmt1.locale = Locale(identifier: "it_IT")
+        
+        let fmt2 = DateFormatter()
+        fmt2.dateFormat = "yyyy-MM-dd"
+        fmt2.locale = Locale(identifier: "it_IT")
+        
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        return items.filter { item in
+            guard item.category == "sciopero", let dateStr = item.date else {
+                return true // InfoLavori o altri item rimangono sempre
+            }
+            if let date = fmt1.date(from: dateStr) ?? fmt2.date(from: dateStr) {
+                let strikeDay = Calendar.current.startOfDay(for: date)
+                return strikeDay >= today
+            }
+            return true
+        }
+    }
+    
+    private func executeLocalScrapingAndAI(region: String) async -> [NewsItem] {
+        // Scraping parallelo di entrambe le sorgenti
+        async let trenitalia = LocalScrapingService.shared.scrapeTrenitalia(region: region)
+        async let ministero  = LocalScrapingService.shared.scrapeMinistero(region: region)
+        
+        let allItems = await trenitalia + ministero
+        guard !allItems.isEmpty else { return [] }
+        
+        // Il modello AI formatta TUTTI gli item (scioperi MIT e InfoLavori Trenitalia)
+        if LocalSLMService.shared.initializeModel() {
+            return await LocalSLMService.shared.formatWithLocalModel(rawItems: allItems)
+        }
+        return allItems
+    }
+    
+    func executeRawScraping(region: String) async -> [NewsItem] {
+        async let trenitalia = LocalScrapingService.shared.scrapeTrenitalia(region: region)
+        async let ministero  = LocalScrapingService.shared.scrapeMinistero(region: region)
+        return await trenitalia + ministero
+    }
+    
+    private func fetchFromBackend(regionParam: String) async -> [NewsItem] {
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)") else { return [] }
+        do {
+            let (data, _) = try await NetworkService.shared.get(url: url)
+            return try JSONDecoder().decode([NewsItem].self, from: data)
+        } catch {
+            print("Errore fetch dal backend: \(error)")
+            return []
+        }
+    }
+    
+    func saveCache(items: [NewsItem]) {
+        if let data = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(data, forKey: "cachedStrikesAndNews")
+        }
+    }
+    
+    private func loadCache() -> [NewsItem]? {
+        guard let data = UserDefaults.standard.data(forKey: "cachedStrikesAndNews") else { return nil }
+        return try? JSONDecoder().decode([NewsItem].self, from: data)
     }
 }
 

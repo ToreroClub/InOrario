@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		234C32662FF5474000937D01 /* LlamaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 234C32652FF5473F00937D01 /* LlamaSwift */; };
 		2390EF5D2FAA8B59007DFB3C /* TrainWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2390EF492FAA8B58007DFB3C /* TrainWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		23A637B02FE4690F00020D3F /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23A637AF2FE4690F00020D3F /* StoreKit.framework */; };
 /* End PBXBuildFile section */
@@ -89,6 +90,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				234C32662FF5474000937D01 /* LlamaSwift in Frameworks */,
 				23A637B02FE4690F00020D3F /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -169,6 +171,7 @@
 			);
 			name = "In Orario?";
 			packageProductDependencies = (
+				234C32652FF5473F00937D01 /* LlamaSwift */,
 			);
 			productName = "Tabelloni FS";
 			productReference = 23C4E8C22F992D4200CF3B22 /* In Orario?.app */;
@@ -202,6 +205,9 @@
 			);
 			mainGroup = 23C4E8B92F992D4200CF3B22;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				234C32642FF5473F00937D01 /* XCRemoteSwiftPackageReference "llama" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 23C4E8C32F992D4200CF3B22 /* Products */;
 			projectDirPath = "";
@@ -381,6 +387,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -439,6 +446,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_INTEROP_MODE = objcxx;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -562,6 +570,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		234C32642FF5473F00937D01 /* XCRemoteSwiftPackageReference "llama" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mattt/llama.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9852.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		234C32652FF5473F00937D01 /* LlamaSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 234C32642FF5473F00937D01 /* XCRemoteSwiftPackageReference "llama" */;
+			productName = LlamaSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 23C4E8BA2F992D4200CF3B22 /* Project object */;
 }

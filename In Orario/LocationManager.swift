@@ -17,7 +17,11 @@ import Combine
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
     }
-    
+
+    var authorizationStatus: CLAuthorizationStatus {
+        return manager.authorizationStatus
+    }
+
     func requestAuthorization() {
         print("Richiesta esplicita di autorizzazione GPS...")
         manager.requestWhenInUseAuthorization()

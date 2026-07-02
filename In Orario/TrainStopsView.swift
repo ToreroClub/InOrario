@@ -372,18 +372,7 @@ struct TrainStopsView: View {
                         Image(systemName: isActive ? "livephoto.slash" : "livephoto.play")
                             .foregroundColor(isActive ? .red : .green)
                     }
-                    
-                    let delayMinutes = train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")
-                    let isDelayed = !train.delay.contains("In orario")
-                    let shareText = isDelayed
-                        ? "Il treno \(train.number) è in ritardo di \(delayMinutes) minuti, ci vediamo dopo! 🐌"
-                        : "Il treno \(train.number) è in perfetto orario, a tra poco! 🚄"
-                    
-                    ShareLink(item: shareText) {
-                        Image(systemName: "square.and.arrow.up").foregroundColor(.blue)
-                    }
-                    .simultaneousGesture(TapGesture().onEnded { Haptics.play(.light) })
-                    
+                            
                     Button {
                         manager.toggleFavorite(trainNumber: train.number, description: train.destination, departureTime: train.time)
                     } label: {
@@ -486,16 +475,40 @@ struct TrainStopsView: View {
             return
         }
         
+        let originStation = manager.selectedTrainStops.first?.stationName ?? "Partenza"
+        
         let attributes = TrainLiveActivityAttributes(
             trainNumber: train.number,
             destination: train.destination,
-            category: train.category
+            category: train.category,
+            origin: originStation
         )
+        
+        let stops = manager.selectedTrainStops
+        let lastStation = manager.currentTrainStatus.lastStation
+        let isArrived = manager.currentTrainStatus.isArrived
+        
+        var progressVal: Double = 0.0
+        if isArrived {
+            progressVal = 1.0
+        } else if !stops.isEmpty {
+            if stops.count == 1 {
+                progressVal = 1.0
+            } else {
+                let lastClean = lastStation.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                if let idx = stops.firstIndex(where: { 
+                    $0.stationName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == lastClean 
+                }) {
+                    progressVal = Double(idx) / Double(stops.count - 1)
+                }
+            }
+        }
         
         let contentState = TrainLiveActivityAttributes.ContentState(
             delay: train.delay,
             statusMessage: manager.currentTrainStatus.statusMessage,
-            lastStation: manager.currentTrainStatus.lastStation
+            lastStation: lastStation,
+            progress: progressVal
         )
         
         do {

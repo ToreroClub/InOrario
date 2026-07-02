@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In Orario — Orari treni in tempo reale</title>
-    <meta name="description" content="In Orario è un'app gratuita e senza pubblicità per chi prende il treno ogni giorno in Italia. Orari in tempo reale, Passante Ferroviario, metro di Milano, notifiche scioperi.">
+    <title>In Orario? — Orari treni in tempo reale</title>
+    <meta name="description" content="In Orario? è un'app gratuita e senza pubblicità per chi prende il treno ogni giorno in Italia. Orari in tempo reale, Passante Ferroviario, metro di Milano, notifiche scioperi.">
     <meta name="theme-color" content="#0b0b0c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -175,32 +175,19 @@
         }
         .btn-ghost:hover { background: var(--bg-card-hover); border-color: var(--border-hover); }
 
-        /* ── TICKER ── */
-        .ticker {
-            padding: 0;
+        /* ── TICKER STATIC ── */
+        .ticker-static {
+            padding: 16px 0;
             border-top: 1px solid var(--border);
             border-bottom: 1px solid var(--border);
             background: rgba(17,17,22,0.5);
-            overflow: hidden; position: relative;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-2);
         }
-        .ticker::before, .ticker::after {
-            content: ''; position: absolute; top:0; bottom:0; width:80px; z-index:2; pointer-events:none;
-        }
-        .ticker::before { left:0; background: linear-gradient(to right, var(--bg), transparent); }
-        .ticker::after { right:0; background: linear-gradient(to left, var(--bg), transparent); }
-        .ticker-track {
-            display: flex; align-items: center;
-            padding: 16px 0; white-space: nowrap;
-            animation: ticker-scroll 36s linear infinite; width: max-content;
-        }
-        .ticker-track:hover { animation-play-state: paused; }
-        @keyframes ticker-scroll { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
-        .ticker-item {
-            font-size: 13px; font-weight: 600;
-            color: var(--text-2); padding: 0 28px;
-            flex-shrink: 0;
-        }
-        .ticker-sep { color: var(--text-3); font-size: 20px; flex-shrink:0; }
+        .ticker-static-item { display: inline-flex; align-items: center; gap: 6px; }
+        .ticker-static-sep { color: var(--text-3); margin: 0 16px; font-weight: 400; }
 
         /* ── SECTIONS ── */
         section { padding: 96px 0; }
@@ -301,6 +288,266 @@
         .pref-delay { font-weight: 800; text-align: right; }
         .pref-delay.green { color: var(--green); }
         .pref-delay.orange { color: var(--orange); }
+
+        /* AI Demo */
+        .ai-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 450px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            text-align: left;
+        }
+        .ai-demo-before { color: var(--text-3); flex: 1; text-decoration: line-through; }
+        .ai-demo-arrow { color: var(--orange); font-size: 18px; font-weight: bold; }
+        .ai-demo-after { color: var(--text); flex: 1.2; border-left: 2px solid var(--orange); padding-left: 8px; }
+
+        /* Live Activity Demo */
+        .la-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 420px;
+            width: 100%;
+            text-align: left;
+        }
+        .la-demo-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
+        .la-train { font-weight: 800; color: #fff; }
+        .la-delay.green { color: var(--green); font-weight: 700; }
+        .la-route-container { display: flex; align-items: center; gap: 8px; margin: 16px 0; }
+        .la-station-label { font-size: 11px; color: var(--text-2); font-weight: 600; width: 80px; }
+        .la-station-label:last-child { text-align: right; }
+        .la-route-bar-wrapper {
+            flex: 1; height: 6px; background: #2c2c2e; border-radius: 3px; position: relative;
+        }
+        .la-route-bar { height: 100%; border-radius: 3px; }
+        .la-route-bar.green { background: var(--green); }
+        .la-route-train-icon {
+            position: absolute; top: -7px; transform: translateX(-50%); font-size: 14px;
+        }
+        .la-footer { font-size: 11px; color: var(--text-3); text-align: center; }
+
+        /* Compact Metro Demo */
+        .metro-demo.compact {
+            margin-top: 16px;
+            background: #000; border-radius: 16px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .metro-demo.compact .metro-demo-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .metro-demo.compact .metro-badge {
+            width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 900; color: #fff;
+            flex-shrink: 0;
+        }
+        .metro-demo.compact .metro-badge.m2 { background: var(--green); }
+        .metro-demo.compact .metro-badge.m5 { background: var(--purple); }
+        .metro-demo.compact .metro-dest {
+            font-size: 11px; font-weight: 700; color: var(--text-2);
+            flex: 1; text-align: left; margin-left: 4px;
+        }
+        .metro-demo.compact .metro-chip {
+            padding: 3px 6px; border-radius: 6px;
+            font-size: 11.5px; font-weight: 800;
+            display: inline-flex; align-items: center; gap: 3px;
+        }
+        .metro-demo.compact .metro-chip.ok { background: var(--green-dim); color: var(--green); }
+        .metro-demo.compact .metro-chip.hurry { background: var(--orange-dim); color: var(--orange); }
+
+        /* Geo Mini Demo */
+        .geo-mini-demo {
+            margin-top: 16px;
+            background: #000; border-radius: 14px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-align: left;
+        }
+        .geo-pin { font-size: 16px; }
+        .geo-details { display: flex; flex-direction: column; }
+        .geo-station { font-size: 12px; font-weight: 800; color: #fff; }
+        .geo-distance { font-size: 10px; color: var(--green); font-weight: 700; margin-top: 2px; }
+
+        /* Push Mini Demo */
+        .push-mini-demo {
+            margin-top: 16px;
+            background: rgba(26, 26, 34, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            text-align: left;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .push-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 10px; color: var(--text-2); }
+        .push-icon { font-size: 10px; }
+        .push-app-name { font-weight: 600; color: #fff; flex: 1; }
+        .push-time { color: var(--text-3); }
+        .push-body { font-size: 11px; color: var(--text); line-height: 1.4; font-weight: 500; }
+
+        /* News Mini Demo */
+        .news-mini-demo {
+            margin-top: 16px;
+            background: #000; border-radius: 14px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            text-align: left;
+        }
+        .news-tag {
+            display: inline-block;
+            background: rgba(255, 69, 58, 0.15);
+            color: var(--red);
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .news-title { font-size: 11px; font-weight: 700; color: var(--text-2); line-height: 1.35; }
+
+        /* Expanded Metro Demo */
+        .metro-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 450px;
+            width: 100%;
+            text-align: left;
+        }
+        .metro-demo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .metro-demo-station { font-size: 14px; font-weight: 800; color: #fff; }
+        .metro-demo-arrival { font-size: 11px; font-weight: 600; color: var(--text-2); }
+        .metro-demo-lines { display: flex; flex-direction: column; gap: 12px; }
+        .metro-demo-line { display: flex; align-items: center; gap: 12px; }
+        
+        .metro-badge {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 900; color: #fff;
+            flex-shrink: 0;
+        }
+        .metro-badge.m2 { background: var(--green); }
+        .metro-badge.m5 { background: var(--purple); }
+        
+        .metro-demo-line-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+        .metro-dest { font-size: 10px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metro-chips { display: flex; gap: 8px; }
+        .metro-chip {
+            padding: 4px 8px; border-radius: 8px;
+            font-size: 12px; font-weight: 800;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .metro-chip.ok { background: var(--green-dim); color: var(--green); }
+        .metro-chip.hurry { background: var(--orange-dim); color: var(--orange); }
+        .metro-chip.run { background: rgba(255,159,10,0.15); color: var(--orange); }
+        .metro-chip.miss { background: rgba(255,69,58,0.1); color: var(--red); }
+
+        /* Pref Mini Demo */
+        .pref-mini-demo {
+            margin-top: 16px;
+            background: #000; border-radius: 14px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            text-align: left;
+        }
+        .pref-mini-route { font-size: 11px; font-weight: 800; color: var(--purple); margin-bottom: 6px; }
+        .pref-mini-status { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        .pref-mini-time { font-weight: 700; color: #fff; }
+        .pref-mini-train { color: var(--text-2); font-weight: 500; }
+        .pref-mini-delay { font-weight: 800; }
+        .pref-mini-delay.orange { color: var(--orange); }
+        .pref-mini-delay.green { color: var(--green); }
+
+        /* Full Width Card */
+        .feat-card.full { grid-column: span 3; }
+        @media (max-width: 900px) { .feat-card.full { grid-column: span 1; } }
+
+        /* Report Popup Mockup */
+        .report-menu-demo {
+            margin-top: 10px;
+            text-align: left;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .report-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #ff9f0a;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 100px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255,159,10,0.25);
+        }
+        .report-popup {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 8px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 260px;
+            margin: 0 auto;
+        }
+        .report-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .report-option:last-child {
+            border-bottom: none;
+        }
+        .report-opt-icon-img {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .report-opt-text {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #000000;
+        }
 
         /* ── PASSANTE ── */
         .passante-layout {
@@ -687,7 +934,7 @@
     <div class="nav-inner">
         <a href="#" class="nav-logo">
             <div class="nav-logo-icon">🚆</div>
-            <span>In Orario</span>
+            <span><i>In Orario?</i></span>
         </a>
         <ul class="nav-links">
             <li><a href="#features">Funzionalità</a></li>
@@ -707,10 +954,10 @@
             Disponibile su iOS e Android
         </div>
 
-        <h1 class="reveal delay-1">In <span class="orange">Orario?</span></h1>
+        <h1 class="reveal delay-1"><i>In <span class="orange">Orario?</span></i></h1>
 
         <p class="hero-sub reveal delay-2">
-            Visualizza i tabelloni delle partenze di tutte le stazioni italiane e segui il tuo treno in tempo reale per scoprire ritardi e posizione esatta. Gratuita, senza pubblicità, senza account.
+            Visualizza i tabelloni delle partenze di tutte le stazioni italiane e segui lo stato del tuo treno. Gratuita, senza pubblicità, senza account.
         </p>
 
 
@@ -731,119 +978,223 @@
     </div>
 </section>
 
-<!-- TICKER -->
-<div class="ticker" aria-hidden="true">
-    <div class="ticker-track">
-        <span class="ticker-item">🇮🇹 Trenitalia e Ferrovienord</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🚅 Frecciarossa e Italo</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">📢 Alert scioperi e guasti</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🚇 Metro ATM Milano in tempo reale</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🟢 Passante Ferroviario — linee S</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">⏱ Orari e binari ufficiali RFI</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🔔 Notifiche push per ritardi e scioperi</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">📱 iOS e Android</span><span class="ticker-sep">·</span>
-        <!-- duplicated for seamless loop -->
-        <span class="ticker-item">🇮🇹 Trenitalia e Ferrovienord</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🚅 Frecciarossa e Italo</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">📢 Alert scioperi e guasti</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🚇 Metro ATM Milano in tempo reale</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🟢 Passante Ferroviario — linee S</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">⏱ Orari e binari ufficiali RFI</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">🔔 Notifiche push per ritardi e scioperi</span><span class="ticker-sep">·</span>
-        <span class="ticker-item">📱 iOS e Android</span><span class="ticker-sep">·</span>
+<!-- PERCHÉ ESISTE -->
+<section id="why-it-exists" style="padding: 48px 0 40px 0; background: rgba(255,159,10,0.02); border-bottom: 1px solid var(--border);">
+    <div class="container" style="max-width: 800px; text-align: center;">
+        <div class="eyebrow" style="margin-bottom: 16px;">L'origine del progetto</div>
+        <h2 class="section-title" style="margin-bottom: 24px; font-size: clamp(24px, 4vw, 32px);">Fatta da un pendolare, per i pendolari</h2>
+        <p style="font-size: clamp(15px, 2vw, 17px); line-height: 1.8; color: var(--text-2); max-width: 680px; margin: 0 auto; font-weight: 400;">
+            Le app dei treni sono pensate per vendere biglietti. Non per chi vuole solo sapere al volo se il proprio treno c'è, se è in ritardo o se — proprio quando siamo noi in ritardo — è miracolosamente in perfetto orario.
+        </p>
     </div>
-</div>
+</section>
 
 <!-- FEATURES -->
 <section id="features">
     <div class="container">
         <div class="reveal">
             <div class="eyebrow">Funzionalità</div>
-            <h2 class="section-title">Tutto quello che serve<br>per prendere il treno</h2>
-            <p class="section-sub">Niente di più, niente di meno. Solo le informazioni che usi davvero ogni giorno.</p>
+            <h2 class="section-title">Cosa sa fare?</h2>
+            <p class="section-sub">Non può far arrivare i treni in orario, ma può aiutarti a ridurre al minimo gli imprevisti.</p>
         </div>
 
         <div class="features-grid">
-            <!-- tabelloni -->
-            <div class="feat-card wide reveal delay-1">
+            <!-- 1. Unificazione Trenitalia/Trenord (wide) -->
+            <div class="feat-card wide reveal">
                 <div class="feat-icon" style="background: var(--orange-dim);">⏱</div>
-                <h3>Tabelloni di stazione reali</h3>
-                <p>I dati arrivano direttamente da RFI, gli stessi che alimentano i tabelloni fisici in stazione. Non da ViaggiaTreno, che spesso è in ritardo di qualche minuto.</p>
-                <div class="di-demo">
+                <h3>Un'unica app per Trenitalia e Trenord</h3>
+                <p><i>In Orario?</i> unisce i dati in tempo reale di ViaggiaTreno con quelli ufficiali dei tabelloni di stazione di RFI. Avendo due fonti indipendenti azzera il margine d'errore, mostrandoti sempre informazioni precise e verificate. E lo fa senza alcuna pubblicità o inviti a comprare biglietti.</p>
+                <div class="di-demo" style="max-width: 420px; width: 100%;">
                     <div>
-                        <div class="di-demo-train">REG 2410 · Novara</div>
-                        <div class="di-demo-dest">→ Milano Centrale</div>
+                        <div class="di-demo-train" style="color: var(--orange);">S5 24866</div>
+                        <div class="di-demo-dest">Milano P. Garibaldi ➔ Saronno</div>
                     </div>
                     <div>
                         <div class="di-demo-status">In orario</div>
-                        <div class="di-demo-pos">📍 Vittuone · 08:42</div>
+                        <div class="di-demo-pos">📍 Lancetti &middot; RFI/Trenord</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Dynamic Island -->
-            <div class="feat-card reveal delay-1">
-                <div class="feat-icon" style="background: var(--orange-dim);">⚡</div>
-                <h3>Dynamic Island &amp; Live Activity</h3>
-                <p>Su iPhone segui il tuo treno direttamente dall'isola dinamica e dalla schermata di blocco, senza aprire l'app.</p>
-            </div>
-
-            <!-- metro -->
-            <div class="feat-card reveal">
-                <div class="feat-icon" style="background: var(--blue-dim);">🚇</div>
-                <h3>Metro di Milano</h3>
-                <p>Tutte e 5 le linee (M1–M5) con frequenze di passaggio e orari prima/ultima corsa.</p>
-            </div>
-
-            <!-- geolocalizzazione -->
+            <!-- 2. Geolocalizzazione (small) -->
             <div class="feat-card reveal delay-1">
                 <div class="feat-icon" style="background: var(--green-dim);">📍</div>
                 <h3>Stazione più vicina</h3>
-                <p>L'app riconosce la tua posizione e apre automaticamente il tabellone della stazione entro 15km.</p>
+                <p>Quando arrivi in stazione non devi cercare nulla. L'app capisce al volo dove ti trovi e ti mostra subito il tabellone delle partenze corretto.</p>
+                <div class="geo-mini-demo">
+                    <span class="geo-pin">📍</span>
+                    <div class="geo-details">
+                        <div class="geo-station">Milano Lambrate</div>
+                        <div class="geo-distance">Rilevata a 850m</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- notifiche -->
-            <div class="feat-card reveal">
+            <!-- 3. AI per scioperi (wide) -->
+            <div class="feat-card wide reveal">
+                <div class="feat-icon" style="background: rgba(10,132,255,0.10);">🧠</div>
+                <h3>Scioperi e lavori spiegati dall'IA locale</h3>
+                <p><i>In Orario?</i> usa un modello AI locale (nulla esce dal tuo telefono) per riordinare in modo leggibile i dati di scioperi e lavori programmati — normalmente pubblicati in liste disordinate sul sito del Ministero. Gratis per tutti.</p>
+                <div class="ai-demo" style="max-width: 450px; width: 100%;">
+                    <div class="ai-demo-before">
+                        <strong>Ministero:</strong> "Sciopero nazionale del 12/07 indetto da OS RSU coinvolge personale viaggiante e uffici..."
+                    </div>
+                    <div class="ai-demo-arrow">➔</div>
+                    <div class="ai-demo-after">
+                        <strong>IA Locale:</strong> ⚠️ Sciopero Generale Domenica 12 Luglio (09:00 - 17:00). Fasce di garanzia non attive.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Notifiche push (small) -->
+            <div class="feat-card reveal delay-1">
                 <div class="feat-icon" style="background: rgba(255,69,58,0.10);">🔔</div>
                 <h3>Notifiche push</h3>
-                <p>Ricevi avvisi in tempo reale per ritardi e passaggi stazione dei tuoi treni preferiti. Anche per scioperi e infomobilità nella tua regione.</p>
+                <p>Ti avvisa se il treno che prendi di solito è in ritardo o cambia binario prima ancora che tu arrivi in stazione. Senza dover controllare l'app continuamente.</p>
+                <div class="push-mini-demo">
+                    <div class="push-header">
+                        <span class="push-icon">🚄</span>
+                        <span class="push-app-name"><i>In Orario?</i></span>
+                        <span class="push-time">Adesso</span>
+                    </div>
+                    <div class="push-body">
+                        ⚠️ Il tuo treno S5 (24866) è previsto sul binario 3 (invece di 4).
+                    </div>
+                </div>
             </div>
 
-            <!-- preferiti -->
-            <div class="feat-card wide reveal delay-1">
-                <div class="feat-icon" style="background: rgba(191,90,242,0.10);">⭐</div>
-                <h3>Linee, rotte e treni preferiti</h3>
-                <p>Configura le tue tratte preferite (ad es. da Milano a Saronno o da Roma a Napoli) per vedere all'istante le prossime corse programmate con i relativi ritardi aggiornati in tempo reale. Puoi anche salvare singole corse di viaggio per monitorarne l'avanzamento passo passo e condividere lo stato live del tuo treno con chi ti aspetta con un semplice tap.</p>
-                <div class="pref-demo">
-                    <div class="pref-demo-header">
-                        <span class="pref-star">★</span>
-                        <span class="pref-title">Preferiti: Milano P. Garibaldi ➔ Saronno</span>
+            <!-- 5. Dynamic Island & Live Activity (wide) -->
+            <div class="feat-card wide reveal">
+                <div class="feat-icon" style="background: var(--orange-dim);">⚡</div>
+                <h3>Dynamic Island &amp; Live Activity</h3>
+                <p>Su iPhone segui il tuo treno direttamente dall'isola dinamica e dalla schermata di blocco, senza aprire l'app. Un indicatore grafico si sposta in tempo reale lungo la tratta indicando la tua posizione attuale.</p>
+                <div class="la-demo" style="max-width: 420px; width: 100%;">
+                    <div class="la-demo-header">
+                        <span class="la-train">REG 10231</span>
+                        <span class="la-delay green"><i>In Orario?</i> (16:23)</span>
                     </div>
-                    <div class="pref-solutions">
-                        <div class="pref-sol-item">
-                            <span class="pref-time">18:02</span>
-                            <span class="pref-train">S12 24866</span>
-                            <span class="pref-delay green">In orario</span>
+                    <div class="la-route-container">
+                        <span class="la-station-label">Arona</span>
+                        <div class="la-route-bar-wrapper">
+                            <div class="la-route-bar green" style="width: 65%;"></div>
+                            <div class="la-route-train-icon green" style="left: 65%;">🚄</div>
                         </div>
-                        <div class="pref-sol-item">
-                            <span class="pref-time">18:08</span>
-                            <span class="pref-train">S1 24168</span>
-                            <span class="pref-delay orange">+4 min</span>
+                        <span class="la-station-label">Milano P.G.</span>
+                    </div>
+                    <div class="la-footer">
+                        📍 Ultimo rilevamento: Gallarate
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Centro News (small) -->
+            <div class="feat-card reveal delay-1">
+                <div class="feat-icon" style="background: var(--orange-dim);">📰</div>
+                <h3>Centro News</h3>
+                <p>Tutti gli avvisi su scioperi, cambi di circolazione e lavori sulla linea. Tutto ordinato in un unico posto e diviso per regione, senza dover spulciare i PDF delle ferrovie.</p>
+                <div class="news-mini-demo">
+                    <div class="news-tag">Lombardia</div>
+                    <div class="news-title">Lavori di potenziamento sulla linea Milano-Chiasso dal 15 Luglio</div>
+                </div>
+            </div>
+
+            <!-- 7. Metro & Coincidenze (wide) -->
+            <div class="feat-card wide reveal">
+                <div class="feat-icon" style="background: var(--blue-dim);">🚇</div>
+                <h3>Metro &amp; Coincidenze in tempo reale</h3>
+                <p><i>In Orario?</i> integra gli orari e le frequenze delle linee metropolitane M1–M5 di Milano. Calcola in tempo reale se farai in tempo a prendere la coincidenza basandosi sull'arrivo effettivo del tuo treno. L'app conosce le distanze fisiche di interscambio di ogni stazione (es. Centrale o Garibaldi) e ti mostra con icone colorate se puoi farcela con calma (✅), se devi camminare veloce (🚶), correre (⚡) o se purtroppo la perderai (❌).</p>
+                <div class="metro-demo" style="max-width: 450px; width: 100%;">
+                    <div class="metro-demo-header">
+                        <div class="metro-demo-station">Milano Porta Garibaldi</div>
+                        <div class="metro-demo-arrival">🚇 Arrivo treno: 16:23</div>
+                    </div>
+                    <div class="metro-demo-lines">
+                        <div class="metro-demo-line">
+                            <span class="metro-badge m2">M2</span>
+                            <div class="metro-demo-line-info">
+                                <span class="metro-dest">Cologno / Gessate</span>
+                                <div class="metro-chips">
+                                    <span class="metro-chip miss">16:25 ❌</span>
+                                    <span class="metro-chip hurry">16:29 🚶</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="pref-sol-item">
-                            <span class="pref-time">18:14</span>
-                            <span class="pref-train">S3 24968</span>
-                            <span class="pref-delay green">In orario</span>
+                        <div class="metro-demo-line">
+                            <span class="metro-badge m2">M2</span>
+                            <div class="metro-demo-line-info">
+                                <span class="metro-dest">Abbiategrasso / Assago</span>
+                                <div class="metro-chips">
+                                    <span class="metro-chip run">16:26 ⚡</span>
+                                    <span class="metro-chip ok">16:31 ✅</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- notizie -->
-            <div class="feat-card reveal delay-2">
-                <div class="feat-icon" style="background: var(--orange-dim);">📰</div>
-                <h3>Centro News</h3>
-                <p>Scioperi, cantieri e infomobilità filtrabili per regione, aggiornati automaticamente.</p>
+            <!-- 8. Preferiti (small) -->
+            <div class="feat-card reveal delay-1">
+                <div class="feat-icon" style="background: rgba(191,90,242,0.10);">⭐</div>
+                <h3>Linee, rotte e preferiti</h3>
+                <p>Salva le tue tratte e stazioni preferite per vederne subito i ritardi e lo stato delle corse. Puoi anche salvare singoli viaggi per seguirne l'avanzamento passo passo.</p>
+                <div class="pref-mini-demo">
+                    <div class="pref-mini-route">Garibaldi ➔ Saronno</div>
+                    <div class="pref-mini-status">
+                        <span class="pref-mini-time">18:08</span>
+                        <span class="pref-mini-train">S1 24168</span>
+                        <span class="pref-mini-delay orange">+4 min</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. Segnalazioni Crowdsourcing (full) -->
+            <div class="feat-card full reveal">
+                <div style="display: flex; gap: 40px; align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1.3; min-width: 280px;">
+                        <div class="feat-icon" style="background: rgba(255,159,10,0.15);">📢</div>
+                        <h3>Segnalazioni in tempo reale</h3>
+                        <p style="margin-top: 12px;"><i>In Orario?</i> non si affida solo ai dati ufficiali. Grazie alla funzione di segnalazione collettiva, puoi contribuire con un solo tap a tenere informati gli altri viaggiatori. Senza scrivere testo o perdere tempo, segnali all'istante lo stato reale del treno: se è affollato, se fa troppo caldo o freddo, o se la corsa è bloccata o ripartita.</p>
+                    </div>
+                    <div style="flex: 0.7; min-width: 250px; display: flex; justify-content: center;">
+                        <div class="report-menu-demo">
+                            <!-- Segnala Button -->
+                            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; width: 100%; max-width: 260px; margin: 0 auto 10px;">
+                                <span class="report-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    Segnala
+                                </span>
+                            </div>
+                            <!-- Popup Menu -->
+                            <div class="report-popup">
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">👥</span>
+                                    <span class="report-opt-text">Treno Affollato</span>
+                                </div>
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">🌡️</span>
+                                    <span class="report-opt-text">Fa troppo Caldo</span>
+                                </div>
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">❄️</span>
+                                    <span class="report-opt-text">Fa troppo Freddo</span>
+                                </div>
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">
+                                        <span style="width: 18px; height: 18px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; font-family: -apple-system, sans-serif;">!</span>
+                                    </span>
+                                    <span class="report-opt-text">Treno Fermo / Bloccato</span>
+                                </div>
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">
+                                        <span style="width: 18px; height: 18px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; padding-left: 2px; font-family: -apple-system, sans-serif;">▶</span>
+                                    </span>
+                                    <span class="report-opt-text">Treno Ripartito / In Movimento</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -964,7 +1315,7 @@
     <div class="container">
         <div class="download-card reveal">
             <div class="eyebrow" style="margin-bottom: 18px;">Download</div>
-            <h2 class="section-title">Scarica In Orario</h2>
+            <h2 class="section-title">Scarica <i>In Orario?</i></h2>
             <p class="section-sub">Disponibile su App Store (iOS 17+) e Google Play (Android 8+). Gratuita, senza pubblicità, senza registrazione.</p>
             <div class="download-btns" style="margin-top: 32px;">
                 <a href="https://apps.apple.com/app/in-orario/id6773419855" class="btn btn-ios" target="_blank" rel="noopener">
@@ -1016,7 +1367,12 @@
             
             <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
                 <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--orange);">L'app è gratuita?</h4>
-                <p style="font-size: 14px; color: var(--text-2);">Sì, In Orario è completamente gratuita, open-source e non contiene annunci pubblicitari o abbonamenti traccianti.</p>
+                <p style="font-size: 14px; color: var(--text-2); line-height: 1.6;">
+                    <i>In Orario?</i> è completamente gratuita. Tutte le funzioni sono disponibili senza pagare nulla. Se vuoi supportare il progetto (e Carlo ha costi di server da coprire), puoi fare un'offerta di pochissimi euro: con quella sblocchi migliorie delle funzioni gratuite, utili se sei un viaggiatore assiduo: IA server e non locale (non usa risorse ed è più precisa), notifiche per scioperi, monitori contemporaneamente 10 treni, live activities con aggiornamento ogni secondo anziché ogni due minuti (precise più dei treni!) e accesso prioritario a funzionalità avanzate.
+                </p>
+                <p style="font-size: 14px; color: var(--text-2); line-height: 1.6; margin-top: 8px;">
+                    Ma tutto il resto — orari, binari, stato treni, info lavori, scioperi, metro, coincidenze... — è gratuito per chiunque.
+                </p>
             </div>
 
             <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
@@ -1039,12 +1395,12 @@
         <h2 class="section-title" style="font-size: 28px; margin-bottom: 32px;">Informativa sulla Privacy</h2>
         
         <div style="background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 8px; padding: 16px 20px; font-size: 14px; color: var(--text-2); margin-bottom: 32px;">
-            In breve: <strong>In Orario non raccoglie dati personali</strong>, non crea profili utente, non vende dati a terzi e non contiene pubblicità. Leggi sotto per i dettagli.
+            In breve: <strong><i>In Orario?</i> non raccoglie dati personali</strong>, non crea profili utente, non vende dati a terzi e non contiene pubblicità. Leggi sotto per i dettagli.
         </div>
 
         <h3 style="font-size: 17px; margin-bottom: 8px;">Dati che l'app non raccoglie</h3>
         <p style="color: var(--text-2); font-size: 15px; margin-bottom: 24px;">
-            In Orario non raccoglie dati identificativi (nome, email), dati comportamentali, cronologia o dati di pagamento. Tutte le tue personalizzazioni (treni e stazioni preferite) sono salvate <strong>esclusivamente sul tuo dispositivo</strong>.
+            <i>In Orario?</i> non raccoglie dati identificativi (nome, email), dati comportamentali, cronologia o dati di pagamento. Tutte le tue personalizzazioni (treni e stazioni preferite) sono salvate <strong>esclusivamente sul tuo dispositivo</strong>.
         </p>
 
         <h3 style="font-size: 17px; margin-bottom: 8px;">Dati che l'app utilizza</h3>
@@ -1091,11 +1447,17 @@
                     </div>
                     <span class="footer-brand-name">Torero</span>
                 </div>
-                <div class="footer-meta">
-                    <div>Sviluppata da <strong style="color: var(--text-2);">Carlo Porta</strong></div>
-                    <div>Contatti: <a href="mailto:info@toreroclub.com">info@toreroclub.com</a></div>
-                    <div style="margin-top: 6px;">Progetto open-source indipendente.<br>Non affiliato a Trenord, Trenitalia o Gruppo FS.</div>
-                    <div style="margin-top: 6px;">© 2025 Torero</div>
+                <div class="footer-meta" style="max-width: 500px;">
+                    <p style="margin-bottom: 12px; line-height: 1.6; color: var(--text-2);">
+                        <strong><i>In Orario?</i></strong> è un progetto di <strong>Carlo Porta</strong>. La uso ogni giorno per andare al lavoro, e visto che non trovavo un'app che unisse bene Trenitalia e Trenord senza spingermi a comprare biglietti, me la sono fatta. Poi è piaciuta ad altri pendolari, quindi ho deciso di pubblicarla.
+                    </p>
+                    <p style="margin-bottom: 12px; line-height: 1.6; color: var(--text-2);">
+                        Se trovi un bug o hai un'idea, scrivimi — <a href="mailto:info@toreroclub.com" style="color: var(--orange);">info@toreroclub.com</a> / <a href="https://github.com/ToreroClub/InOrario" target="_blank" rel="noopener" style="color: var(--orange);">GitHub</a>.
+                    </p>
+                    <div style="margin-top: 16px; font-size: 11px; color: var(--text-3);">
+                        Progetto open-source indipendente. Non affiliato a Trenord, Trenitalia o Gruppo FS.
+                    </div>
+                    <div style="margin-top: 4px; font-size: 11px; color: var(--text-3);">© 2026 Torero</div>
                 </div>
             </div>
             <div class="footer-links">

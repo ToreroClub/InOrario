@@ -13,7 +13,32 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let strikeCategory = UNNotificationCategory(identifier: "STRIKE_CATEGORY", actions: [ignoreAction], intentIdentifiers: [], options: [])
         UNUserNotificationCenter.current().setNotificationCategories([strikeCategory])
         
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.toreroclub.inorario.ai_processing", using: nil) { task in
+            guard let bgTask = task as? BGProcessingTask else { return }
+            self.handleAIProcessingTask(task: bgTask)
+        }
+        
         return true
+    }
+    
+    func handleAIProcessingTask(task: BGProcessingTask) {
+        let aiManager = AIFeatureManager.shared
+        guard aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled else {
+            task.setTaskCompleted(success: false)
+            return
+        }
+        
+        task.expirationHandler = { }
+        Task {
+            let tempManager = TrainManager()
+            if aiManager.canRunFreeLocalAI() || aiManager.preferLocalAI {
+                let items = await tempManager.executeRawScraping(region: tempManager.strikeRegion)
+                let formatted = await LocalSLMService.shared.formatWithLocalModel(rawItems: items)
+                tempManager.saveCache(items: formatted)
+                aiManager.recordLocalAIExecution()
+            }
+            task.setTaskCompleted(success: true)
+        }
     }
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -75,6 +100,7 @@ struct InOrario: App {
         .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .background {
                 scheduleAppRefresh()
+                scheduleAIProcessing()
             }
         }
         .backgroundTask(.appRefresh("com.carlo.InOrario.refresh")) {
@@ -89,6 +115,18 @@ struct InOrario: App {
             try BGTaskScheduler.shared.submit(request)
         } catch {
             print("Impossibile schedulare l'aggiornamento in background: \(error)")
+        }
+    }
+    
+    private func scheduleAIProcessing() {
+        let request = BGProcessingTaskRequest(identifier: "com.toreroclub.inorario.ai_processing")
+        request.requiresNetworkConnectivity = true
+        request.requiresExternalPower = true // Preferibilmente di notte sotto carica
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60) // Tra un'ora
+        do {
+            try BGTaskScheduler.shared.submit(request)
+        } catch {
+            print("Impossibile schedulare l'elaborazione AI in background: \(error)")
         }
     }
 }

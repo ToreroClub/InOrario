@@ -198,7 +198,16 @@ struct ProfileView: View {
                     }
                 }
                 
+                Section(header: Text("Intelligenza Artificiale")) {
+                    NavigationLink(destination: AISettingsView()) {
+                        Label("Assistente IA", systemImage: "brain.head.profile")
+                            .foregroundColor(.indigo)
+                            .font(.headline)
+                    }
+                }
+                
                 Section(header: Text("Sincronizzazione")) {
+
                     Toggle(isOn: Binding(
                         get: { manager.iCloudSyncEnabled },
                         set: { newValue in
@@ -765,6 +774,7 @@ struct CustomizePassanteView: View {
 struct NotificationsSettingsView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
+    @State private var selectedTrainForConfig: SavedTrain? = nil
     
     var body: some View {
         List {
@@ -794,34 +804,22 @@ struct NotificationsSettingsView: View {
                             .font(.headline)
                     }
                     
-                    if manager.strikeNotificationsEnabled {
-                        HStack {
-                            Label("Filtro Scioperi", systemImage: "globe")
-                                .foregroundColor(.red)
-                                .font(.headline)
-                            Spacer()
-                            Picker("", selection: Binding(
-                                get: { manager.hasSupport() ? manager.strikeRegion : "Tutte" },
-                                set: { newValue in
-                                    if manager.hasSupport() {
-                                        manager.strikeRegion = newValue
-                                    } else if newValue != "Tutte" {
-                                        Haptics.notify(.error)
-                                        manager.notificationLimitError = "La selezione della regione è disponibile solo con il supporto Premium. Se ritieni utile l'app, considera gentilmente di sostenere lo sviluppo indipendente."
-                                    }
-                                }
-                            )) {
-                                Text("Nazionale / Tutte").tag("Tutte")
-                                ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
-                                    Text(region).tag(region)
-                                }
+                    HStack {
+                        Label("Regione Scioperi", systemImage: "globe")
+                            .foregroundColor(.red)
+                            .font(.headline)
+                        Spacer()
+                        Picker("", selection: $manager.strikeRegion) {
+                            Text("Nazionale / Tutte").tag("Tutte")
+                            ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
+                                Text(region).tag(region)
                             }
-                            .pickerStyle(.menu)
                         }
-                        Text("Riceverai avvisi e notifiche sugli scioperi nazionali e per la regione selezionata.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                        .pickerStyle(.menu)
                     }
+                    Text("Filtra scioperi e notifiche per la tua regione. Gli scioperi nazionali sono sempre visibili.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
                 
                 Section(header: Text("Notifiche Treni Preferiti"), footer: Text("Le notifiche automatiche ti avvisano se il treno è in ritardo o quando passa dalla stazione scelta.")) {
@@ -844,11 +842,56 @@ struct NotificationsSettingsView: View {
                         .frame(maxWidth: .infinity)
                     } else {
                         ForEach(manager.favoriteTrains) { train in
-                            if let index = manager.favoriteTrains.firstIndex(where: { $0.id == train.id }) {
-                                TrainNotificationConfigRow(train: Binding(
-                                    get: { manager.favoriteTrains[index] },
-                                    set: { manager.favoriteTrains[index] = $0 }
-                                ))
+                            Button {
+                                Haptics.play(.medium)
+                                selectedTrainForConfig = train
+                            } label: {
+                                HStack {
+                                    Image(systemName: "train.side.front.car")
+                                        .foregroundColor(.blue)
+                                        .font(.subheadline)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        let dummy = manager.createDummyTrain(from: train)
+                                        Text("\(dummy.category) \(train.number)")
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                        
+                                        let descParts = train.description.components(separatedBy: " - ")
+                                        let origin = descParts.first ?? train.description
+                                        let destination = descParts.count > 1 ? descParts[1] : ""
+                                        Text("\(origin) → \(destination)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    let hasNotifications = train.notifyDelay ?? false
+                                    HStack(spacing: 4) {
+                                        if hasNotifications {
+                                            Text("Attive")
+                                                .font(.caption2.bold())
+                                                .foregroundColor(.green)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.green.opacity(0.12))
+                                                .cornerRadius(6)
+                                        } else {
+                                            Text("Disattive")
+                                                .font(.caption2.bold())
+                                                .foregroundColor(.secondary)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color(.secondarySystemBackground))
+                                                .cornerRadius(6)
+                                        }
+                                        Image(systemName: "chevron.right")
+                                            .font(.footnote)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 4)
                             }
                         }
                     }
@@ -856,6 +899,14 @@ struct NotificationsSettingsView: View {
             }
         }
         .navigationTitle("Notifiche")
+        .sheet(item: $selectedTrainForConfig) { train in
+            if let index = manager.favoriteTrains.firstIndex(where: { $0.id == train.id }) {
+                TrainNotificationConfigSheet(train: Binding(
+                    get: { manager.favoriteTrains[index] },
+                    set: { manager.favoriteTrains[index] = $0 }
+                ))
+            }
+        }
         .onAppear {
             // Enrich any existing favorites that are missing departure/arrival times
             Task {
@@ -869,232 +920,231 @@ struct NotificationsSettingsView: View {
     }
 }
 
-struct TrainNotificationConfigRow: View {
+struct TrainNotificationConfigSheet: View {
     @Binding var train: SavedTrain
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
+    @Environment(\.dismiss) var dismiss
     @State private var stops: [Stop] = []
     @State private var isLoadingStops = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "train.side.front.car")
-                    .foregroundColor(.blue)
-                    .font(.title3)
-                    .padding(.top, 2)
-                VStack(alignment: .leading, spacing: 4) {
-                    let dummy = manager.createDummyTrain(from: train)
-                    Text("\(dummy.category) \(train.number)")
-                        .font(.headline)
-                    
-                    let descParts = train.description.components(separatedBy: " - ")
-                    let origin = descParts.first ?? train.description
-                    let destination = descParts.count > 1 ? descParts[1] : ""
-                    
-                    if !destination.isEmpty {
-                        Text("\(origin) → \(destination)")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                    } else {
-                        Text(train.description)
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
-                    }
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
+        NavigationStack {
+            Form {
+                Section(header: Text("Treno")) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "train.side.front.car")
+                            .foregroundColor(.blue)
+                            .font(.title2)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            let dummy = manager.createDummyTrain(from: train)
+                            Text("\(dummy.category) \(train.number)")
+                                .font(.headline)
+                            
+                            let descParts = train.description.components(separatedBy: " - ")
+                            let origin = descParts.first ?? train.description
+                            let destination = descParts.count > 1 ? descParts[1] : ""
+                            
+                            if !destination.isEmpty {
+                                Text("\(origin) → \(destination)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                            } else {
+                                Text(train.description)
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .foregroundColor(.secondary)
+                                Text("\(train.departureTime ?? "--:--") → \(train.arrivalTime ?? "--:--")")
+                            }
+                            .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("\(train.departureTime ?? "--:--") → \(train.arrivalTime ?? "--:--")")
+                        }
                     }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
                 }
-            }
-            
-            Divider().padding(.vertical, 4)
-            
-            VStack(alignment: .leading, spacing: 14) {
-                Toggle(isOn: Binding(
-                    get: { train.notifyDelay ?? false },
-                    set: { newValue in
-                        if newValue {
-                            if !manager.hasSupport() {
-                                // For free users, automatically disable notifications for all other trains
-                                for i in 0..<manager.favoriteTrains.count {
-                                    if manager.favoriteTrains[i].id != train.id && (manager.favoriteTrains[i].notifyDelay ?? false) {
-                                        manager.favoriteTrains[i].notifyDelay = false
-                                        manager.favoriteTrains[i].notifyDeparture = false
-                                        manager.favoriteTrains[i].notifyStationPass = false
-                                        manager.favoriteTrains[i].notifyPlatformChange = false
+                
+                Section(header: Text("Notifica di Base")) {
+                    Toggle(isOn: Binding(
+                        get: { train.notifyDelay ?? false },
+                        set: { newValue in
+                            if newValue {
+                                if !manager.hasSupport() {
+                                    // For free users, automatically disable notifications for all other trains
+                                    for i in 0..<manager.favoriteTrains.count {
+                                        if manager.favoriteTrains[i].id != train.id && (manager.favoriteTrains[i].notifyDelay ?? false) {
+                                            manager.favoriteTrains[i].notifyDelay = false
+                                            manager.favoriteTrains[i].notifyDeparture = false
+                                            manager.favoriteTrains[i].notifyStationPass = false
+                                            manager.favoriteTrains[i].notifyPlatformChange = false
+                                        }
+                                    }
+                                } else {
+                                    // For premium users, enforce the limit of 10
+                                    let limit = manager.getLimit()
+                                    let activeCount = manager.favoriteTrains.filter { $0.notifyDelay == true && $0.id != train.id }.count
+                                    if activeCount >= limit {
+                                        Haptics.notify(.error)
+                                        manager.notificationLimitError = "Puoi avere al massimo \(limit) notifiche attive alla volta. Disattivane un'altra per procedere."
+                                        return
                                     }
                                 }
-                            } else {
-                                // For premium users, enforce the limit of 10
-                                let limit = manager.getLimit()
-                                let activeCount = manager.favoriteTrains.filter { $0.notifyDelay == true && $0.id != train.id }.count
-                                if activeCount >= limit {
-                                    Haptics.notify(.error)
-                                    manager.notificationLimitError = "Puoi avere al massimo \(limit) notifiche attive alla volta. Disattivane un'altra per procedere."
-                                    return
-                                }
                             }
+                            
+                            if newValue {
+                                manager.disableLiveActivitiesForNonPremium()
+                            }
+                            
+                            train.notifyDelay = newValue
+                            if !newValue {
+                                train.notifyDeparture = false
+                                train.notifyStationPass = false
+                                train.notifyPlatformChange = false
+                            }
+                            saveAndSync()
                         }
-                        
-                        if newValue {
-                            manager.disableLiveActivitiesForNonPremium()
-                        }
-                        
-                        train.notifyDelay = newValue
-                        if !newValue {
-                            train.notifyDeparture = false
-                            train.notifyStationPass = false
-                            train.notifyPlatformChange = false
-                        }
-                        saveAndSync()
+                    )) {
+                        Text("Notifica variazione Ritardo")
                     }
-                )) {
-                    Text("Notifica variazione Ritardo")
-                        .font(.subheadline)
+                    
+                    if train.notifyDelay ?? false {
+                        if manager.hasSupport() {
+                            DaySelectorView(activeDays: $train.activeDays) {
+                                saveAndSync()
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
                 }
                 
                 if train.notifyDelay ?? false {
-                    if manager.hasSupport() {
-                        DaySelectorView(activeDays: $train.activeDays) {
-                            saveAndSync()
-                        }
-                        .padding(.leading, 8)
-                        .padding(.vertical, 4)
-                    } else {
-                        // User without premium won't see DaySelectorView, meaning notifications are automatically one-shot
-                        // We can ensure activeDays is nil when not premium
-                        let _ = {
-                            if train.activeDays != nil && !train.activeDays!.isEmpty {
-                                train.activeDays = nil
+                    Section(header: Text("Notifiche Avanzate")) {
+                        Toggle(isOn: Binding(
+                            get: { train.notifyDeparture ?? false },
+                            set: { newValue in
+                                train.notifyDeparture = newValue
                                 saveAndSync()
                             }
-                        }()
-                    }
-                    
-                    Toggle(isOn: Binding(
-                        get: { train.notifyDeparture ?? false },
-                        set: { newValue in
-                            train.notifyDeparture = newValue
-                            saveAndSync()
+                        )) {
+                            Text("Notifica alla partenza da origine")
                         }
-                    )) {
-                        Text("Notifica alla partenza da origine")
-                            .font(.subheadline)
-                    }
-                    .padding(.leading, 8)
-                    
-                    Toggle(isOn: Binding(
-                        get: { train.notifyStationPass ?? false },
-                        set: { newValue in
-                            train.notifyStationPass = newValue
-                            saveAndSync()
-                            if newValue {
+                        
+                        Toggle(isOn: Binding(
+                            get: { train.notifyStationPass ?? false },
+                            set: { newValue in
+                                train.notifyStationPass = newValue
+                                saveAndSync()
+                                if newValue {
+                                    loadStops()
+                                }
+                            }
+                        )) {
+                            Text("Notifica al passaggio in stazione")
+                        }
+                        
+                        if train.notifyStationPass ?? false {
+                            HStack {
+                                Text("Stazione di transito:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                
+                                if isLoadingStops {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else if !stops.isEmpty {
+                                    Picker("", selection: Binding(
+                                        get: { train.stationPassName ?? stops.first?.stationName ?? "" },
+                                        set: { newValue in
+                                            train.stationPassName = newValue
+                                            saveAndSync()
+                                        }
+                                    )) {
+                                        ForEach(stops) { stop in
+                                            Text(stop.stationName).tag(stop.stationName)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                } else {
+                                    Button("Riprova caricamento") {
+                                        loadStops()
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                }
+                            }
+                            .padding(.leading, 8)
+                            .onAppear {
                                 loadStops()
                             }
                         }
-                    )) {
-                        Text("Notifica al passaggio in stazione")
-                            .font(.subheadline)
-                    }
-                    .padding(.leading, 8)
-                    
-                    if train.notifyStationPass ?? false {
-                        HStack {
-                            Text("Seleziona stazione di transito:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            
-                            if isLoadingStops {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            } else if !stops.isEmpty {
-                                Picker("", selection: Binding(
-                                    get: { train.stationPassName ?? stops.first?.stationName ?? "" },
-                                    set: { newValue in
-                                        train.stationPassName = newValue
-                                        saveAndSync()
-                                    }
-                                )) {
-                                    ForEach(stops) { stop in
-                                        Text(stop.stationName).tag(stop.stationName)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-                            } else {
-                                Button("Riprova caricamento") {
+                        
+                        Toggle(isOn: Binding(
+                            get: { train.notifyPlatformChange ?? false },
+                            set: { newValue in
+                                train.notifyPlatformChange = newValue
+                                saveAndSync()
+                                if newValue {
                                     loadStops()
                                 }
-                                .font(.caption)
-                                .foregroundColor(.orange)
                             }
+                        )) {
+                            Text("Notifica cambio binario in stazione")
                         }
-                        .padding(.leading, 24)
-                        .onAppear {
-                            loadStops()
-                        }
-                    }
-                    
-                    Toggle(isOn: Binding(
-                        get: { train.notifyPlatformChange ?? false },
-                        set: { newValue in
-                            train.notifyPlatformChange = newValue
-                            saveAndSync()
-                            if newValue {
+                        
+                        if train.notifyPlatformChange ?? false {
+                            HStack {
+                                Text("Stazione di rilevamento:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                
+                                if isLoadingStops {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else if !stops.isEmpty {
+                                    Picker("", selection: Binding(
+                                        get: { train.platformChangeStationName ?? stops.first?.stationName ?? "" },
+                                        set: { newValue in
+                                            train.platformChangeStationName = newValue
+                                            saveAndSync()
+                                        }
+                                    )) {
+                                        ForEach(stops) { stop in
+                                            Text(stop.stationName).tag(stop.stationName)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                } else {
+                                    Button("Riprova caricamento") {
+                                        loadStops()
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                }
+                            }
+                            .padding(.leading, 8)
+                            .onAppear {
                                 loadStops()
                             }
                         }
-                    )) {
-                        Text("Notifica cambio binario in stazione")
-                            .font(.subheadline)
                     }
-                    .padding(.leading, 8)
-                    
-                    if train.notifyPlatformChange ?? false {
-                        HStack {
-                            Text("Seleziona stazione:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            
-                            if isLoadingStops {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            } else if !stops.isEmpty {
-                                Picker("", selection: Binding(
-                                    get: { train.platformChangeStationName ?? stops.first?.stationName ?? "" },
-                                    set: { newValue in
-                                        train.platformChangeStationName = newValue
-                                        saveAndSync()
-                                    }
-                                )) {
-                                    ForEach(stops) { stop in
-                                        Text(stop.stationName).tag(stop.stationName)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-                            } else {
-                                Button("Riprova caricamento") {
-                                    loadStops()
-                                }
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                            }
-                        }
-                        .padding(.leading, 24)
-                        .onAppear {
-                            loadStops()
-                        }
+                }
+            }
+            .navigationTitle("Impostazioni Notifiche")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fatto") {
+                        dismiss()
                     }
                 }
             }
         }
-        .padding(.vertical, 6)
     }
     
     private func saveAndSync() {

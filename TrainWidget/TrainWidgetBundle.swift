@@ -6,7 +6,9 @@ import SwiftUI
 struct TrainWidgetBundle: WidgetBundle {
     var body: some Widget {
         TrainWidget()
-        TrainWidgetControl()
+        if #available(iOS 18.0, *) {
+            TrainWidgetControl()
+        }
         TrainWidgetLiveActivity()
     }
 }

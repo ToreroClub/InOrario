@@ -49,6 +49,7 @@ struct ContentView: View {
     @State private var isFavoritesExpanded = true
     @State private var isMyStationsExpanded = true
     @State private var showSearchSheet = false
+    @State private var showSavedTrips = false
     @State private var showHistorySheet = false
     @State private var showProfile = false
     @State private var showNewsCenter = false
@@ -356,7 +357,10 @@ struct ContentView: View {
                                 )
                         }
                         
-                        NavigationLink(destination: SavedTripsView()) {
+                        Button {
+                            Haptics.play(.medium)
+                            showSavedTrips = true
+                        } label: {
                             Image(systemName: "bookmark.fill")
                                 .foregroundColor(.green)
                                 .overlay(
@@ -388,6 +392,7 @@ struct ContentView: View {
                 }
             }
             .environment(\.editMode, $editMode)
+            .navigationDestination(isPresented: $showSavedTrips) { SavedTripsView() }
             .sheet(isPresented: $showSearchSheet, onDismiss: { manager.loadFavorites() }) { SearchView() }
             .sheet(isPresented: $showHistorySheet) { HistoryView() }
             .sheet(isPresented: $showProfile) { ProfileView() }
@@ -412,6 +417,9 @@ struct ContentView: View {
                 manager.loadFavorites()
                 manager.syncLiveActivities()
                 if hasCompletedOnboarding {
+                    if locationManager.authorizationStatus == .notDetermined {
+                        locationManager.requestAuthorization()
+                    }
                     if !hasRequestedLocation {
                         locationManager.requestLocation()
                         hasRequestedLocation = true
@@ -529,20 +537,12 @@ struct ContentView: View {
     }
     
     func loadNews() async {
-        let effectiveRegion = manager.hasSupport() ? manager.strikeRegion : "Tutte"
-        let regionParam = effectiveRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
-        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)") else { return }
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let decodedNews = try JSONDecoder().decode([NewsItem].self, from: data)
-            await MainActor.run {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    self.allNewsItems = decodedNews
-                    self.newsItems = decodedNews.filter { $0.title != "Info" || $0.isUrgent }
-                }
+        let decodedNews = await manager.fetchStrikesAndNews()
+        await MainActor.run {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                self.allNewsItems = decodedNews
+                self.newsItems = decodedNews.filter { $0.title != "Info" || $0.isUrgent }
             }
-        } catch {
-            print("Errore fetch news: \(error)")
         }
     }
     

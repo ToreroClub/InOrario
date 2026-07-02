@@ -5,6 +5,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.carlo.InOrario.refresh</string>
+		<string>com.toreroclub.inorario.ai_processing</string>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>

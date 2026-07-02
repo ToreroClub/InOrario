@@ -57,6 +57,18 @@ struct OnboardingView: View {
             description: "Resta aggiornato sul servizio ed ottimizza la navigazione:",
             iconName: "location.circle.fill",
             iconColor: .blue
+        ),
+        OnboardingPage(
+            title: "La Tua Regione",
+            description: "Seleziona la tua regione per ricevere scioperi e notizie rilevanti per te. Gli scioperi nazionali sono sempre visibili a tutti.",
+            iconName: "map.fill",
+            iconColor: .red
+        ),
+        OnboardingPage(
+            title: "Intelligenza Artificiale",
+            description: "Personalizza come In Orario elabora le informazioni e gli scioperi per te:",
+            iconName: "brain.head.profile",
+            iconColor: .indigo
         )
     ]
     
@@ -99,6 +111,10 @@ struct OnboardingView: View {
                                     Haptics.play(.medium)
                                     locationManager.requestAuthorization()
                                 }
+                            } else if index == 7 {
+                                OnboardingRegionPickerView(page: pages[index])
+                            } else if index == 8 {
+                                OnboardingAIChoiceView(page: pages[index])
                             }
                         }
                         .tag(index)
@@ -924,5 +940,238 @@ struct FeasibilityTutorialRow: View {
             Spacer()
         }
         .padding(.vertical, 4)
+    }
+}
+
+struct OnboardingAIChoiceView: View {
+    let page: OnboardingPage
+    @ObservedObject var aiManager = AIFeatureManager.shared
+    @EnvironmentObject var manager: TrainManager
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Text(page.title)
+                .font(.system(.title, design: .rounded))
+                .bold()
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+            
+            Text(page.description)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 30)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    
+                    // OPZIONE 1: Backend Premium
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Image(systemName: "cloud.fill")
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                            
+                            Text("Cloud In Orario")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if !aiManager.preferLocalAI {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.blue)
+                                    .font(.title2)
+                            }
+                        }
+                        
+                        Text("Elaborazione istantanea senza consumare la batteria del tuo iPhone. Ricevi notifiche push tempestive in caso di scioperi. *Funzionalità riservata ai Sostenitori dell'app (Premium).*")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        if !manager.hasSupport() {
+                            Text("Richiede il supporto (Caffè) nelle impostazioni.")
+                                .font(.caption.bold())
+                                .foregroundColor(.orange)
+                                .padding(.top, 2)
+                        }
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.blue, lineWidth: !aiManager.preferLocalAI ? 2 : 0)
+                            )
+                    )
+                    .onTapGesture {
+                        Haptics.play(.medium)
+                        aiManager.preferLocalAI = false
+                    }
+                    .padding(.horizontal, 25)
+                    
+                    // OPZIONE 2: Modello Locale
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Image(systemName: "cpu")
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.indigo)
+                                .clipShape(Circle())
+                            
+                            Text("Modello IA Locale")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if aiManager.preferLocalAI {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.indigo)
+                                    .font(.title2)
+                            }
+                        }
+                        
+                        Text("Gratis per tutti. Il tuo iPhone formatta ed elabora gli scioperi usando il processore locale e si aggiorna in background. Nessuna registrazione ai nostri server richiesta.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        if !aiManager.isHardwareCompatible {
+                            Text("Il tuo dispositivo non supporta il Modello IA Locale (richiesti >= 6GB RAM). Verrà utilizzato il sistema di base per leggere gli scioperi.")
+                                .font(.caption.bold())
+                                .foregroundColor(.red)
+                                .padding(.top, 2)
+                        } else if !aiManager.isLocalModelInstalled {
+                            Text("Richiede il download del modello (circa 320 MB).")
+                                .font(.caption.bold())
+                                .foregroundColor(.indigo)
+                                .padding(.top, 2)
+                        }
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.indigo, lineWidth: aiManager.preferLocalAI ? 2 : 0)
+                            )
+                    )
+                    .onTapGesture {
+                        Haptics.play(.medium)
+                        aiManager.preferLocalAI = true
+                    }
+                    .padding(.horizontal, 25)
+                    
+                    if aiManager.preferLocalAI && aiManager.isHardwareCompatible && !aiManager.isLocalModelInstalled {
+                        Button(action: {
+                            if aiManager.isDownloadingModel {
+                                aiManager.cancelDownload()
+                            } else {
+                                aiManager.downloadLocalModel()
+                            }
+                        }) {
+                            HStack {
+                                if aiManager.isDownloadingModel {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    Text("Download in corso... \(Int(aiManager.downloadProgress * 100))%")
+                                } else {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                    Text("Scarica Modello Ora")
+                                }
+                            }
+                            .font(.subheadline.bold())
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(aiManager.isDownloadingModel ? Color.orange : Color.indigo)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal, 25)
+                        .padding(.top, 10)
+                    }
+                }
+                .padding(.top, 10)
+                .padding(.bottom, 20)
+            }
+            
+            Spacer()
+        }
+        .onAppear {
+            if !manager.hasSupport() {
+                aiManager.preferLocalAI = true
+            }
+        }
+    }
+}
+
+// MARK: - Onboarding Region Picker
+
+struct OnboardingRegionPickerView: View {
+    let page: OnboardingPage
+    @EnvironmentObject var manager: TrainManager
+
+    private let regions = ["Tutte", "Abruzzo", "Basilicata", "Calabria", "Campania",
+                           "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria",
+                           "Lombardia", "Marche", "Molise", "Piemonte", "Puglia",
+                           "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige",
+                           "Umbria", "Valle d'Aosta", "Veneto"]
+
+    var body: some View {
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 12) {
+                Image(systemName: page.iconName)
+                    .font(.system(size: 56, weight: .semibold))
+                    .foregroundStyle(page.iconColor)
+                    .padding(.top, 20)
+
+                Text(page.title)
+                    .font(.title.bold())
+                    .multilineTextAlignment(.center)
+
+                Text(page.description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+            }
+
+            // Picker a lista scorrevole
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(regions, id: \.self) { region in
+                        let isSelected = manager.strikeRegion == region
+                        HStack {
+                            Text(region == "Tutte" ? "🇮🇹  Nazionale / Tutte le regioni" : region)
+                                .font(isSelected ? .headline : .body)
+                                .foregroundColor(isSelected ? .white : .primary)
+                            Spacer()
+                            if isSelected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(isSelected ? Color.red : Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .onTapGesture {
+                            Haptics.play(.light)
+                            manager.strikeRegion = region
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+            .frame(maxHeight: 380)
+
+            Spacer()
+        }
     }
 }
