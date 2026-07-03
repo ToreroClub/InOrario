@@ -391,36 +391,36 @@ struct Station: Identifiable, Codable, Hashable {
             return [
                 MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "RHO FIERAMILANO", direction: 0)
             ]
-        } else if upperName.contains("GARIBALDI") {
+        } else if (upperName.contains("MILANO") && upperName.contains("GARIBALDI")) || upperName == "GARIBALDI FS" {
             return [
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "GARIBALDI FS", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "GARIBALDI FS", direction: 1),
                 MetroLine(name: "M5 Bignami", colorName: "purple", pdfID: "GARIBALDI FS", direction: 0),
                 MetroLine(name: "M5 San Siro", colorName: "purple", pdfID: "GARIBALDI FS", direction: 1)
             ]
-        } else if upperName.contains("CENTRALE") {
+        } else if (upperName.contains("MILANO") && upperName.contains("CENTRALE")) || upperName == "CENTRALE FS" {
             return [
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "CENTRALE FS", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "CENTRALE FS", direction: 1),
                 MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "CENTRALE FS", direction: 0),
                 MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "CENTRALE FS", direction: 1)
             ]
-        } else if upperName.contains("REPUBBLICA") {
+        } else if upperName.contains("MILANO REPUBBLICA") || upperName == "REPUBBLICA" {
             return [
                 MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "REPUBBLICA", direction: 0),
                 MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "REPUBBLICA", direction: 1)
             ]
-        } else if upperName.contains("VENEZIA") {
+        } else if upperName.contains("MILANO PORTA VENEZIA") || upperName.contains("MILANO P. VENEZIA") {
             return [
                 MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "P.TA VENEZIA", direction: 0),
                 MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "P.TA VENEZIA", direction: 1)
             ]
-        } else if upperName.contains("DATEO") {
+        } else if upperName.contains("MILANO DATEO") || upperName == "DATEO" {
             return [
                 MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "DATEO", direction: 0),
                 MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "DATEO", direction: 1)
             ]
-        } else if upperName.contains("FORLANINI") {
+        } else if upperName.contains("MILANO FORLANINI") || upperName == "FORLANINI" {
             return [
                 MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "STAZIONE FORLANINI", direction: 0),
                 MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "STAZIONE FORLANINI", direction: 1)
@@ -429,49 +429,48 @@ struct Station: Identifiable, Codable, Hashable {
             return [
                 MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "SESTO 1 MAGGIO FS", direction: 1)
             ]
-        } else if upperName.contains("CADORNA") {
+        } else if (upperName.contains("MILANO") && upperName.contains("CADORNA")) || upperName == "CADORNA FN" {
             return [
                 MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "CADORNA FN M1", direction: 0),
                 MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "CADORNA FN M1", direction: 1),
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "CADORNA FN M2", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "CADORNA FN M2", direction: 1)
             ]
-        } else if upperName.contains("LAMBRATE") {
+        } else if (upperName.contains("MILANO") && upperName.contains("LAMBRATE")) || upperName == "LAMBRATE FS" {
             return [
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "LAMBRATE FS", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "LAMBRATE FS", direction: 1)
             ]
-        } else if upperName.contains("GENOVA") {
+        } else if upperName.contains("MILANO PORTA GENOVA") || upperName.contains("MILANO P. GENOVA") || upperName == "PORTA GENOVA FS" {
             return [
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "PORTA GENOVA FS", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "PORTA GENOVA FS", direction: 1)
             ]
-        } else if upperName.contains("ROMOLO") {
+        } else if upperName.contains("MILANO ROMOLO") || upperName == "ROMOLO" {
             return [
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "ROMOLO", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "ROMOLO", direction: 1)
             ]
-        } else if upperName.contains("AFFORI") {
+        } else if upperName.contains("MILANO AFFORI") || upperName == "AFFORI FN" {
             return [
                 MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "AFFORI FN", direction: 0),
                 MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "AFFORI FN", direction: 1)
             ]
-        } else if upperName.contains("ROMANA") {
+        } else if upperName.contains("MILANO PORTA ROMANA") || upperName.contains("MILANO P. ROMANA") || upperName == "PORTA ROMANA FS" {
             return [
-                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "PORTA ROMANA", direction: 0),
-                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "PORTA ROMANA", direction: 1)
+                MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "LODI T.I.B.B.", direction: 0),
+                MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "LODI T.I.B.B.", direction: 1)
             ]
-        } else if upperName.contains("ROGOREDO") {
+        } else if (upperName.contains("MILANO") && upperName.contains("ROGOREDO")) || upperName == "ROGOREDO FS" {
             return [
                 MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "ROGOREDO FS", direction: 0),
                 MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "ROGOREDO FS", direction: 1)
             ]
-        } else if upperName.contains("CRISTOFORO") {
+        } else if upperName.contains("MILANO SAN CRISTOFORO") || upperName.contains("MILANO S. CRISTOFORO") {
             return [
-                MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "SAN CRISTOFORO FS", direction: 0),
-                MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "SAN CRISTOFORO FS", direction: 1)
+                MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "SAN CRISTOFORO", direction: 1)
             ]
-        } else if upperName.contains("DOMODOSSOLA") {
+        } else if upperName.contains("MILANO DOMODOSSOLA") {
             return [
                 MetroLine(name: "M5 Bignami", colorName: "purple", pdfID: "DOMODOSSOLA FN", direction: 0),
                 MetroLine(name: "M5 San Siro", colorName: "purple", pdfID: "DOMODOSSOLA FN", direction: 1)

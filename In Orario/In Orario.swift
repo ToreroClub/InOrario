@@ -1,7 +1,7 @@
-
 import SwiftUI
 import BackgroundTasks
 import UserNotifications
+import CoreSpotlight
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     var manager: TrainManager?
@@ -57,10 +57,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
     
     // Mostra le notifiche anche ad app aperta
+    @MainActor
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound, .badge])
     }
     
+    @MainActor
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         if response.actionIdentifier == "IGNORE_STRIKE" {
             if let strikeId = response.notification.request.content.userInfo["strike_id"] as? String {
@@ -95,6 +97,23 @@ struct InOrario: App {
                 .environmentObject(locationManager)
                 .onAppear {
                     appDelegate.manager = manager
+                }
+                .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                    if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
+                        if identifier.starts(with: "inorario://train/") {
+                            let trainNumber = identifier.replacingOccurrences(of: "inorario://train/", with: "")
+                            DispatchQueue.main.async {
+                                manager.deepLinkTrain = Train(category: "Treno", number: trainNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
+                            }
+                        } else if identifier.starts(with: "inorario://station/") {
+                            let stationId = identifier.replacingOccurrences(of: "inorario://station/", with: "")
+                            DispatchQueue.main.async {
+                                // If it's not a UUID, let's create a temporary station with the name as the ID
+                                // The station views just need a Station object with a name and possibly vtID/rfiID
+                                manager.deepLinkStation = Station(name: stationId, rfiID: nil, vtID: stationId, lat: nil, lon: nil)
+                            }
+                        }
+                    }
                 }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in

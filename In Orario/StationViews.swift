@@ -231,8 +231,20 @@ struct StationBoardView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("")
-
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    if manager.isMyStation(station) {
+                        manager.removeMyStation(station)
+                    } else {
+                        manager.addMyStation(station)
+                    }
+                } label: {
+                    Image(systemName: manager.isMyStation(station) ? "star.fill" : "star").foregroundColor(.yellow)
+                }
+            }
+        }
         .sheet(item: $selectedTrain) { t in NavigationStack { TrainStopsView(train: t) } }
         .onAppear { manager.startAutoRefresh(for: station, isDepartures: showingDepartures) }
         .onDisappear { manager.stopAutoRefresh() }

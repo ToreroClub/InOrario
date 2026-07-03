@@ -1,5 +1,17 @@
 import WidgetKit
 import SwiftUI
+import AppIntents
+
+@available(iOS 17.0, *)
+struct RefreshWidgetIntent: AppIntent {
+    static let title: LocalizedStringResource = "Aggiorna Widget"
+    static let description = IntentDescription("Ricarica i ritardi dei treni nel widget.")
+
+    func perform() async throws -> some IntentResult {
+        WidgetCenter.shared.reloadAllTimelines()
+        return .result()
+    }
+}
 
 struct WidgetSavedTrain: Codable, Identifiable {
     var id: String { number }
@@ -175,6 +187,60 @@ struct TrainWidgetEntryView : View {
     }
 
     var body: some View {
+        switch family {
+        case .accessoryCircular:
+            circularWidgetBody
+        case .accessoryRectangular:
+            rectangularWidgetBody
+        default:
+            systemWidgetBody
+        }
+    }
+    
+    @ViewBuilder
+    private var circularWidgetBody: some View {
+        if !isUnlocked || entry.trains.isEmpty {
+            Image(systemName: "train.side.front.car")
+        } else {
+            let train = entry.trains[0]
+            let shortDelay = train.delayText
+                .replacingOccurrences(of: "Ritardo ", with: "+")
+                .replacingOccurrences(of: " min", with: "'")
+                .replacingOccurrences(of: "In orario", with: "0'")
+            
+            VStack(spacing: 2) {
+                Image(systemName: "train.side.front.car")
+                    .font(.system(size: 12))
+                Text(shortDelay)
+                    .font(.system(size: 16, weight: .bold))
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var rectangularWidgetBody: some View {
+        if !isUnlocked || entry.trains.isEmpty {
+            HStack {
+                Image(systemName: "train.side.front.car")
+                Text("Nessun treno")
+            }
+        } else {
+            let train = entry.trains[0]
+            HStack(spacing: 8) {
+                Image(systemName: "train.side.front.car")
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(train.number) \(train.description)")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Text(train.delayText)
+                        .font(.subheadline)
+                }
+            }
+        }
+    }
+
+    private var systemWidgetBody: some View {
         VStack(alignment: .leading, spacing: 10) {
             if !isUnlocked {
                 VStack(spacing: 8) {
@@ -198,6 +264,15 @@ struct TrainWidgetEntryView : View {
                     Text("Treni Preferiti")
                         .font(.headline)
                         .foregroundColor(.primary)
+                    Spacer()
+                    if #available(iOS 17.0, *) {
+                        Button(intent: RefreshWidgetIntent()) {
+                            Image(systemName: "arrow.clockwise.circle.fill")
+                                .foregroundColor(.gray.opacity(0.5))
+                                .font(.title3)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(.bottom, 4)
 
@@ -266,6 +341,6 @@ struct TrainWidget: Widget {
         }
         .configurationDisplayName("Treni Preferiti")
         .description("Accedi rapidamente ai tuoi treni preferiti.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
     }
 }

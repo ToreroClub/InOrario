@@ -4,6 +4,8 @@ import Foundation
 import CoreLocation
 import ActivityKit
 import StoreKit
+import CoreSpotlight
+import UniformTypeIdentifiers
 
 struct Haptics {
     static func play(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
@@ -62,6 +64,7 @@ struct Haptics {
     @Published var isStopsLoading = false
     @Published var stopErrorMessage: String? = nil
     @Published var deepLinkTrain: Train? = nil
+    @Published var deepLinkStation: Station? = nil
     @Published var lastFetchedStationKey: String = ""
     
     @Published var stationAlerts: String? = nil
@@ -451,6 +454,8 @@ struct Haptics {
             print("recentStations errore codifica: \(error)")
         }
         
+        indexSpotlightItems()
+        
         UserDefaults.standard.synchronize()
         
         UserDefaults.standard.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
@@ -487,6 +492,39 @@ struct Haptics {
         }
     }
     
+    private func indexSpotlightItems() {
+        var searchableItems = [CSSearchableItem]()
+        
+        for train in favoriteTrains {
+            let attributeSet = CSSearchableItemAttributeSet(contentType: .text)
+            attributeSet.title = "Treno \(train.number)"
+            attributeSet.contentDescription = train.description
+            attributeSet.keywords = ["treno", train.number, "inorario", "orario", train.description]
+            
+            let item = CSSearchableItem(uniqueIdentifier: "inorario://train/\(train.number)", domainIdentifier: "com.carlo.inorario.trains", attributeSet: attributeSet)
+            searchableItems.append(item)
+        }
+        
+        for station in myStations {
+            let attributeSet = CSSearchableItemAttributeSet(contentType: .text)
+            attributeSet.title = "Stazione di \(station.name)"
+            attributeSet.contentDescription = "Tabellone partenze e arrivi"
+            attributeSet.keywords = ["stazione", station.name, "tabellone", "partenze", "arrivi", "inorario"]
+            
+            // Usiamo il nome o un ID come identificativo
+            let stationId = station.vtID ?? station.rfiID ?? station.name
+            let item = CSSearchableItem(uniqueIdentifier: "inorario://station/\(stationId)", domainIdentifier: "com.carlo.inorario.stations", attributeSet: attributeSet)
+            searchableItems.append(item)
+        }
+        
+        CSSearchableIndex.default().indexSearchableItems(searchableItems) { error in
+            if let error = error {
+                print("Spotlight indexing error: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+
     func addToRecentTrains(_ train: SavedTrain) {
         recentTrains.removeAll { $0.number == train.number }
         recentTrains.insert(train, at: 0)
@@ -1381,7 +1419,14 @@ struct Haptics {
         }
     }
     
-
+    func addMyStation(_ station: Station) {
+        if !myStations.contains(where: { $0.name == station.name }) {
+            myStations.append(station)
+            saveFavorites()
+            Haptics.notify(.success)
+        }
+    }
+    
     func moveFavoriteTrains(from source: IndexSet, to destination: Int) {
         favoriteTrains.move(fromOffsets: source, toOffset: destination)
         saveFavorites()
@@ -1398,8 +1443,18 @@ struct Haptics {
         Haptics.notify(.warning)
     }
     
+    func removeMyStation(_ station: Station) {
+        myStations.removeAll { $0.name == station.name }
+        saveFavorites()
+        Haptics.notify(.warning)
+    }
+    
     func isMyStation(vtID: String) -> Bool {
         return myStations.contains { $0.vtID == vtID }
+    }
+    
+    func isMyStation(_ station: Station) -> Bool {
+        return myStations.contains { $0.name == station.name }
     }
     
     func searchTrains(query: String) async {
@@ -1659,7 +1714,7 @@ struct Haptics {
                     else if num.hasPrefix("248") || num.hasPrefix("238") { cat = "S8" }
                     else if num.hasPrefix("249") || num.hasPrefix("239") { cat = "S9" }
                     else if num.hasPrefix("250") || num.hasPrefix("251") || num.hasPrefix("252") { cat = "S11" }
-                    else {
+                    else if cat.uppercased() != "REG" {
                         let d = dest.lowercased()
                         if d.contains("saronno") || d.contains("lodi") { cat = "S1" }
                         else if d.contains("mariano") || d.contains("seveso") || d.contains("camnago") { cat = "S2" }
@@ -1793,7 +1848,7 @@ struct Haptics {
                         else if num.hasPrefix("248") || num.hasPrefix("238") { cat = "S8" }
                         else if num.hasPrefix("249") || num.hasPrefix("239") { cat = "S9" }
                         else if num.hasPrefix("250") || num.hasPrefix("251") || num.hasPrefix("252") { cat = "S11" }
-                        else {
+                        else if cat.uppercased() != "REG" {
                             let d = dest.lowercased()
                             if d.contains("saronno") || d.contains("lodi") { cat = "S1" }
                             else if d.contains("mariano") || d.contains("seveso") || d.contains("camnago") { cat = "S2" }

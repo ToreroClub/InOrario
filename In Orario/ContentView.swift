@@ -59,6 +59,7 @@ struct ContentView: View {
     @State private var hasRequestedLocation = false
     
     @State private var deepLinkTrain: Train? = nil
+    @State private var deepLinkStation: Station? = nil
     @State private var selectedFavoriteTrain: Train? = nil
     @State private var isPulsing = false
     @State private var editMode: EditMode = .inactive
@@ -497,6 +498,11 @@ struct ContentView: View {
                 TrainStopsView(train: t)
             }
         }
+        .sheet(item: $deepLinkStation) { s in
+            NavigationStack {
+                StationBoardView(station: s)
+            }
+        }
         .onOpenURL { url in
             guard url.scheme == "inorario" else { return }
             
@@ -513,6 +519,12 @@ struct ContentView: View {
                 let dummy = Train(category: "Treno", number: newNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
                 self.deepLinkTrain = dummy
                 manager.deepLinkTrain = nil
+            }
+        }
+        .onChange(of: manager.deepLinkStation?.name) { old, newName in
+            if let newStation = manager.deepLinkStation {
+                self.deepLinkStation = newStation
+                manager.deepLinkStation = nil
             }
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in

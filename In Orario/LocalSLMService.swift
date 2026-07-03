@@ -164,7 +164,7 @@ class LocalSLMService {
             llama_sampler_free(sampler)
             
             // Condizione di arresto (End of Text o EOS speciale di Qwen: <|im_end|>)
-            if nextTokenID == llama_token_eos(model) || nextTokenID == 151645 { // 151645 è solitamente <|im_end|> in Qwen
+            if nextTokenID == llama_vocab_eos(vocab) || nextTokenID == 151645 { // 151645 è solitamente <|im_end|> in Qwen
                 break
             }
             
@@ -232,7 +232,7 @@ class LocalSLMService {
     
     deinit {
         if let ctx = context { llama_free(ctx) }
-        if let mdl = model { llama_free_model(mdl) }
+        if let mdl = model { llama_model_free(mdl) }
         if isBackendInitialized { llama_backend_free() }
     }
 }
