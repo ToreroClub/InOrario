@@ -1,3 +1,4 @@
+#if compiler(>=6.0)
 import AppIntents
 import SwiftUI
 import WidgetKit
@@ -25,3 +26,4 @@ struct OpenSearchIntent: AppIntent {
         return .result()
     }
 }
+#endif
