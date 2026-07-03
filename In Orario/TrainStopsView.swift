@@ -106,18 +106,11 @@ struct TrainStopsView: View {
                                     .disabled(reportedTypes.contains("cold"))
                                     
                                     Button {
-                                        report("stopped")
-                                    } label: {
-                                        Label("Treno Fermo / Bloccato", systemImage: "exclamationmark.octagon.fill")
-                                    }
-                                    .disabled(reportedTypes.contains("stopped"))
-                                    
-                                    Button {
-                                        report("moving")
-                                    } label: {
-                                        Label("Treno Ripartito / In Movimento", systemImage: "play.circle.fill")
-                                    }
-                                    .disabled(reportedTypes.contains("moving"))
+                                         report("stopped")
+                                     } label: {
+                                         Label("Treno Fermo", systemImage: "exclamationmark.octagon.fill")
+                                     }
+                                     .disabled(reportedTypes.contains("stopped"))
                                 }
                                 
                                 if showLongPressHint {
