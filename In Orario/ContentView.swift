@@ -91,25 +91,35 @@ struct ContentView: View {
     
     var hasUrgentNews: Bool {
         newsItems.contains { item in
-            if item.isUrgent {
-                // Se la notizia è uno sciopero, mostriamo "In Orario? No!" solo se è imminente (entro 48 ore)
-                if item.category == "sciopero", let dateStr = item.date {
-                    let formatter = DateFormatter()
-                    formatter.dateFormat = "yyyy-MM-dd"
-                    formatter.timeZone = TimeZone(identifier: "Europe/Rome")
-                    if let strikeDate = formatter.date(from: dateStr) {
-                        let now = Date()
-                        let diff = strikeDate.timeIntervalSince(now)
-                        // Mostra "In Orario? No!" se lo sciopero inizia entro le prossime 48 ore (e non è finito da oltre 24 ore)
-                        return diff >= -86400 && diff <= 172800
-                    }
-                    return false
-                }
-                // Per notizie realtime o lavori urgenti, manteniamo il comportamento standard (sempre In Orario? No!)
-                return true
+            let category = item.category?.lowercased()
+
+            // Uno sciopero cambia il titolo solo nel giorno in cui si svolge.
+            if category == "sciopero", let date = strikeDate(from: item.date) {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+                return calendar.isDateInToday(date)
             }
+
             return false
         }
+    }
+
+    private func strikeDate(from value: String?) -> Date? {
+        guard let value else { return nil }
+
+        for format in ["yyyy-MM-dd", "dd/MM/yyyy"] {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "it_IT")
+            formatter.timeZone = TimeZone(identifier: "Europe/Rome")
+            formatter.dateFormat = format
+            formatter.isLenient = false
+
+            if let date = formatter.date(from: value) {
+                return date
+            }
+        }
+
+        return nil
     }
     
     

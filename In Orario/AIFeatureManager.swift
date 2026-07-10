@@ -85,6 +85,18 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     private override init() {
         super.init()
         
+        // Impostiamo il default corretto in base all'hardware e supportiamo la migrazione a Apple Intelligence
+        if isAppleIntelligenceAvailable {
+            if selectedModelID == "qwen3-0.6b-q3" || selectedModelID.isEmpty || selectedModelID.starts(with: "qwen") {
+                selectedModelID = "apple_intelligence"
+                aiModeChoice = .local
+            }
+        } else {
+            if selectedModelID == "qwen3-0.6b-q3" || selectedModelID == "apple_intelligence" {
+                selectedModelID = "qwen2.5-0.5b-q4"
+            }
+        }
+        
         // Safety check: remove corrupted/tiny models (e.g. 404 HTML pages) to prevent startup crashes
         if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             let modelPath = docs.appendingPathComponent(selectedModel.fileName).path
@@ -119,7 +131,7 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     // MARK: - Hardware Check
     var isHardwareCompatible: Bool {
         let bytesInGB: UInt64 = 1024 * 1024 * 1024
-        let requiredMemory = 5.5 * Double(bytesInGB)
+        let requiredMemory = 2.7 * Double(bytesInGB) // Supporta iPhone SE 2 (3GB RAM) e iPhone 11 (4GB RAM)
         let physicalMemory = Double(ProcessInfo.processInfo.physicalMemory)
         #if targetEnvironment(simulator)
         return true
@@ -149,6 +161,10 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
         return false
     }
     
+    var isAppleIntelligenceSelected: Bool {
+        isAppleIntelligenceAvailable && selectedModelID == "apple_intelligence"
+    }
+    
     var selectedModel: AIModelOption {
         Self.catalog.first { $0.id == selectedModelID } ?? Self.catalog[0]
     }
@@ -165,50 +181,23 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     }
     
     // MARK: - Space Alert
-    private var alertDismissedRecently: Bool {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        guard let date = formatter.date(from: spaceAlertDismissedAtStr) else { return false }
-        return Date().timeIntervalSince(date) < 48 * 3600
-    }
-    
     func dismissSpaceAlert() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        spaceAlertDismissedAtStr = formatter.string(from: Date())
         spaceAlertLevel = .none
     }
     
     func evaluateSpaceAlert() {
-        guard !alertDismissedRecently else { return }
-        guard isLocalModelInstalled, aiModeChoice == .local else {
-            spaceAlertLevel = .none
-            return
-        }
-        
-        let gb = freeDiskSpaceGB
-        let currentModelSizeMB = Int(selectedModel.sizeBytes / 1_000_000)
-        
-        if gb < 0.8 {
-            // Critico: suggerisci rimozione immediata
-            spaceAlertLevel = .critical(
-                message: "Spazio quasi esaurito. Rimuovi il modello AI per liberare \(currentModelSizeMB) MB.",
-                freedMB: currentModelSizeMB
-            )
-        } else {
-            spaceAlertLevel = .none
-        }
+        spaceAlertLevel = .none
     }
     
-    // MARK: - Daily Check (chiamato dall'app entry point una volta al giorno la notte)
+    // MARK: - Daily Check
     func performDailySpaceCheck() {
-        refreshFreeSpace()
+        // Disattivato
     }
     
     // MARK: - Usage Gating
     func canRunFreeLocalAI() -> Bool {
         guard aiModeChoice == .local else { return false }
-        let hasModel = isAppleIntelligenceAvailable || (isHardwareCompatible && isLocalModelInstalled)
+        let hasModel = isAppleIntelligenceSelected || (isHardwareCompatible && isLocalModelInstalled)
         return hasModel
     }
     

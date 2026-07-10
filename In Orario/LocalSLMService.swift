@@ -95,7 +95,7 @@ class LocalSLMService: SLMProvider {
         var result: [NewsItem] = []
         
         for raw in rawItems {
-            if raw.category == "realtime" {
+            if raw.category == "realtime" || raw.category == "lavoro" {
                 result.append(raw)
                 continue
             }
@@ -117,7 +117,9 @@ class LocalSLMService: SLMProvider {
     
     /// Esegue il loop di inferenza token-by-token su llama.cpp
     private func runInference(prompt: String, context: OpaquePointer, model: OpaquePointer) async -> String {
-        let maxTokens = 512
+        let maxContextTokens = 1024
+        let maxGenerationTokens = 256
+        let maxPromptTokens = maxContextTokens - maxGenerationTokens
         var outputString = ""
         
         // 1. Tokenizzazione
@@ -138,30 +140,35 @@ class LocalSLMService: SLMProvider {
         
         guard tokenCount > 0 else { return "" }
         
+        // Limita i token del prompt per non superare il contesto e lasciare spazio alla generazione
+        let actualPromptTokens = min(Int(tokenCount), maxPromptTokens)
+        
         // 2. Inizializza il batch di tokens da passare al decoder
-        var batch = llama_batch_init(Int32(maxTokens), 0, 1)
+        let batchSize = max(actualPromptTokens, 512)
+        var batch = llama_batch_init(Int32(batchSize), 0, 1)
         defer { llama_batch_free(batch) }
         
         // Inseriamo i token del prompt nel batch iniziale
-        for i in 0..<min(Int(tokenCount), maxTokens) {
-            llama_batch_add(&batch, tokens[i], Int32(i), [0], i == Int(tokenCount) - 1)
+        for i in 0..<actualPromptTokens {
+            let isLast = (i == actualPromptTokens - 1)
+            llama_batch_add(&batch, tokens[i], Int32(i), [0], isLast)
         }
         
-        var pos = Int32(tokenCount)
+        var pos = Int32(actualPromptTokens)
         
         // 3. Loop di generazione (Greedy Sampling)
-        for _ in 0..<maxTokens {
+        for _ in 0..<maxGenerationTokens {
             // Esegui la valutazione dei token attuali nel contesto
             let decodeResult = llama_decode(context, batch)
             if decodeResult != 0 {
-                print("[-] Errore durante la decodifica dei token (llama_decode fallito).")
+                print("[-] Errore durante la decodifica dei token (llama_decode fallito: \(decodeResult)).")
                 break
             }
             
             // Pulisci il batch per i prossimi token
             llama_batch_clear(&batch)
             
-            // Greedy sampling semplificato per garantire massima coerenza del formato JSON
+            // Greedy sampling semplificato
             let sampler = llama_sampler_init_greedy()
             let nextTokenID = llama_sampler_sample(sampler, context, -1) // -1 prende l'ultimo token decodificato
             llama_sampler_free(sampler)
@@ -182,6 +189,11 @@ class LocalSLMService: SLMProvider {
             // Aggiungi il nuovo token al batch per l'inferenza del passo successivo
             llama_batch_add(&batch, nextTokenID, pos, [0], true)
             pos += 1
+            
+            // Protezione aggiuntiva per non sforare mai la finestra di contesto
+            if pos >= Int32(maxContextTokens) {
+                break
+            }
         }
         
         return outputString

@@ -2570,10 +2570,12 @@ struct Haptics {
                     result = cached
                 } else {
                     result = await executeRawScraping(region: strikeRegion)
+                    saveCache(items: result)
                 }
             }
         } else {
             result = await executeRawScraping(region: strikeRegion)
+            saveCache(items: result)
         }
         
         return filterExpiredStrikes(result)

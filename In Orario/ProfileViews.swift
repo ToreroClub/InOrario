@@ -58,6 +58,30 @@ struct NewsCenterView: View {
                                     }
                                 }
                                 Text(item.content).font(.subheadline).foregroundColor(.secondary)
+                                
+                                if selectedCategory == .sciopero {
+                                    Button(action: {
+                                        let locality = item.regions?.joined(separator: " ") ?? ""
+                                        let dateText = item.date ?? ""
+                                        let query = "sciopero treni \(locality) giorno \(dateText)"
+                                        if let urlString = "https://www.google.com/search?q=\(query)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                                           let url = URL(string: urlString) {
+                                            UIApplication.shared.open(url)
+                                        }
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "magnifyingglass")
+                                            Text("Cerca su Google")
+                                        }
+                                        .font(.caption)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundColor(.blue)
+                                        .cornerRadius(8)
+                                    }
+                                    .padding(.top, 4)
+                                }
                             }.padding(.vertical, 8)
                         }
                     }

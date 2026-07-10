@@ -61,23 +61,24 @@ struct AIModelSelectorView: View {
                         ) {
                             Haptics.play(.medium)
                             aiManager.aiModeChoice = .local
+                            aiManager.selectedModelID = "apple_intelligence"
                         }
                     } else {
                         AIOptionCard(
                             icon: "cpu",
                             iconColor: .indigo,
-                            title: "IA Locale (Offline)",
+                            title: "IA Locale (Offline - Beta)",
                             description: "Scarica un modello compatto per riassunti offline sul tuo dispositivo.",
                             isSelected: aiManager.aiModeChoice == .local,
                             isDisabled: !aiManager.isHardwareCompatible,
-                            badgeText: aiManager.isHardwareCompatible ? "Gratis" : "Non supportato"
+                            badgeText: aiManager.isHardwareCompatible ? "Beta" : "Non supportato"
                         ) {
                             Haptics.play(.medium)
                             aiManager.aiModeChoice = .local
                         }
                         
                         if !aiManager.isHardwareCompatible {
-                            Text("Il tuo dispositivo non supporta l'IA locale (richiesti ≥ 6 GB RAM).")
+                            Text("Il tuo dispositivo non supporta l'IA locale (richiesti ≥ 3 GB RAM, iPhone 11 / SE 2 o successivi).")
                                 .font(.caption.bold())
                                 .foregroundColor(.red)
                                 .padding()
@@ -86,6 +87,12 @@ struct AIModelSelectorView: View {
                                 .cornerRadius(12)
                         } else if aiManager.aiModeChoice == .local {
                             VStack(alignment: .leading, spacing: 10) {
+                                Text("ATTENZIONE: Qwen è un modello sperimentale eseguito in-app. Potrebbe causare crash per esaurimento memoria (RAM) o consumi elevati su alcuni dispositivi.")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 4)
+                                    .padding(.bottom, 4)
+                                
                                 ForEach(AIFeatureManager.catalog) { model in
                                     let isSelected = aiManager.selectedModelID == model.id
                                     let isInstalled = aiManager.isLocalModelInstalled && aiManager.selectedModelID == model.id
@@ -112,6 +119,10 @@ struct AIModelSelectorView: View {
                                         onCancel: {
                                             Haptics.play(.light)
                                             aiManager.cancelDownload()
+                                        },
+                                        onRemove: {
+                                            Haptics.play(.light)
+                                            aiManager.removeCurrentModel()
                                         }
                                     )
                                 }
@@ -170,10 +181,15 @@ struct AIModelSelectorView: View {
             if aiManager.aiModeChoice == .cloud && !manager.hasSupport() {
                 aiManager.aiModeChoice = .none
             }
-            // Se è il primo avvio ed è compatibile, preselezioniamo il consigliato per evitare confusione
-            if aiManager.aiModeChoice == .none && !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") && aiManager.isHardwareCompatible {
-                aiManager.aiModeChoice = .local
-                aiManager.selectedModelID = aiManager.recommendedModel.id
+            // Se è il primo avvio ed è compatibile, preselezioniamo il consigliato o Apple Intelligence
+            if aiManager.aiModeChoice == .none && !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
+                if aiManager.isAppleIntelligenceAvailable {
+                    aiManager.aiModeChoice = .local
+                    aiManager.selectedModelID = "apple_intelligence"
+                } else if aiManager.isHardwareCompatible {
+                    aiManager.aiModeChoice = .local
+                    aiManager.selectedModelID = aiManager.recommendedModel.id
+                }
             }
         }
         .navigationTitle(isOnboarding ? "" : "Modello AI")
@@ -251,6 +267,7 @@ private struct LocalModelCard: View {
     let onSelect: () -> Void
     let onDownload: () -> Void
     let onCancel: () -> Void
+    let onRemove: () -> Void
     
     var canInstall: Bool {
         freeDiskSpaceGB >= model.minFreeSpaceGB
@@ -368,6 +385,24 @@ private struct LocalModelCard: View {
                         }
                         .disabled(isAnyDownloading)
                     }
+                }
+                .padding(.leading, 30)
+                .padding(.top, 4)
+            }
+            
+            if isInstalled {
+                Button(action: onRemove) {
+                    HStack {
+                        Spacer()
+                        Image(systemName: "trash.fill")
+                        Text("Elimina Modello")
+                            .font(.subheadline.bold())
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
+                    .background(Color.red.opacity(0.12))
+                    .foregroundColor(.red)
+                    .cornerRadius(10)
                 }
                 .padding(.leading, 30)
                 .padding(.top, 4)

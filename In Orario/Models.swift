@@ -12,9 +12,19 @@ struct NewsItem: Codable, Identifiable, Equatable {
     let isUrgent: Bool
     let category: String?
     let date: String?
+    let regions: [String]?
+    
+    init(title: String, content: String, isUrgent: Bool, category: String? = nil, date: String? = nil, regions: [String]? = nil) {
+        self.title = title
+        self.content = content
+        self.isUrgent = isUrgent
+        self.category = category
+        self.date = date
+        self.regions = regions
+    }
     
     enum CodingKeys: String, CodingKey {
-        case title, content, isUrgent, category, date
+        case title, content, isUrgent, category, date, regions
     }
 }
 
