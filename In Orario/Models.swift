@@ -5,7 +5,7 @@ import CoreLocation
 import ActivityKit
 
 
-struct NewsItem: Codable, Identifiable {
+struct NewsItem: Codable, Identifiable, Equatable {
     let id = UUID()
     let title: String
     let content: String
@@ -31,36 +31,29 @@ struct SharedFormatters {
     }
     
     nonisolated static func formatDestination(_ name: String) -> String {
+        let lower = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if lower.isEmpty { return name }
+        
+        if lower == "milano centrale" || lower == "centrale" || lower == "m. centrale" || lower == "m.centrale" || lower == "milano cle" || lower == "m. cle" || lower == "cle" {
+            return "Milano Centrale"
+        }
+        
+        if lower == "milano porta garibaldi" || lower == "milano p. garibaldi" || lower == "milano p.garibaldi" || lower == "porta garibaldi" || lower == "p. garibaldi" || lower == "p.garibaldi" || lower.contains("garibaldi passante") || lower == "garibaldi" {
+            return "Milano P. Garibaldi"
+        }
+        
+        if lower == "milano porta venezia" || lower == "porta venezia" || lower == "venezia" || lower.contains("p. venezia") {
+            return "Milano P. Venezia"
+        }
+        
+        if lower == "milano porta vittoria" || lower == "porta vittoria" || lower == "vittoria" || lower.contains("p. vittoria") {
+            return "Milano P. Vittoria"
+        }
+        
         var dest = name
-        
-        if dest == "Milano Centrale" {
-            return dest
-        }
-        
-        dest = dest.replacingOccurrences(of: "Milano Porta Garibaldi Passante", with: "Milano P. Garibaldi")
-        dest = dest.replacingOccurrences(of: "Milano Porta Garibaldi", with: "Milano P. Garibaldi")
-        dest = dest.replacingOccurrences(of: "Porta Garibaldi Passante", with: "Milano P. Garibaldi")
-        dest = dest.replacingOccurrences(of: "Porta Garibaldi", with: "Milano P. Garibaldi")
-        
-        if dest == "Milano Porta Venezia" || dest == "Porta Venezia" || dest == "Venezia" {
-            dest = "P. Venezia"
-        } else {
-            dest = dest.replacingOccurrences(of: "Milano Porta Venezia", with: "P. Venezia")
-            dest = dest.replacingOccurrences(of: "Porta Venezia", with: "P. Venezia")
-        }
-        
-        if dest == "Milano Porta Vittoria" || dest == "Porta Vittoria" || dest == "Vittoria" {
-            dest = "P. Vittoria"
-        } else {
-            dest = dest.replacingOccurrences(of: "Milano Porta Vittoria", with: "P. Vittoria")
-            dest = dest.replacingOccurrences(of: "Porta Vittoria", with: "P. Vittoria")
-        }
-        
-        dest = dest.replacingOccurrences(of: "Milano Repubblica", with: "Repubblica")
-        
-        dest = dest.replacingOccurrences(of: "Milano Dateo", with: "Dateo")
-        
-        dest = dest.replacingOccurrences(of: "Milano Lancetti", with: "Lancetti")
+        dest = dest.replacingOccurrences(of: "Milano Repubblica", with: "Milano Repubblica")
+        dest = dest.replacingOccurrences(of: "Milano Dateo", with: "Milano Dateo")
+        dest = dest.replacingOccurrences(of: "Milano Lancetti", with: "Milano Lancetti")
         
         if dest.contains("Porta ") && !dest.contains("Milano P. ") && !dest.contains("P. ") {
             dest = dest.replacingOccurrences(of: "Porta ", with: "P. ")
@@ -165,23 +158,48 @@ struct MetroLine: Identifiable, Equatable {
     }
     let pdfID: String?
     var direction: Int = 0
+    let city: String
     var customFrequencies: [DayType: String]? = nil
     var destinations: [String: String]? = nil
 
+    init(name: String, colorName: String, pdfID: String?, direction: Int = 0, city: String = "milano", customFrequencies: [DayType: String]? = nil, destinations: [String: String]? = nil) {
+        self.name = name
+        self.colorName = colorName
+        self.pdfID = pdfID
+        self.direction = direction
+        self.city = city
+        self.customFrequencies = customFrequencies
+        self.destinations = destinations
+    }
+
     var directionLabel: String {
-        switch colorName {
-        case "red":
-            return direction == 0 ? "Sesto FS" : "Rho Fiera / Bisceglie"
-        case "green":
-            return direction == 0 ? "Cologno / Gessate" : "Abbiategrasso / Assago"
-        case "yellow":
-            return direction == 0 ? "San Donato" : "Comasina"
-        case "blue":
-            return direction == 0 ? "San Cristoforo" : "Linate"
-        case "purple":
-            return direction == 0 ? "Bignami" : "San Siro"
-        default:
-            return name
+        if city == "roma" {
+            switch name {
+            case "MA Battistini", "MA Anagnina":
+                return direction == 0 ? "Battistini" : "Anagnina"
+            case "MB Rebibbia/Jonio", "MB Laurentina", "MB Rebibbia":
+                return direction == 0 ? "Rebibbia / Jonio" : "Laurentina"
+            default: return name
+            }
+        } else if city == "napoli" {
+            return direction == 0 ? "Piscinola" : "Garibaldi"
+        } else if city == "torino" {
+            return direction == 0 ? "Fermi" : "Bengasi"
+        } else {
+            switch colorName {
+            case "red":
+                return direction == 0 ? "Sesto FS" : "Rho Fiera / Bisceglie"
+            case "green":
+                return direction == 0 ? "Cologno / Gessate" : "Abbiategrasso / Assago"
+            case "yellow":
+                return direction == 0 ? "San Donato" : "Comasina"
+            case "blue":
+                return direction == 0 ? "San Cristoforo" : "Linate"
+            case "purple":
+                return direction == 0 ? "Bignami" : "San Siro"
+            default:
+                return name
+            }
         }
     }
 }
@@ -253,14 +271,18 @@ struct Train: Identifiable, Sendable {
     let time: String
     let delay: String
     let platform: String
+    /// True quando la discrepanza tra ritardo RFI e VT supera la soglia (15 min):
+    /// il dato VT non è attendibile in quel caso, si usa RFI ma si segnala con un badge "?".
+    let isDelayUncertain: Bool
     
-    nonisolated init(category: String, number: String, destination: String, time: String, delay: String, platform: String) {
+    nonisolated init(category: String, number: String, destination: String, time: String, delay: String, platform: String, isDelayUncertain: Bool = false) {
         self.category = category
         self.number = number
         self.destination = Train.cleanStationName(destination)
         self.time = time
         self.delay = delay
         self.platform = platform
+        self.isDelayUncertain = isDelayUncertain
         self.id = "\(category)_\(number)_\(time)_\(self.destination)"
     }
     
@@ -277,26 +299,25 @@ struct Train: Identifiable, Sendable {
         var clean = name
         
         let replacements: [(String, String)] = [
-            ("Milano Bovisa Politecnico", "Bovisa"),
-            ("Milano Bovisa", "Bovisa"),
-            ("Milano Porta Garibaldi", "Porta Garibaldi"),
-            ("Milano Lancetti", "Lancetti"),
-            ("Milano Rogoredo", "Rogoredo"),
-            ("Milano Forlanini", "Forlanini"),
-            ("Milano Porta Venezia", "Porta Venezia"),
-            ("Milano Repubblica", "Repubblica"),
-            ("Milano Dateo", "Dateo"),
-            ("Milano Porta Vittoria", "Porta Vittoria"),
-            ("Milano Villapizzone", "Villapizzone"),
-            ("Milano Cadorna", "Cadorna"),
-            ("Milano Centrale", "Centrale"),
-            ("Milano Greco Pirelli", "Greco Pirelli"),
-            ("Milano Scalo Romana", "Scalo Romana"),
-            ("Milano Porta Romana", "Scalo Romana"),
-            ("Milano San Cristoforo", "San Cristoforo"),
-            ("Milano Lambrate", "Lambrate"),
-            ("Milano Certosa", "Certosa"),
-            ("Milano Lodi T.i.b.b.", "Lodi T.I.B.B.")
+            ("Milano Bovisa Politecnico", "Milano Bovisa"),
+            ("Milano Bovisa", "Milano Bovisa"),
+            ("Milano Porta Garibaldi", "Milano P. Garibaldi"),
+            ("Milano Lancetti", "Milano Lancetti"),
+            ("Milano Rogoredo", "Milano Rogoredo"),
+            ("Milano Forlanini", "Milano Forlanini"),
+            ("Milano Porta Venezia", "Milano P. Venezia"),
+            ("Milano Repubblica", "Milano Repubblica"),
+            ("Milano Dateo", "Milano Dateo"),
+            ("Milano Porta Vittoria", "Milano P. Vittoria"),
+            ("Milano Villapizzone", "Milano Villapizzone"),
+            ("Milano Cadorna", "Milano Cadorna"),
+            ("Milano Greco Pirelli", "Milano Greco P."),
+            ("Milano Scalo Romana", "Milano S. Romana"),
+            ("Milano Porta Romana", "Milano P. Romana"),
+            ("Milano San Cristoforo", "Milano S. Cristoforo"),
+            ("Milano Lambrate", "Milano Lambrate"),
+            ("Milano Certosa", "Milano Certosa"),
+            ("Milano Lodi T.i.b.b.", "Milano Lodi T.I.B.B.")
         ]
         
         for (target, replacement) in replacements {
@@ -306,9 +327,21 @@ struct Train: Identifiable, Sendable {
         }
         
         if clean.hasPrefix("Milano ") {
-            clean = String(clean.dropFirst(7))
+            let rest = String(clean.dropFirst(7))
+            let lowerRest = rest.lowercased()
+            if lowerRest == "centrale" || lowerRest == "p. garibaldi" || lowerRest == "porta garibaldi" {
+                // Keep "Milano "
+            } else {
+                clean = rest
+            }
         } else if clean.hasPrefix("Milano") {
-            clean = String(clean.dropFirst(6))
+            let rest = String(clean.dropFirst(6))
+            let lowerRest = rest.lowercased()
+            if lowerRest == "centrale" || lowerRest == "p. garibaldi" || lowerRest == "porta garibaldi" {
+                // Keep "Milano"
+            } else {
+                clean = rest
+            }
         }
         
         return clean.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -342,6 +375,8 @@ struct Station: Identifiable, Codable, Hashable {
     let vtID: String?
     let lat: Double?
     let lon: Double?
+    
+    var formattedName: String { name.formattedStationName }
     
     var coordinate: CLLocationCoordinate2D? {
         guard let lat = lat, let lon = lon else { return nil }
@@ -391,36 +426,36 @@ struct Station: Identifiable, Codable, Hashable {
             return [
                 MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "RHO FIERAMILANO", direction: 0)
             ]
-        } else if (upperName.contains("MILANO") && upperName.contains("GARIBALDI")) || upperName == "GARIBALDI FS" {
+        } else if upperName.contains("GARIBALDI") {
             return [
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "GARIBALDI FS", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "GARIBALDI FS", direction: 1),
                 MetroLine(name: "M5 Bignami", colorName: "purple", pdfID: "GARIBALDI FS", direction: 0),
                 MetroLine(name: "M5 San Siro", colorName: "purple", pdfID: "GARIBALDI FS", direction: 1)
             ]
-        } else if (upperName.contains("MILANO") && upperName.contains("CENTRALE")) || upperName == "CENTRALE FS" {
+        } else if upperName.contains("CENTRALE") {
             return [
                 MetroLine(name: "M2 Nord", colorName: "green", pdfID: "CENTRALE FS", direction: 0),
                 MetroLine(name: "M2 Sud", colorName: "green", pdfID: "CENTRALE FS", direction: 1),
                 MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "CENTRALE FS", direction: 0),
                 MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "CENTRALE FS", direction: 1)
             ]
-        } else if upperName.contains("MILANO REPUBBLICA") || upperName == "REPUBBLICA" {
+        } else if upperName.contains("REPUBBLICA") {
             return [
                 MetroLine(name: "M3 S. Donato", colorName: "yellow", pdfID: "REPUBBLICA", direction: 0),
                 MetroLine(name: "M3 Comasina", colorName: "yellow", pdfID: "REPUBBLICA", direction: 1)
             ]
-        } else if upperName.contains("MILANO PORTA VENEZIA") || upperName.contains("MILANO P. VENEZIA") {
+        } else if upperName.contains("VENEZIA") {
             return [
                 MetroLine(name: "M1 Sesto", colorName: "red", pdfID: "P.TA VENEZIA", direction: 0),
                 MetroLine(name: "M1 Rho/Bisc.", colorName: "red", pdfID: "P.TA VENEZIA", direction: 1)
             ]
-        } else if upperName.contains("MILANO DATEO") || upperName == "DATEO" {
+        } else if upperName.contains("DATEO") {
             return [
                 MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "DATEO", direction: 0),
                 MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "DATEO", direction: 1)
             ]
-        } else if upperName.contains("MILANO FORLANINI") || upperName == "FORLANINI" {
+        } else if upperName.contains("FORLANINI") {
             return [
                 MetroLine(name: "M4 S. Cristoforo", colorName: "blue", pdfID: "STAZIONE FORLANINI", direction: 0),
                 MetroLine(name: "M4 Linate", colorName: "blue", pdfID: "STAZIONE FORLANINI", direction: 1)
@@ -474,6 +509,53 @@ struct Station: Identifiable, Codable, Hashable {
             return [
                 MetroLine(name: "M5 Bignami", colorName: "purple", pdfID: "DOMODOSSOLA FN", direction: 0),
                 MetroLine(name: "M5 San Siro", colorName: "purple", pdfID: "DOMODOSSOLA FN", direction: 1)
+            ]
+        } else if (upperName.contains("NAPOLI") && (upperName.contains("CENTRALE") || upperName.contains("GARIBALDI"))) {
+            return [
+                MetroLine(name: "L1 Piscinola", colorName: "yellow", pdfID: "PIAZZA GARIBALDI", direction: 0, city: "napoli"),
+                MetroLine(name: "L1 Garibaldi", colorName: "yellow", pdfID: "PIAZZA GARIBALDI", direction: 1, city: "napoli")
+            ]
+        } else if (upperName.contains("NAPOLI") && (upperName.contains("CAVOUR") || upperName.contains("MUSEO"))) {
+            return [
+                MetroLine(name: "L1 Piscinola", colorName: "yellow", pdfID: "MUSEO", direction: 0, city: "napoli"),
+                MetroLine(name: "L1 Garibaldi", colorName: "yellow", pdfID: "MUSEO", direction: 1, city: "napoli")
+            ]
+        } else if upperName.contains("TORINO PORTA NUOVA") {
+            return [
+                MetroLine(name: "M1 Fermi", colorName: "yellow", pdfID: "METRO PORTA NUOVA", direction: 0, city: "torino"),
+                MetroLine(name: "M1 Bengasi", colorName: "yellow", pdfID: "METRO PORTA NUOVA", direction: 1, city: "torino")
+            ]
+        } else if upperName.contains("TORINO PORTA SUSA") {
+            return [
+                MetroLine(name: "M1 Fermi", colorName: "yellow", pdfID: "METRO PORTA SUSA", direction: 0, city: "torino"),
+                MetroLine(name: "M1 Bengasi", colorName: "yellow", pdfID: "METRO PORTA SUSA", direction: 1, city: "torino")
+            ]
+        } else if upperName.contains("TORINO LINGOTTO") {
+            return [
+                MetroLine(name: "M1 Fermi", colorName: "yellow", pdfID: "METRO LINGOTTO", direction: 0, city: "torino"),
+                MetroLine(name: "M1 Bengasi", colorName: "yellow", pdfID: "METRO LINGOTTO", direction: 1, city: "torino")
+            ]
+        } else if upperName.contains("ROMA TERMINI") {
+            return [
+                MetroLine(name: "MA Battistini", colorName: "orange", pdfID: "Termini", direction: 0, city: "roma"),
+                MetroLine(name: "MA Anagnina", colorName: "orange", pdfID: "Termini", direction: 1, city: "roma"),
+                MetroLine(name: "MB Rebibbia/Jonio", colorName: "blue", pdfID: "Termini", direction: 0, city: "roma"),
+                MetroLine(name: "MB Laurentina", colorName: "blue", pdfID: "Termini", direction: 1, city: "roma")
+            ]
+        } else if upperName.contains("ROMA TIBURTINA") {
+            return [
+                MetroLine(name: "MB Rebibbia", colorName: "blue", pdfID: "Tiburtina F.s.", direction: 0, city: "roma"),
+                MetroLine(name: "MB Laurentina", colorName: "blue", pdfID: "Tiburtina F.s.", direction: 1, city: "roma")
+            ]
+        } else if upperName.contains("ROMA OSTIENSE") {
+            return [
+                MetroLine(name: "MB Rebibbia/Jonio", colorName: "blue", pdfID: "Piramide", direction: 0, city: "roma"),
+                MetroLine(name: "MB Laurentina", colorName: "blue", pdfID: "Piramide", direction: 1, city: "roma")
+            ]
+        } else if upperName.contains("VALLE AURELIA") {
+            return [
+                MetroLine(name: "MA Battistini", colorName: "orange", pdfID: "Valle Aurelia", direction: 0, city: "roma"),
+                MetroLine(name: "MA Anagnina", colorName: "orange", pdfID: "Valle Aurelia", direction: 1, city: "roma")
             ]
         }
         return []
@@ -692,3 +774,149 @@ struct SavedTrip: Codable, Identifiable, Equatable {
         return TravelSolution(trainNumber: "", category: "Viaggio", departureTime: departureTime, arrivalTime: arrivalTime, origin: origin, destination: destination, duration: duration, segments: mappedSegments)
     }
 }
+
+extension String {
+    var formattedStationName: String {
+        let lower = self.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if lower.isEmpty { return self }
+        
+        var formatted = lower
+            .replacingOccurrences(of: "p.ta ", with: "Porta ")
+            .replacingOccurrences(of: "p. ", with: "Porta ")
+            .replacingOccurrences(of: "staz.ne ", with: "Stazione ")
+            .replacingOccurrences(of: "milano p.garibaldi", with: "Milano P. Garibaldi")
+            .replacingOccurrences(of: "p. garibaldi passante", with: "Milano P. Garibaldi")
+            .replacingOccurrences(of: "p.garibaldi passante", with: "Milano P. Garibaldi")
+            .replacingOccurrences(of: "milano p. garibaldi", with: "Milano P. Garibaldi")
+            .replacingOccurrences(of: "milano porta garibaldi passante", with: "Milano P. Garibaldi")
+            .replacingOccurrences(of: "milano porta garibaldi", with: "Milano P. Garibaldi")
+            .replacingOccurrences(of: "milano centrale", with: "Milano Centrale")
+            .replacingOccurrences(of: "m.centrale", with: "Milano Centrale")
+            .replacingOccurrences(of: "m. centrale", with: "Milano Centrale")
+            
+        // Capitalize words
+        formatted = formatted.capitalized
+        
+        // Restore acronyms and specific casings
+        formatted = formatted
+            .replacingOccurrences(of: " Fs", with: " FS")
+            .replacingOccurrences(of: " Fn", with: " FN")
+            .replacingOccurrences(of: " Passante", with: "")
+        
+        return formatted
+    }
+}
+
+// MARK: - Metro Station Model
+
+struct MetroStation: Identifiable, Codable, Equatable, Hashable {
+    var id: String { primaryPdfID }
+    let displayName: String
+    let primaryPdfID: String   // used for MetroCache lookup
+    let city: String
+    let lines: [MetroLine]
+    let latitude: Double
+    let longitude: Double
+
+    static func == (lhs: MetroStation, rhs: MetroStation) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
+    var color: Color { lines.first?.color ?? .gray }
+
+    // Codable support (MetroLine is not Codable, so we store identifiers)
+    enum CodingKeys: String, CodingKey {
+        case displayName, primaryPdfID, city, latitude, longitude, lineNames, lineColors, linePdfIDs, lineDirections
+    }
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(displayName, forKey: .displayName)
+        try c.encode(primaryPdfID, forKey: .primaryPdfID)
+        try c.encode(city, forKey: .city)
+        try c.encode(latitude, forKey: .latitude)
+        try c.encode(longitude, forKey: .longitude)
+        try c.encode(lines.map { $0.name }, forKey: .lineNames)
+        try c.encode(lines.map { $0.colorName }, forKey: .lineColors)
+        try c.encode(lines.map { $0.pdfID ?? "" }, forKey: .linePdfIDs)
+        try c.encode(lines.map { $0.direction }, forKey: .lineDirections)
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        primaryPdfID = try c.decode(String.self, forKey: .primaryPdfID)
+        city = try c.decode(String.self, forKey: .city)
+        latitude = try c.decode(Double.self, forKey: .latitude)
+        longitude = try c.decode(Double.self, forKey: .longitude)
+        let names = try c.decode([String].self, forKey: .lineNames)
+        let colors = try c.decode([String].self, forKey: .lineColors)
+        let pdfIDs = try c.decode([String].self, forKey: .linePdfIDs)
+        let dirs = try c.decode([Int].self, forKey: .lineDirections)
+        lines = zip(zip(names, colors), zip(pdfIDs, dirs)).map { outer in
+            let ((name, color), (pdfID, dir)) = outer
+            return MetroLine(name: name, colorName: color, pdfID: pdfID.isEmpty ? nil : pdfID, direction: dir)
+        }
+    }
+    init(displayName: String, primaryPdfID: String, city: String = "milano", lines: [MetroLine], latitude: Double, longitude: Double) {
+        self.displayName = displayName
+        self.primaryPdfID = primaryPdfID
+        self.city = city
+        self.lines = lines
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+}
+
+extension MetroStation {
+    var uniqueLines: [MetroLine] {
+        var seen = Set<String>()
+        var result = [MetroLine]()
+        for line in lines {
+            let prefix = String(line.name.prefix(2))
+            if !seen.contains(prefix) {
+                seen.insert(prefix)
+                result.append(line)
+            }
+        }
+        return result
+    }
+
+    func branchName(for linePrefix: String) -> String? {
+        switch linePrefix {
+        case "M1":
+            let rhoFieraStations = ["Buonarroti", "Amendola", "Lotto", "QT8", "Lampugnano", "Uruguay", "Bonola", "San Leonardo", "Molino Dorino", "Pero", "Rho Fieramilano"]
+            let bisceglieStations = ["Wagner", "De Angeli", "Gambara", "Bande Nere", "Primaticcio", "Inganni", "Bisceglie"]
+            if rhoFieraStations.contains(displayName) {
+                return "Rho"
+            } else if bisceglieStations.contains(displayName) {
+                return "Bisc."
+            }
+            return nil
+        case "M2":
+            let gessateStations = ["Vimodrone", "Cascina Burrona", "Cernusco Sul Naviglio", "Villa Fiorita", "Cassina De Pecchi", "Bussero", "Villa Pompea", "Gorgonzola", "Cascina Antonietta", "Gessate"]
+            let colognoStations = ["Cologno Sud", "Cologno Centro", "Cologno Nord"]
+            let assagoStations = ["Assago Milanofiori Nord", "Assago Milanofiori Forum"]
+            let abbiategrassoStations = ["Abbiategrasso"]
+            if gessateStations.contains(displayName) {
+                return "Gessate"
+            } else if colognoStations.contains(displayName) {
+                return "Cologno"
+            } else if assagoStations.contains(displayName) {
+                return "Assago"
+            } else if abbiategrassoStations.contains(displayName) {
+                return "Abbiat."
+            }
+            return nil
+        default:
+            return nil
+        }
+    }
+
+    func lineLabelWithBranch(_ linePrefix: String) -> String {
+        if let branch = branchName(for: linePrefix) {
+            return "\(linePrefix) \(branch)"
+        }
+        return linePrefix
+    }
+}
+
+
+

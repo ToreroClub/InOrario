@@ -21,7 +21,7 @@ struct PassanteNodeView: View {
         let trainsOfLine = passanteManager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
         if trainsOfLine.isEmpty { return nil }
         
-        var destMinMins: [String: Int] = [:]
+        var dirBestTrain: [String: (dest: String, mins: Int)] = [:]
         for train in trainsOfLine {
             let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato")
             if isCancelled { continue }
@@ -75,18 +75,20 @@ struct PassanteNodeView: View {
             else if d.contains("rho") { shortDest = "RHO" }
             else { shortDest = String(train.destination.prefix(5).uppercased()) }
             
-            let currentMin = destMinMins[shortDest] ?? Int.max
+            let direction = passanteManager.getPassanteDirection(for: train) ?? "Altra"
+            
+            let currentMin = dirBestTrain[direction]?.mins ?? Int.max
             if diffInMinutes < currentMin {
-                destMinMins[shortDest] = diffInMinutes
+                dirBestTrain[direction] = (dest: shortDest, mins: diffInMinutes)
             }
         }
         
-        if destMinMins.isEmpty { return nil }
+        if dirBestTrain.isEmpty { return nil }
         
-        let sortedDests = destMinMins.sorted { $0.value < $1.value }
-        let arrivalStrings = sortedDests.map { dest, mins in
-            let timeText = mins == 0 ? "ora" : "\(mins)m"
-            return "\(dest) \(timeText)"
+        let sortedDirs = dirBestTrain.sorted { $0.value.mins < $1.value.mins }
+        let arrivalStrings = sortedDirs.map { dir, data in
+            let timeText = data.mins == 0 ? "ora" : "\(data.mins)m"
+            return "\(data.dest) \(timeText)"
         }
         return arrivalStrings
     }
@@ -177,7 +179,7 @@ struct MetroRowView: View {
     
     var body: some View {
         let line = String(metro.name.prefix(2))
-        let cacheKey = "\(line)_\(metro.pdfID ?? "")_\(metro.direction)_"
+        let cacheKey = "\(metro.city)_\(line)_\(metro.pdfID ?? "")_\(metro.direction)_"
         let isOffline = cache.isOfflineMode[cacheKey] ?? false
         
         HStack(spacing: 12) {
@@ -215,7 +217,7 @@ struct MetroRowView: View {
         .padding(.vertical, 4)
         .task {
             if let pid = metro.pdfID {
-                await cache.sync(line: String(metro.name.prefix(2)), pdfID: pid, direction: metro.direction)
+                await cache.sync(city: metro.city, line: String(metro.name.prefix(2)), pdfID: pid, direction: metro.direction)
             }
         }
     }
@@ -255,7 +257,7 @@ struct TrainRowView: View {
                         .foregroundColor(.secondary)
                 }
                 HStack(alignment: .center, spacing: 6) {
-                    Text(train.destination)
+                    Text(SharedFormatters.formatDestination(train.destination))
                         .font(.system(size: 17, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
                         .lineLimit(1)
@@ -276,10 +278,23 @@ struct TrainRowView: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(train.time).font(.title3).bold()
                 HStack {
-                    Text(train.delay)
-                        .foregroundColor(train.delay.contains("In orario") ? .green : .red)
-                        .scaleEffect(isDelayed ? pulseScale : 1.0)
-                        .opacity(isDelayed ? pulseOpacity : 1.0)
+                    HStack(spacing: 3) {
+                        Text(train.delay)
+                            .foregroundColor(train.delay.contains("In orario") ? .green : .red)
+                            .scaleEffect(isDelayed ? pulseScale : 1.0)
+                            .opacity(isDelayed ? pulseOpacity : 1.0)
+                        
+                        // Badge "?" quando RFI e VT differiscono di oltre 15 min
+                        if train.isDelayUncertain {
+                            Text("?")
+                                .font(.system(size: 9, weight: .black))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(Color.orange)
+                                .cornerRadius(3)
+                        }
+                    }
                         
                     let displayPlatform: String = {
                         if let station = stationName {

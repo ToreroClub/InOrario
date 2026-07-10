@@ -10,7 +10,7 @@ import SwiftUI
         didSet { save() }
     }
     
-    @Published var selectedPassanteStation: Station = Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01061", lat: 45.4746, lon: 9.2052) {
+    @Published var selectedPassanteStation: Station = Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01649", lat: 45.4746, lon: 9.2052) {
         didSet { save() }
     }
     @Published var passanteTrains: [Train] = []
@@ -18,14 +18,22 @@ import SwiftUI
     @Published var passanteTunnelHealthMessage: String = "Circolazione Regolare"
     @Published var passanteTunnelHealthColor: String = "#009640"
     @Published var passanteTunnelAverageDelay: Int = 0
-    @Published var passanteTunnelTrains: [Train] = []
+    @Published var passanteSelectedLinesAlerts: [String] = []
+    
     @Published var passanteLiveStatuses: [String: TrainStatus] = [:]
+    
+    @Published var serverStuckTrains: [StuckTrainInfo] = []
+    @Published var passanteLastUpdatedTimestamp: TimeInterval = 0
+    @Published var isUsingLocalEngine: Bool = false
+    @Published var isServerHealthOffline: Bool = false
+    @Published var isLocalUpdating: Bool = false
+    var lastLocalUpdateTimestamp: TimeInterval = 0
     
     @Published var passanteTunnelWestHealthMessage: String = "Ovest: Regolare"
     @Published var passanteTunnelWestHealthColor: String = "#009640"
     @Published var passanteTunnelEastHealthMessage: String = "Est: Regolare"
     @Published var passanteTunnelEastHealthColor: String = "#009640"
-    @Published var passanteSelectedLinesAlerts: [String] = []
+    @Published var passanteTunnelTrains: [Train] = []
     
     @Published var useSpecialPassanteView: Bool = false {
         didSet { UserDefaults.standard.set(useSpecialPassanteView, forKey: useSpecialPassanteViewKey) }
@@ -46,7 +54,7 @@ import SwiftUI
         self._hiddenSuburbanStations = Published(initialValue: decodedHidden)
         
         let selectedStationData = UserDefaults.standard.data(forKey: selectedPassanteStationKey)
-        let decodedStation = selectedStationData.flatMap { try? JSONDecoder().decode(Station.self, from: $0) } ?? Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01061", lat: 45.4746, lon: 9.2052)
+        let decodedStation = selectedStationData.flatMap { try? JSONDecoder().decode(Station.self, from: $0) } ?? Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01649", lat: 45.4746, lon: 9.2052)
         self._selectedPassanteStation = Published(initialValue: decodedStation)
         
         self.useSpecialPassanteView = UserDefaults.standard.bool(forKey: useSpecialPassanteViewKey)
@@ -75,6 +83,110 @@ import SwiftUI
         self.isLoadingPassanteBoard = false
         
         await fetchTunnelHealth(manager: manager, includePositions: includePositions)
+        await fetchAllPassanteTrains(manager: manager)
+    }
+    
+    func forceLocalUpdate(manager: TrainManager) async {
+        let now = Date().timeIntervalSince1970
+        guard now - lastLocalUpdateTimestamp >= 10 else { return }
+        self.lastLocalUpdateTimestamp = now
+        
+        await MainActor.run { self.isLocalUpdating = true }
+        await fetchAllPassanteTrains(manager: manager, force: true)
+        await MainActor.run { self.isLocalUpdating = false }
+    }
+    
+    func fetchAllPassanteTrains(manager: TrainManager, force: Bool = false) async {
+        let now = Date().timeIntervalSince1970
+        if !force {
+            // Rate limit: limit automatic background updates to once every 90 seconds
+            guard now - lastLocalUpdateTimestamp >= 90.0 else { return }
+        }
+        self.lastLocalUpdateTimestamp = now
+        
+        let centralStation = Station(name: "Milano Porta Venezia", rfiID: nil, vtID: "S01649", lat: 45.4746, lon: 9.2052)
+        let lancettiStation = Station(name: "Milano Lancetti", rfiID: nil, vtID: "S01643", lat: 45.4925, lon: 9.1751)
+        
+        async let trainsVenezia = manager.fetchTrainsForStation(station: centralStation)
+        async let trainsLancetti = manager.fetchTrainsForStation(station: lancettiStation)
+        
+        let ven = await trainsVenezia
+        let lan = await trainsLancetti
+        
+        var allTrains = ven
+        let existingNumbers = Set(ven.map { $0.number })
+        for t in lan {
+            if !existingNumbers.contains(t.number) {
+                allTrains.append(t)
+            }
+        }
+        
+        // We only fetch live statuses for the first 8 trains (which is the max displayed in the detail sheet)
+        let trainsToFetch = Array(allTrains.prefix(8))
+        
+        var statuses: [String: TrainStatus] = [:]
+        await withTaskGroup(of: (String, TrainStatus)?.self) { group in
+            for train in trainsToFetch {
+                group.addTask {
+                    let result = await manager.fetchLiveStops(for: train.number, destination: train.destination)
+                    if !result.stops.isEmpty || result.status.isDeparted {
+                        return (train.number, result.status)
+                    }
+                    return nil
+                }
+            }
+            for await item in group {
+                if let (num, status) = item {
+                    statuses[num] = status
+                }
+            }
+        }
+        
+        var validDelays: [Int] = []
+        var selectedTrains: [Train] = []
+        var seenNumbers = Set<String>()
+        
+        for t in ven.prefix(4) {
+            if !seenNumbers.contains(t.number) {
+                seenNumbers.insert(t.number)
+                selectedTrains.append(t)
+            }
+        }
+        for t in lan.prefix(3) {
+            if !seenNumbers.contains(t.number) {
+                seenNumbers.insert(t.number)
+                selectedTrains.append(t)
+            }
+        }
+        
+        for t in selectedTrains {
+            let delayStr = t.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "").replacingOccurrences(of: "R: ", with: "")
+            let isCancelled = t.delay.lowercased().contains("soppresso") || t.delay.lowercased().contains("cancellato")
+            if !isCancelled {
+                let d = delayStr.lowercased().contains("orario") ? 0 : (Int(delayStr) ?? 0)
+                validDelays.append(d)
+            }
+        }
+        let avgDelay = validDelays.isEmpty ? 0 : (validDelays.reduce(0, +) / validDelays.count)
+        
+        await MainActor.run {
+            self.passanteTunnelTrains = allTrains
+            self.passanteLiveStatuses = statuses
+            self.passanteLastUpdatedTimestamp = Date().timeIntervalSince1970
+            
+            if self.isServerHealthOffline {
+                self.isUsingLocalEngine = true
+                self.passanteTunnelHealthMessage = "Motore Locale Attivo"
+                self.passanteTunnelHealthColor = "#007AFF" // Blue for local engine
+                self.passanteTunnelWestHealthMessage = "Ovest: Solo Live"
+                self.passanteTunnelWestHealthColor = "#007AFF"
+                self.passanteTunnelEastHealthMessage = "Est: Solo Live"
+                self.passanteTunnelEastHealthColor = "#007AFF"
+                self.passanteTunnelAverageDelay = avgDelay
+            }
+            self.passanteSelectedLinesAlerts = []
+            self.serverStuckTrains = []
+        }
     }
     
     func fetchTunnelHealth(manager: TrainManager, includePositions: Bool = false) async {
@@ -95,7 +207,9 @@ import SwiftUI
                 let eastMessage: String
                 let eastColor: String
                 let alerts: [String]
-                let statuses: [String: TrainStatus]
+                let statuses: [String: TrainStatus]?
+                let stuckTrains: [StuckTrainInfo]?
+                let lastUpdatedTimestamp: TimeInterval?
             }
             
             let decoded = try JSONDecoder().decode(ServerHealthResponse.self, from: data)
@@ -109,13 +223,25 @@ import SwiftUI
                 self.passanteTunnelEastHealthMessage = decoded.eastMessage
                 self.passanteTunnelEastHealthColor = decoded.eastColor
                 self.passanteSelectedLinesAlerts = decoded.alerts
+                if let serverTimestamp = decoded.lastUpdatedTimestamp {
+                    self.passanteLastUpdatedTimestamp = serverTimestamp
+                }
                 
                 if includePositions {
-                    self.passanteLiveStatuses = decoded.statuses
+                    self.passanteLiveStatuses = decoded.statuses ?? [:]
+                    if let sTrains = decoded.stuckTrains {
+                        self.serverStuckTrains = sTrains
+                    }
+                    self.isUsingLocalEngine = false
                 }
+                self.isServerHealthOffline = false
             }
         } catch {
             print("Errore caricamento salute passante dal server: \(error)")
+            await MainActor.run {
+                self.isServerHealthOffline = true
+                self.isUsingLocalEngine = true
+            }
         }
     }
     
@@ -253,55 +379,10 @@ import SwiftUI
     }
     
     func resolvedPlatform(for stationName: String, train: Train) -> String {
-        let name = stationName.lowercased()
-        let direction = getPassanteDirection(for: train) ?? "Est"
-        let cat = train.category.uppercased()
-        
-        if name.contains("rho fiera") {
-            return direction == "Ovest" ? "1" : "2"
-        }
-        if name.contains("certosa") {
-            return direction == "Est" ? "5" : "6"
-        }
-        if name.contains("villapizzone") {
-            return direction == "Ovest" ? "1" : "2"
-        }
-        if name.contains("lancetti") {
-            if direction == "Est" {
-                return (cat == "S5" || cat == "S6") ? "1" : "2"
-            } else {
-                return (cat == "S5" || cat == "S6") ? "3" : "4"
-            }
-        }
-        if name.contains("garibaldi") {
-            return direction == "Est" ? "1" : "2"
-        }
-        if name.contains("repubblica") {
-            return direction == "Est" ? "1" : "2"
-        }
-        if name.contains("venezia") || name.contains("porta venezia") {
-            return direction == "Est" ? "1" : "2"
-        }
-        if name.contains("dateo") {
-            return direction == "Est" ? "1" : "2"
-        }
-        if name.contains("vittoria") || name.contains("porta vittoria") {
-            if direction == "Est" {
-                return (cat == "S5" || cat == "S6") ? "3" : "4"
-            } else {
-                return (cat == "S5" || cat == "S6") ? "1" : "2"
-            }
-        }
-        if name.contains("forlanini") {
-            if cat == "S9" {
-                return direction == "Est" ? "3" : "4"
-            } else {
-                return direction == "Est" ? "1" : "2"
-            }
-        }
-        
+        // I binari non vengono MAI manipolati. Si usa sempre il binario reale ricevuto da RFI.
         return train.platform
     }
+
 
     var passanteTrainsWestbound: [Train] { passanteTrainsViaBovisa + passanteTrainsViaRho }
     var passanteTrainsEastbound: [Train] { passanteTrainsViaForlanini + passanteTrainsViaRogoredo }

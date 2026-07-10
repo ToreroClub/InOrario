@@ -9,6 +9,8 @@ struct SmartBoardView: View {
     let station: Station
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
+    @EnvironmentObject var locationManager: LocationManager
+    @EnvironmentObject var usageTracker: UsageTracker
     
     var body: some View {
         let isFerrovienord = station.vtID?.hasPrefix("N") == true
@@ -25,6 +27,8 @@ struct SmartBoardView: View {
             if let vt = station.vtID {
                 manager.addToViewedRecentStations(name: station.name, vtID: vt)
             }
+            let isNear = locationManager.nearbyStation?.name == station.name
+            usageTracker.recordStationVisit(name: station.name, vtID: station.vtID, rfiID: station.rfiID, gpsNear: isNear, location: locationManager.userLocation?.coordinate)
         }
     }
 }
@@ -60,7 +64,7 @@ struct StationBoardView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center) {
-                Text(station.name)
+                Text(station.formattedName)
                     .font(.title)
                     .bold()
                 
@@ -226,7 +230,7 @@ struct StationBoardView: View {
             .listSectionSpacing(.compact)
             .refreshable {
                 Haptics.play(.light)
-                await manager.fetchTrains(for: station, isDepartures: showingDepartures)
+                await manager.fetchTrains(for: station, isDepartures: showingDepartures, force: true)
             }
         }
         .background(Color(.systemGroupedBackground))
@@ -374,7 +378,7 @@ struct VTStationBoardView: View {
                 .listStyle(.plain)
                 .refreshable {
                     Haptics.play(.light)
-                    await manager.fetchVTTrains(for: vtID, isDepartures: passanteManager.isPassanteDirectionalStation(stationName) ? true : showingDepartures)
+                    await manager.fetchVTTrains(for: vtID, isDepartures: passanteManager.isPassanteDirectionalStation(stationName) ? true : showingDepartures, force: true)
                 }
             }
             Text("Dati in tempo reale da ViaggiaTreno").font(.caption2).foregroundColor(.secondary).padding(.bottom, 8)

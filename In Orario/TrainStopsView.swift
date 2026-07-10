@@ -11,6 +11,7 @@ struct TrainStopsView: View {
     @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var cache: MetroCache
+    @EnvironmentObject var usageTracker: UsageTracker
     @Environment(\.dismiss) var dismiss
     @State private var reportedTypes: Set<String> = []
     @State private var showLongPressHint = false
@@ -155,7 +156,7 @@ struct TrainStopsView: View {
                         // Cartella dello Stato (ritardo, ultima fermata, ecc.) - Sfondo Bianco
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Circle().fill(manager.currentTrainStatus.statusMessage.contains("In orario") ? .green : (manager.currentTrainStatus.isDeparted ? .red : .gray)).frame(width: 12, height: 12)
+                                Circle().fill(manager.currentTrainStatus.statusMessage.lowercased().contains("in orario") ? .green : (manager.currentTrainStatus.isDeparted ? .red : .gray)).frame(width: 12, height: 12)
                                 Text(manager.currentTrainStatus.statusMessage).font(.headline).foregroundColor(.primary)
                                 Spacer()
                             }
@@ -212,7 +213,7 @@ struct TrainStopsView: View {
                                 NavigationLink(destination: SmartBoardView(station: station)) {
                                     HStack {
                                          VStack(alignment: .leading, spacing: 4) {
-                                             Text(stop.stationName)
+                                             Text(stop.stationName.formattedStationName)
                                                  .font(.headline)
                                                  .foregroundColor(
                                                      isHomeStation 
@@ -385,6 +386,7 @@ struct TrainStopsView: View {
         .task { await manager.fetchStops(for: train) }
         .onAppear {
             manager.addToViewedRecentTrains(number: train.number, description: train.destination, departureTime: train.time)
+            usageTracker.recordTrainCheck(number: train.number, category: train.category, destination: train.destination, location: locationManager.userLocation?.coordinate)
             loadLocalReports()
         }
     }
@@ -590,11 +592,9 @@ fileprivate func to24h(_ timeStr: String) -> String {
 }
 
 fileprivate func formatHeaderStationName(_ name: String) -> String {
-    var cleaned = name
+    var cleaned = name.formattedStationName
     
-    // Sostituzione "Centrale" -> "Cle"
-    cleaned = cleaned.replacingOccurrences(of: "Centrale", with: "Cle", options: .caseInsensitive)
-    
+
     // Sostituzione "Porta Nuova" -> "PN"
     cleaned = cleaned.replacingOccurrences(of: "Porta Nuova", with: "PN", options: .caseInsensitive)
     
@@ -821,7 +821,7 @@ struct MetroQuickView: View {
             // Header
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(stop.stationName)
+                    Text(stop.stationName.formattedStationName)
                         .font(.title2.bold())
                     HStack(spacing: 4) {
                         Image(systemName: "tram.fill")
@@ -870,7 +870,7 @@ struct MetroQuickView: View {
             // Carica/aggiorna i dati metro (rispetta il TTL — nessuna chiamata inutile)
             for metro in metroLines {
                 if let pid = metro.pdfID {
-                    await cache.sync(line: String(metro.name.prefix(2)), pdfID: pid, direction: metro.direction, time: timeParam)
+                    await cache.sync(city: metro.city, line: String(metro.name.prefix(2)), pdfID: pid, direction: metro.direction, time: timeParam)
                 }
             }
         }

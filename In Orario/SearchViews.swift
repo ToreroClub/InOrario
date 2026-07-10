@@ -210,13 +210,13 @@ struct StationSelectionSheet: View {
                 } else {
                     ForEach(manager.searchTrenitaliaLocations) { result in
                         Button {
-                            selectedName = result.name
+                            selectedName = result.name.formattedStationName
                             selectedID = String(result.id)
                             dismiss()
                         } label: {
                             HStack {
                                 Image(systemName: "building.2.crop.circle.fill").foregroundColor(.orange)
-                                Text(result.name).font(.headline).foregroundColor(.primary)
+                                Text(result.name.formattedStationName).font(.headline).foregroundColor(.primary)
                             }
                             .padding(.vertical, 4)
                         }
@@ -384,131 +384,90 @@ struct TravelSearchView: View {
 struct SearchView: View {
     @EnvironmentObject var manager: TrainManager
     @State private var query = ""
-    @State private var searchType = 0
+    @State private var searchType = 0 // 0: Stazioni, 1: Treni
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 Picker("Tipo Ricerca", selection: $searchType) {
-                    Text("Viaggi").tag(0)
+                    Text("Stazioni").tag(0)
                     Text("Treni").tag(1)
-                    Text("Stazioni").tag(2)
                 }
                 .pickerStyle(.segmented)
                 .padding()
                 .onChange(of: searchType) { oldValue, newValue in Haptics.play(.light) }
                 
-                if searchType == 0 {
-                    TravelSearchView()
-                } else {
-                    List {
-                        if manager.isSearching {
-                            HStack { Spacer(); ProgressView(); Spacer() }
-                        } else if searchType == 1 {
-                            if query.isEmpty {
-                                if !manager.recentTrains.isEmpty {
-                                    Section(header: HStack {
-                                        Text("Ricerche Recenti")
-                                        Spacer()
-                                        Button("Cancella") {
-                                            manager.clearRecentTrains()
-                                            Haptics.play(.medium)
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                    }) {
-                                        ForEach(manager.recentTrains) { result in
-                                            let dummy = manager.createDummyTrain(from: result)
-                                            NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false).onAppear {
-                                                manager.addToRecentTrains(result)
-                                            }) {
-                                                HStack {
-                                                    Image(systemName: "clock").foregroundColor(.gray)
-                                                    VStack(alignment: .leading) {
-                                                        Text("Treno \(result.number)").font(.headline)
-                                                        Text(result.description).font(.caption).foregroundColor(.secondary)
-                                                    }
-                                                }
-                                            }
-                                        }
+                List {
+                    if manager.isSearching {
+                        HStack { Spacer(); ProgressView(); Spacer() }
+                    } else if searchType == 1 { // Treni
+                        if query.isEmpty {
+                            if !manager.recentTrains.isEmpty {
+                                Section(header: HStack {
+                                    Text("Ricerche Recenti")
+                                    Spacer()
+                                    Button("Cancella") {
+                                        manager.clearRecentTrains()
+                                        Haptics.play(.medium)
                                     }
-                                } else {
-                                    Text("Digita il numero di un treno per cercarlo.").foregroundColor(.secondary)
-                                }
-                            } else {
-                                if manager.searchResults.isEmpty {
-                                    Text("Nessun treno trovato.").foregroundColor(.secondary)
-                                } else {
-                                    ForEach(manager.searchResults) { result in
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                }) {
+                                    ForEach(manager.recentTrains) { result in
                                         let dummy = manager.createDummyTrain(from: result)
                                         NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false).onAppear {
                                             manager.addToRecentTrains(result)
                                         }) {
                                             HStack {
-                                                Image(systemName: "train.side.front.car").foregroundColor(.blue)
+                                                Image(systemName: "clock").foregroundColor(.gray)
                                                 VStack(alignment: .leading) {
                                                     Text("Treno \(result.number)").font(.headline)
-                                                    Text(result.description).font(.caption).foregroundColor(.secondary)
+                                                    Text(result.description.formattedStationName).font(.caption).foregroundColor(.secondary)
                                                 }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Text("Digita il numero di un treno per cercarlo.").foregroundColor(.secondary)
+                            }
+                        } else {
+                            if manager.searchResults.isEmpty {
+                                Text("Nessun treno trovato.").foregroundColor(.secondary)
+                            } else {
+                                ForEach(manager.searchResults) { result in
+                                    let dummy = manager.createDummyTrain(from: result)
+                                    NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false).onAppear {
+                                        manager.addToRecentTrains(result)
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "train.side.front.car").foregroundColor(.blue)
+                                            VStack(alignment: .leading) {
+                                                Text("Treno \(result.number)").font(.headline)
+                                                Text(result.description.formattedStationName).font(.caption).foregroundColor(.secondary)
                                             }
                                         }
                                     }
                                 }
                             }
-                        } else if searchType == 2 {
-                            if query.isEmpty {
-                                if !manager.recentStations.isEmpty {
-                                    Section(header: HStack {
-                                        Text("Ricerche Recenti")
-                                        Spacer()
-                                        Button("Cancella") {
-                                            manager.clearRecentStations()
-                                            Haptics.play(.medium)
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                    }) {
-                                        ForEach(manager.recentStations) { result in
-                                            HStack {
-                                                Image(systemName: "clock").foregroundColor(.gray)
-                                                
-                                                let possibleRFI = manager.getRfiID(for: result.nomeLungo)
-                                                let tempStation = Station(name: result.nomeLungo, rfiID: possibleRFI, vtID: result.vtID, lat: nil, lon: nil)
-                                                
-                                                NavigationLink(destination: SmartBoardView(station: tempStation).onAppear {
-                                                    manager.addToRecentStations(result)
-                                                }) {
-                                                    Text(result.nomeLungo).font(.headline)
-                                                }
-                                                Spacer()
-                                                
-                                                Button {
-                                                    if manager.isMyStation(vtID: result.vtID) {
-                                                        manager.removeMyStation(vtID: result.vtID)
-                                                    } else {
-                                                        manager.addMyStation(name: result.nomeLungo, vtID: result.vtID)
-                                                    }
-                                                } label: {
-                                                    Image(systemName: manager.isMyStation(vtID: result.vtID) ? "checkmark.circle.fill" : "plus.circle")
-                                                        .foregroundColor(.blue)
-                                                        .font(.title2)
-                                                }
-                                                .buttonStyle(PlainButtonStyle())
-                                            }
-                                            .padding(.vertical, 4)
-                                        }
+                        }
+                    } else if searchType == 0 { // Stazioni
+                        if query.isEmpty {
+                            if !manager.recentStations.isEmpty {
+                                Section(header: HStack {
+                                    Text("Ricerche Recenti")
+                                    Spacer()
+                                    Button("Cancella") {
+                                        manager.clearRecentStations()
+                                        Haptics.play(.medium)
                                     }
-                                } else {
-                                    Text("Digita il nome di una stazione per cercarla.").foregroundColor(.secondary)
-                                }
-                            } else {
-                                if manager.searchStationResults.isEmpty {
-                                    Text("Nessuna stazione trovata.").foregroundColor(.secondary)
-                                } else {
-                                    ForEach(manager.searchStationResults) { result in
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                }) {
+                                    ForEach(manager.recentStations) { result in
                                         HStack {
-                                            Image(systemName: "building.2.crop.circle.fill").foregroundColor(.orange)
+                                            Image(systemName: "clock").foregroundColor(.gray)
                                             
                                             let possibleRFI = manager.getRfiID(for: result.nomeLungo)
                                             let tempStation = Station(name: result.nomeLungo, rfiID: possibleRFI, vtID: result.vtID, lat: nil, lon: nil)
@@ -516,7 +475,7 @@ struct SearchView: View {
                                             NavigationLink(destination: SmartBoardView(station: tempStation).onAppear {
                                                 manager.addToRecentStations(result)
                                             }) {
-                                                Text(result.nomeLungo).font(.headline)
+                                                Text(result.nomeLungo.formattedStationName).font(.headline)
                                             }
                                             Spacer()
                                             
@@ -536,20 +495,56 @@ struct SearchView: View {
                                         .padding(.vertical, 4)
                                     }
                                 }
+                            } else {
+                                Text("Digita il nome di una stazione per cercarla.").foregroundColor(.secondary)
+                            }
+                        } else {
+                            if manager.searchStationResults.isEmpty {
+                                Text("Nessuna stazione trovata.").foregroundColor(.secondary)
+                            } else {
+                                ForEach(manager.searchStationResults) { result in
+                                    HStack {
+                                        Image(systemName: "building.2.crop.circle.fill").foregroundColor(.orange)
+                                        
+                                        let possibleRFI = manager.getRfiID(for: result.nomeLungo)
+                                        let tempStation = Station(name: result.nomeLungo, rfiID: possibleRFI, vtID: result.vtID, lat: nil, lon: nil)
+                                        
+                                        NavigationLink(destination: SmartBoardView(station: tempStation).onAppear {
+                                            manager.addToRecentStations(result)
+                                        }) {
+                                            Text(result.nomeLungo.formattedStationName).font(.headline)
+                                        }
+                                        Spacer()
+                                        
+                                        Button {
+                                            if manager.isMyStation(vtID: result.vtID) {
+                                                manager.removeMyStation(vtID: result.vtID)
+                                            } else {
+                                                manager.addMyStation(name: result.nomeLungo, vtID: result.vtID)
+                                            }
+                                        } label: {
+                                            Image(systemName: manager.isMyStation(vtID: result.vtID) ? "checkmark.circle.fill" : "plus.circle")
+                                                .foregroundColor(.blue)
+                                                .font(.title2)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                    .padding(.vertical, 4)
+                                }
                             }
                         }
                     }
-                    .listStyle(.plain)
-                    .searchable(text: $query, prompt: searchType == 1 ? "Es. 2010" : "Es. Bologna Centrale")
-                    .onChange(of: query) { oldValue, newValue in
-                        Task {
-                            if searchType == 1 { await manager.searchTrains(query: newValue) }
-                            else if searchType == 2 { await manager.searchStations(query: newValue) }
-                        }
+                }
+                .listStyle(.plain)
+                .searchable(text: $query, prompt: searchType == 1 ? "Es. 2010" : "Es. Bologna Centrale")
+                .onChange(of: query) { oldValue, newValue in
+                    Task {
+                        if searchType == 1 { await manager.searchTrains(query: newValue) }
+                        else if searchType == 0 { await manager.searchStations(query: newValue) }
                     }
                 }
             }
-            .navigationTitle(searchType == 0 ? "Cerca Viaggi" : (searchType == 1 ? "Cerca Treno" : "Cerca Stazione"))
+            .navigationTitle(searchType == 0 ? "Cerca Stazione" : "Cerca Treno")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -559,3 +554,182 @@ struct SearchView: View {
         }
     }
 }
+
+// MARK: - Metro Search View
+
+struct MetroSearchView: View {
+    @EnvironmentObject var metroManager: MetroManager
+    @EnvironmentObject var locationManager: LocationManager
+    @Environment(\.dismiss) var dismiss
+    @State private var query = ""
+    var onSelect: (MetroStation) -> Void
+    @FocusState private var isSearchFocused: Bool
+    
+    var nearbyStations: [MetroStation] {
+        guard let loc = locationManager.userLocation?.coordinate else { return [] }
+        return metroManager.allStations
+            .map { station -> (MetroStation, Double) in
+                let dlat = station.latitude - loc.latitude
+                let dlon = station.longitude - loc.longitude
+                return (station, dlat*dlat + dlon*dlon)
+            }
+            .sorted(by: { $0.1 < $1.1 })
+            .prefix(5)
+            .map { $0.0 }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                List {
+                    let results = metroManager.search(query: query)
+                    
+                    if query.isEmpty {
+                        let nearby = nearbyStations
+                        if !nearby.isEmpty {
+                            Section(header: Text("📍 Stazioni più vicine")) {
+                                ForEach(nearby) { station in
+                                    stationRow(station)
+                                }
+                            }
+                        }
+                        
+                        Section(header: Text("Tutte le Stazioni")) {
+                            ForEach(results) { station in
+                                stationRow(station)
+                            }
+                        }
+                    } else {
+                        if results.isEmpty {
+                            Text("Nessuna fermata metro trovata.")
+                                .foregroundColor(.secondary)
+                                .listRowBackground(Color.clear)
+                        } else {
+                            let nearbyMatching = nearbyStations.filter { station in
+                                results.contains { $0.id == station.id }
+                            }
+                            let otherMatching = results.filter { station in
+                                !nearbyMatching.contains { $0.id == station.id }
+                            }
+                            
+                            if !nearbyMatching.isEmpty {
+                                Section(header: Text("📍 Stazioni più vicine")) {
+                                    ForEach(nearbyMatching) { station in
+                                        stationRow(station)
+                                    }
+                                }
+                            }
+                            
+                            if !otherMatching.isEmpty {
+                                Section(header: Text("Altre Stazioni")) {
+                                    ForEach(otherMatching) { station in
+                                        stationRow(station)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                
+                MetroSearchBar(query: $query, isActive: .constant(true), focused: $isSearchFocused)
+                    .padding(.horizontal)
+                    .padding(.bottom, 10)
+                    .background(Color(.systemBackground))
+            }
+            .navigationTitle("Cerca Fermata Metro")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Chiudi") { dismiss() }.fontWeight(.bold)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func stationRow(_ station: MetroStation) -> some View {
+        Button {
+            metroManager.addToRecent(station)
+            onSelect(station)
+            dismiss()
+        } label: {
+            HStack {
+                let uLines = station.uniqueLines
+                if uLines.count >= 2 {
+                    Circle()
+                        .fill(LinearGradient(stops: [.init(color: uLines[0].color, location: 0.5), .init(color: uLines[1].color, location: 0.5)], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: 12, height: 12)
+                } else {
+                    Circle()
+                        .fill(station.color)
+                        .frame(width: 12, height: 12)
+                }
+                
+                Text(station.displayName)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Spacer()
+                ForEach(uLines) { line in
+                    let prefix = String(line.name.prefix(2))
+                    Text(station.lineLabelWithBranch(prefix))
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(line.color.opacity(0.12))
+                        .foregroundColor(line.color)
+                        .cornerRadius(4)
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+// MARK: - Metro History Sheet
+
+struct MetroHistorySheet: View {
+    @EnvironmentObject var metroManager: MetroManager
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                if metroManager.recentStations.isEmpty {
+                    Text("Nessuna stazione visitata di recente.")
+                        .foregroundColor(.secondary)
+                        .listRowBackground(Color.clear)
+                } else {
+                    ForEach(metroManager.recentStations) { station in
+                        Button {
+                            NotificationCenter.default.post(name: NSNotification.Name("OpenMetroStation"), object: station)
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Circle()
+                                    .fill(station.color)
+                                    .frame(width: 10, height: 10)
+                                Text(station.displayName)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Cronologia Metro")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Chiudi") { dismiss() }.fontWeight(.bold)
+                }
+            }
+        }
+    }
+}
+

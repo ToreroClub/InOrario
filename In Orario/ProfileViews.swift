@@ -18,9 +18,11 @@ enum NewsCategory: String, CaseIterable, Identifiable {
 }
 
 struct NewsCenterView: View {
-    let news: [NewsItem]
+    @Binding var news: [NewsItem]
+    @EnvironmentObject var manager: TrainManager
     @Environment(\.dismiss) var dismiss
     @State private var selectedCategory: NewsCategory = .sciopero
+    @State private var isRefreshing = false
     
     var filteredNews: [NewsItem] {
         news.filter { ($0.category ?? "sciopero") == selectedCategory.filterKey }
@@ -64,6 +66,24 @@ struct NewsCenterView: View {
             .navigationTitle("Centro News")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Chiudi") { dismiss() }.fontWeight(.bold) }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isRefreshing {
+                        ProgressView()
+                    } else {
+                        Button {
+                            Task {
+                                isRefreshing = true
+                                let updatedNews = await manager.fetchStrikesAndNews(forceRefresh: true)
+                                await MainActor.run {
+                                    self.news = updatedNews
+                                    isRefreshing = false
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                }
             }
         }
     }
@@ -170,6 +190,7 @@ struct SuburbanFavoriteRouteCardView: View {
 struct ProfileView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
+    @EnvironmentObject var usageTracker: UsageTracker
     @Environment(\.dismiss) var dismiss
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
 
@@ -179,6 +200,31 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section(header: Text("Generali e Località")) {
+                    HStack {
+                        Label("Regione", systemImage: "globe")
+                            .foregroundColor(.red)
+                            .font(.headline)
+                        Spacer()
+                        Picker("", selection: $manager.strikeRegion) {
+                            Text("Nazionale / Tutte").tag("Tutte")
+                            ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
+                                Text(region).tag(region)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .onChange(of: manager.strikeRegion) { _, _ in
+                        manager.saveFavorites()
+                    }
+                    
+                    Toggle(isOn: $manager.strikeNotificationsEnabled) {
+                        Label("Notifiche Scioperi e News", systemImage: "bell.badge.fill")
+                            .foregroundColor(.red)
+                            .font(.headline)
+                    }
+                }
+
                 Section(header: Text("Personalizzazione")) {
                     NavigationLink(destination: CustomizeDashboardView()) {
                         Label("Personalizza Dashboard", systemImage: "slider.horizontal.3")
@@ -188,11 +234,12 @@ struct ProfileView: View {
                         Label("Personalizza Passante", systemImage: "tram.fill")
                             .font(.headline)
                     }
+
                 }
                 
                 Section(header: Text("Notifiche")) {
                     NavigationLink(destination: NotificationsSettingsView()) {
-                        Label("Notifiche e Scioperi", systemImage: "bell.fill")
+                        Label("Avvisi Treno", systemImage: "bell.fill")
                             .foregroundColor(.orange)
                             .font(.headline)
                     }
@@ -204,20 +251,10 @@ struct ProfileView: View {
                             .foregroundColor(.indigo)
                             .font(.headline)
                     }
-                }
-                
-                Section(header: Text("Sincronizzazione")) {
-
-                    Toggle(isOn: Binding(
-                        get: { manager.iCloudSyncEnabled },
-                        set: { newValue in
-                            manager.iCloudSyncEnabled = newValue
-                            manager.saveFavorites()
-                            Haptics.play(.medium)
-                        }
-                    )) {
-                        Label("Salva preferenze su iCloud Drive", systemImage: "icloud.fill")
-                            .foregroundColor(.blue)
+                    
+                    NavigationLink(destination: SmartSuggestionsSettingsView()) {
+                        Label("Suggerimenti personalizzati", systemImage: "sparkles")
+                            .foregroundColor(.purple)
                             .font(.headline)
                     }
                 }
@@ -548,9 +585,18 @@ struct CustomizeDashboardView: View {
     @AppStorage("rememberMyStationsState") private var rememberMyStationsState = false
     @AppStorage("rememberFavoriteTrainsState") private var rememberFavoriteTrainsState = false
     @AppStorage("rememberPassanteState") private var rememberPassanteState = false
+    @AppStorage("showSuburbanLines") private var showSuburbanLines = true
     
     var body: some View {
         List {
+            Section(header: Text("Visualizzazione")) {
+                Toggle(isOn: $showSuburbanLines) {
+                    Label("Mostra Linee Suburbane", systemImage: "tram.fill")
+                        .foregroundColor(.green)
+                        .font(.headline)
+                }
+            }
+
             Section(header: Text("Ordine Sezioni Dashboard")) {
                 ForEach(manager.sectionOrder, id: \.self) { section in
                     Text(section.rawValue).font(.headline)
@@ -797,31 +843,6 @@ struct NotificationsSettingsView: View {
             }
             
             if manager.remoteNotificationsEnabled {
-                Section(header: Text("Area Geografica Scioperi")) {
-                    Toggle(isOn: $manager.strikeNotificationsEnabled) {
-                        Label("Notifiche Scioperi", systemImage: "bell.badge.fill")
-                            .foregroundColor(.red)
-                            .font(.headline)
-                    }
-                    
-                    HStack {
-                        Label("Regione Scioperi", systemImage: "globe")
-                            .foregroundColor(.red)
-                            .font(.headline)
-                        Spacer()
-                        Picker("", selection: $manager.strikeRegion) {
-                            Text("Nazionale / Tutte").tag("Tutte")
-                            ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
-                                Text(region).tag(region)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                    Text("Filtra scioperi e notifiche per la tua regione. Gli scioperi nazionali sono sempre visibili.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                
                 Section(header: Text("Notifiche Treni Preferiti"), footer: Text("Le notifiche automatiche ti avvisano se il treno è in ritardo o quando passa dalla stazione scelta.")) {
                     if manager.favoriteTrains.isEmpty {
                         VStack(spacing: 12) {
@@ -1229,4 +1250,44 @@ struct DaySelectorView: View {
         onToggle()
     }
 }
+
+struct SmartSuggestionsSettingsView: View {
+    @EnvironmentObject var usageTracker: UsageTracker
+    @State private var showDeleteConfirmation = false
+
+    var body: some View {
+        List {
+            Section(header: Text("Stato")) {
+                Toggle(isOn: $usageTracker.smartSuggestionsEnabled) {
+                    Label("Suggerimenti personalizzati", systemImage: "sparkles")
+                        .font(.headline)
+                }
+            }
+            
+            Section(header: Text("Dati raccolti")) {
+                Text("L'app apprende le tue abitudini (stazioni cercate, treni consultati, tratte preferite) per mostrarti informazioni personalizzate nella home al momento opportuno. I dati sono salvati esclusivamente in locale sul tuo dispositivo.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("Cancella preferenze apprese", systemImage: "trash")
+                        .foregroundColor(.red)
+                }
+            }
+        }
+        .navigationTitle("Suggerimenti personalizzati")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Conferma eliminazione", isPresented: $showDeleteConfirmation) {
+            Button("Annulla", role: .cancel) {}
+            Button("Elimina", role: .destructive) {
+                usageTracker.clearHistory()
+            }
+        } message: {
+            Text("Sei sicuro di voler eliminare tutte le preferenze e le abitudini apprese finora? Questa operazione non può essere annullata.")
+        }
+    }
+}
+
 

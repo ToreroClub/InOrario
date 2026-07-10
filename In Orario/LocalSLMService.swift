@@ -1,12 +1,14 @@
 import Foundation
 import llama
 
-class LocalSLMService {
+class LocalSLMService: SLMProvider {
     static let shared = LocalSLMService()
     
-    private var model: OpaquePointer?
+    private var _model: OpaquePointer?
     private var context: OpaquePointer?
     private var isBackendInitialized = false
+    
+    var isAvailable: Bool { _model != nil && context != nil }
     
     private init() {
         // Inizializza il backend di llama.cpp all'avvio
@@ -15,34 +17,26 @@ class LocalSLMService {
     }
     
     /// Inizializza e carica in memoria RAM il modello quantizzato GGUF
-    func initializeModel() -> Bool {
-        guard model == nil else { return true }
+    func initializeModel() async -> Bool {
+        guard _model == nil else { return true }
         
-        let fileManager = FileManager.default
-        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return false
-        }
-        
-        let modelPath = documentsURL.appendingPathComponent("qwen-0.5b-instruct.gguf").path
-        guard fileManager.fileExists(atPath: modelPath) else {
-            print("[-] Modello locale GGUF non trovato a percorso: \(modelPath)")
+        // Usa il percorso del modello attualmente selezionato
+        guard let modelPath = AIFeatureManager.shared.modelFilePath,
+              FileManager.default.fileExists(atPath: modelPath) else {
+            print("[-] Modello locale GGUF non trovato.")
             return false
         }
         
         // 1. Configura i parametri del modello
         var modelParams = llama_model_default_params()
-        #if !targetEnvironment(simulator)
-        modelParams.n_gpu_layers = 99 // Attiva accelerazione GPU Metal su dispositivi fisici (99 layers)
-        #else
-        modelParams.n_gpu_layers = 0
-        #endif
+        modelParams.n_gpu_layers = 0 // Disabilita accelerazione Metal che causa crash su Qwen2 su alcuni dispositivi iOS
         
         // 2. Carica il modello da file
         guard let loadedModel = llama_model_load_from_file(modelPath, modelParams) else {
             print("[-] Errore durante il caricamento del file GGUF.")
             return false
         }
-        self.model = loadedModel
+        self._model = loadedModel
         
         // 3. Configura il contesto dell'inferenza
         var contextParams = llama_context_default_params()
@@ -54,13 +48,38 @@ class LocalSLMService {
         guard let createdContext = llama_init_from_model(loadedModel, contextParams) else {
             print("[-] Errore inizializzazione contesto llama.")
             llama_model_free(loadedModel)
-            self.model = nil
+            self._model = nil
             return false
         }
         self.context = createdContext
         
-        print("[+] Modello Qwen 0.5B caricato con successo sul Neural Engine/GPU locale.")
+        print("[+] Modello Qwen caricato con successo sul Neural Engine/GPU locale via llama.cpp.")
         return true
+    }
+    
+    func generateSummary(for text: String) async -> String {
+        guard let ctx = context, let mdl = _model else {
+            return text
+        }
+        
+        let prompt = """
+        <|im_start|>system
+        Sei un assistente che riassume notizie ferroviarie italiane in 1-2 frasi chiare e dirette. Rispondi solo con il riassunto, senza prefissi o spiegazioni.
+        <|im_end|>
+        <|im_start|>user
+        \(text)
+        <|im_end|>
+        <|im_start|>assistant
+        """
+        
+        let summary = await runInference(prompt: prompt, context: ctx, model: mdl)
+        let cleaned = summary
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "<|im_end|>", with: "")
+            .replacingOccurrences(of: "<|im_start|>", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+        return cleaned.isEmpty ? text : cleaned
     }
     
     /// Formatta tutti gli item (scioperi MIT + InfoLavori Trenitalia) con il modello locale.
@@ -68,8 +87,7 @@ class LocalSLMService {
     /// vengono preservati dall'item originale in Swift (nessun parsing JSON fragile).
     func formatWithLocalModel(rawItems: [NewsItem]) async -> [NewsItem] {
         guard !rawItems.isEmpty else { return [] }
-        
-        guard let ctx = context, let mdl = model else {
+        guard isAvailable else {
             print("[-] Modello non pronto, fallback sui dati grezzi.")
             return rawItems
         }
@@ -81,28 +99,13 @@ class LocalSLMService {
                 result.append(raw)
                 continue
             }
-            // Prompt semplice: solo il content da sintetizzare, niente JSON
-            let prompt = """
-            <|im_start|>system
-            Sei un assistente che riassume notizie ferroviarie italiane in 1-2 frasi chiare e dirette. Rispondi solo con il riassunto, senza prefissi o spiegazioni.
-            <|im_end|>
-            <|im_start|>user
-            \(raw.content)
-            <|im_end|>
-            <|im_start|>assistant
-            """
             
-            let summary = await runInference(prompt: prompt, context: ctx, model: mdl)
-            let cleaned = summary
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .replacingOccurrences(of: "<|im_end|>", with: "")
-                .replacingOccurrences(of: "<|im_start|>", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleaned = await generateSummary(for: raw.content)
             
             // Preserva titolo/data/categoria dall'originale, sostituisce solo il content
             result.append(NewsItem(
                 title: raw.title,
-                content: cleaned.isEmpty ? raw.content : cleaned,
+                content: cleaned,
                 isUrgent: raw.isUrgent,
                 category: raw.category,
                 date: raw.date
@@ -232,7 +235,7 @@ class LocalSLMService {
     
     deinit {
         if let ctx = context { llama_free(ctx) }
-        if let mdl = model { llama_model_free(mdl) }
+        if let mdl = _model { llama_model_free(mdl) }
         if isBackendInitialized { llama_backend_free() }
     }
 }

@@ -14,8 +14,8 @@ import Combine
     private var lastFetchTime: [String: Date] = [:]
     private let cacheTTL: TimeInterval = 60 // 1 minuto
 
-    func sync(line: String, pdfID: String, direction: Int, time: String? = nil, force: Bool = false) async {
-        let cacheKey = "\(line)_\(pdfID)_\(direction)_\(time ?? "")"
+    func sync(city: String = "milano", line: String, pdfID: String, direction: Int, time: String? = nil, force: Bool = false) async {
+        let cacheKey = "\(city)_\(line)_\(pdfID)_\(direction)_\(time ?? "")"
 
         // Dati freschi in cache? Salta la chiamata al server (a meno di sync forzato)
         if !force,
@@ -29,7 +29,7 @@ import Combine
         activeSyncs.insert(cacheKey)
         defer { activeSyncs.remove(cacheKey) }
         
-        var components = URLComponents(string: "\(baseURL)/metro/departures/\(line)/\(pdfID)")!
+        var components = URLComponents(string: "\(baseURL)/metro/departures/\(city)/\(line)/\(pdfID)")!
         var queryItems = [URLQueryItem(name: "direction", value: String(direction))]
         if let t = time {
             queryItems.append(URLQueryItem(name: "time", value: t))
@@ -62,7 +62,7 @@ import Combine
         if hour >= 2 && hour <= 4 { return .closed }
         
         let line = String(metro.name.prefix(2))
-        let cacheKey = "\(line)_\(metro.pdfID ?? "")_\(metro.direction)_\(time ?? "")"
+        let cacheKey = "\(metro.city)_\(line)_\(metro.pdfID ?? "")_\(metro.direction)_\(time ?? "")"
         guard let response = allSchedules[cacheKey] else { return .frequency("In aggiornamento...") }
         
         if response.departures.isEmpty {

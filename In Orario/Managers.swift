@@ -22,16 +22,20 @@ struct Haptics {
 
 
 @MainActor class TrainManager: ObservableObject {
+    var isInitializing = true
+    
     @Published var remoteNotificationsEnabled: Bool = false
     @Published var notifyOnStationPass: Bool = false
     @Published var strikeRegion: String = "Tutte" {
         didSet {
+            guard !isInitializing else { return }
             saveFavorites()
             syncRemoteNotifications()
         }
     }
     @Published var strikeNotificationsEnabled: Bool = true {
         didSet {
+            guard !isInitializing else { return }
             saveFavorites()
             syncRemoteNotifications()
         }
@@ -95,6 +99,7 @@ struct Haptics {
     @Published var iCloudSyncEnabled: Bool = true
     
     private var refreshTimer: AnyCancellable?
+    private var stationCache: [String: (timestamp: Date, trains: [Train], alerts: String?)] = [:]
     
     private let favoritesKey = "savedFavoriteTrains_v3"
     private let myStationsKey = "savedMyStations_v3"
@@ -262,17 +267,11 @@ struct Haptics {
         )
         NSUbiquitousKeyValueStore.default.synchronize()
         
+        isInitializing = false
+        
         if self.remoteNotificationsEnabled {
-            UNUserNotificationCenter.current().getNotificationSettings { settings in
-                if settings.authorizationStatus == .notDetermined {
-                    DispatchQueue.main.async {
-                        self.requestNotificationPermission()
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        UIApplication.shared.registerForRemoteNotifications()
-                    }
-                }
+            DispatchQueue.main.async {
+                UIApplication.shared.registerForRemoteNotifications()
             }
         }
         
@@ -349,7 +348,9 @@ struct Haptics {
             print("recentStations non trovati in UserDefaults")
         }
 
-        if let data = UserDefaults.standard.data(forKey: favoritesKey), let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) { self.favoriteTrains = decoded }
+        if let data = UserDefaults.standard.data(forKey: favoritesKey), let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
+            self.favoriteTrains = decoded
+        }
         
         if let data = UserDefaults.standard.data(forKey: myStationsKey), let decoded = try? JSONDecoder().decode([Station].self, from: data) {
             self.myStations = decoded.map { st in
@@ -360,7 +361,6 @@ struct Haptics {
             }
         } else {
             self.myStations = []
-            saveFavorites()
         }
         
         if let data = UserDefaults.standard.data(forKey: sectionOrderKey), let decoded = try? JSONDecoder().decode([AppSection].self, from: data) {
@@ -379,32 +379,56 @@ struct Haptics {
             self.savedTrips = decoded
         }
         if let homeDest = UserDefaults.standard.string(forKey: homeDestinationStationNameKey) {
-            self.homeDestinationStationName = homeDest
+            if self.homeDestinationStationName != homeDest {
+                self.homeDestinationStationName = homeDest
+            }
         }
         if let savedName = UserDefaults.standard.string(forKey: userNameKey) {
-            self.userName = savedName
+            if self.userName != savedName {
+                self.userName = savedName
+            }
         }
         if UserDefaults.standard.object(forKey: iCloudSyncEnabledKey) != nil {
-            self.iCloudSyncEnabled = UserDefaults.standard.bool(forKey: iCloudSyncEnabledKey)
+            let val = UserDefaults.standard.bool(forKey: iCloudSyncEnabledKey)
+            if self.iCloudSyncEnabled != val {
+                self.iCloudSyncEnabled = val
+            }
         } else {
-            self.iCloudSyncEnabled = true
+            if !self.iCloudSyncEnabled {
+                self.iCloudSyncEnabled = true
+            }
         }
         
         if UserDefaults.standard.object(forKey: remoteNotificationsEnabledKey) != nil {
-            self.remoteNotificationsEnabled = UserDefaults.standard.bool(forKey: remoteNotificationsEnabledKey)
+            let val = UserDefaults.standard.bool(forKey: remoteNotificationsEnabledKey)
+            if self.remoteNotificationsEnabled != val {
+                self.remoteNotificationsEnabled = val
+            }
         }
         if UserDefaults.standard.object(forKey: notifyOnStationPassKey) != nil {
-            self.notifyOnStationPass = UserDefaults.standard.bool(forKey: notifyOnStationPassKey)
+            let val = UserDefaults.standard.bool(forKey: notifyOnStationPassKey)
+            if self.notifyOnStationPass != val {
+                self.notifyOnStationPass = val
+            }
         }
         if let storedRegion = UserDefaults.standard.string(forKey: strikeRegionKey) {
-            self.strikeRegion = storedRegion
+            if self.strikeRegion != storedRegion {
+                self.strikeRegion = storedRegion
+            }
         } else {
-            self.strikeRegion = "Tutte"
+            if self.strikeRegion != "Tutte" {
+                self.strikeRegion = "Tutte"
+            }
         }
         if UserDefaults.standard.object(forKey: strikeNotificationsEnabledKey) != nil {
-            self.strikeNotificationsEnabled = UserDefaults.standard.bool(forKey: strikeNotificationsEnabledKey)
+            let val = UserDefaults.standard.bool(forKey: strikeNotificationsEnabledKey)
+            if self.strikeNotificationsEnabled != val {
+                self.strikeNotificationsEnabled = val
+            }
         } else {
-            self.strikeNotificationsEnabled = true
+            if !self.strikeNotificationsEnabled {
+                self.strikeNotificationsEnabled = true
+            }
         }
         self.apnsToken = UserDefaults.standard.string(forKey: apnsTokenKey)
     }
@@ -723,7 +747,9 @@ struct Haptics {
         }
         
         if didModify {
-            syncRemoteNotifications()
+            if !isInitializing {
+                syncRemoteNotifications()
+            }
         }
     }
     
@@ -1002,6 +1028,7 @@ struct Haptics {
     }
     
     func syncRemoteNotifications() {
+        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return }
         print("[syncRemoteNotifications] Avvio sincronizzazione. Token: \(apnsToken ?? "nil"), remoteNotificationsEnabled: \(remoteNotificationsEnabled), preferiti: \(favoriteTrains.map { "\($0.number): \($0.notifyDelay ?? false)" })")
         
         if remoteNotificationsEnabled && apnsToken == nil {
@@ -1026,19 +1053,52 @@ struct Haptics {
             return
         }
         
-        // Se l'utente usa l'IA locale (o è utente gratuito), NON lo registriamo per gli scioperi sul server
-        let useLocalAI = !hasSupport() || AIFeatureManager.shared.preferLocalAI
-        if !useLocalAI {
-            registerDeviceForStrikes(token: token)
-        } else {
-            unregisterDeviceForStrikes(token: token)
-        }
+        // Registriamo l'utente sul server per gli scioperi se ha abilitato le notifiche scioperi
+        let strikeEnabled = strikeNotificationsEnabled
         
+        // Sincronizziamo in un'unica chiamata atomica tutte le sottoscrizioni
+        var trainsPayload: [[String: Any]] = []
         for train in favoriteTrains {
             if train.notifyDelay ?? false {
-                registerTrainForPush(trainNumber: train.number, token: token)
-            } else {
-                unregisterTrainForPush(trainNumber: train.number, token: token)
+                trainsPayload.append([
+                    "train_number": train.number,
+                    "notify_delay": train.notifyDelay ?? true,
+                    "notify_station_pass": train.notifyStationPass ?? false,
+                    "station_pass_name": train.stationPassName ?? "",
+                    "notify_departure": train.notifyDeparture ?? false,
+                    "departure_time": train.departureTime ?? "",
+                    "arrival_time": train.arrivalTime ?? "",
+                    "active_days": train.activeDays ?? [],
+                    "notify_platform_change": train.notifyPlatformChange ?? false,
+                    "platform_change_station_name": train.platformChangeStationName ?? ""
+                ])
+            }
+        }
+        
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/sync") else { return }
+        
+        let payload: [String: Any] = [
+            "token": token,
+            "platform": "ios",
+            "strike_region": strikeRegion,
+            "strike_enabled": strikeEnabled,
+            "trains": trainsPayload,
+            "device_model": getDeviceModelName(),
+            "os_version": UIDevice.current.systemVersion,
+            "ai_engine": AIFeatureManager.shared.preferLocalAI ? "local" : "gemini",
+            "has_support": hasSupport()
+        ]
+        
+        Task {
+            do {
+                let (_, response) = try await NetworkService.shared.post(url: url, payload: payload)
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    print("[syncRemoteNotifications] Sincronizzazione completata con successo sul server.")
+                } else {
+                    print("[syncRemoteNotifications] Risposta server non 200 per sincronizzazione")
+                }
+            } catch {
+                print("[syncRemoteNotifications] Errore nell'invio della sincronizzazione: \(error.localizedDescription)")
             }
         }
     }
@@ -1725,9 +1785,12 @@ struct Haptics {
                     }
                 }
                 
+                let isCancelled = (item["cancellato"] as? Bool ?? false) || (item["provvedimento"] as? Int ?? 0) == 1
+                let delayStr = isCancelled ? "Cancellato" : (ritardo > 0 ? "+\(ritardo)'" : "In orario")
+                
                 if timeVal > 0 {
                     let date = Date(timeIntervalSince1970: TimeInterval(timeVal/1000))
-                    return Train(category: cat, number: num, destination: dest, time: SharedFormatters.time.string(from: date), delay: ritardo > 0 ? "+\(ritardo)'" : "In orario", platform: platform)
+                    return Train(category: cat, number: num, destination: dest, time: SharedFormatters.time.string(from: date), delay: delayStr, platform: platform)
                 }
                 return nil
             }
@@ -1736,8 +1799,18 @@ struct Haptics {
         }
     }
     
-    func fetchVTTrains(for vtID: String, isDepartures: Bool) async {
+    func fetchVTTrains(for vtID: String, isDepartures: Bool, force: Bool = false) async {
         let stationKey = "\(vtID)_\(isDepartures)"
+        
+        // Check cache (TTL 15 seconds)
+        if !force, let cached = stationCache[stationKey], Date().timeIntervalSince(cached.timestamp) < 60.0 {
+            self.trains = cached.trains
+            self.stationAlerts = cached.alerts
+            self.lastFetchedStationKey = stationKey
+            self.isLoading = false
+            return
+        }
+        
         if self.lastFetchedStationKey != stationKey {
             self.trains = []
             self.lastFetchedStationKey = stationKey
@@ -1752,6 +1825,7 @@ struct Haptics {
         let fetchedTrains = await performVTFetch(for: vtID, isDepartures: isDepartures, dateStr: dateStr)
         
         self.trains = fetchedTrains
+        self.stationCache[stationKey] = (Date(), fetchedTrains, nil)
         self.isLoading = false
     }
     
@@ -1869,8 +1943,18 @@ struct Haptics {
         }
     }
     
-    func fetchTrains(for station: Station, isDepartures: Bool) async {
+    func fetchTrains(for station: Station, isDepartures: Bool, force: Bool = false) async {
         let stationKey = "\(station.vtID ?? station.rfiID ?? station.name)_\(isDepartures)"
+        
+        // Check cache (TTL 60 seconds)
+        if !force, let cached = stationCache[stationKey], Date().timeIntervalSince(cached.timestamp) < 60.0 {
+            self.trains = cached.trains
+            self.stationAlerts = cached.alerts
+            self.lastFetchedStationKey = stationKey
+            self.isLoading = false
+            return
+        }
+        
         if self.lastFetchedStationKey != stationKey {
             self.trains = []
             self.lastFetchedStationKey = stationKey
@@ -1881,38 +1965,156 @@ struct Haptics {
         let rfiID = station.rfiID ?? ""
         let vtID = station.vtID ?? ""
         
-        var scraperSuccess = false
         if !rfiID.isEmpty {
-            let scraped = await performRfiScraping(for: rfiID, isDepartures: isDepartures)
-            if let alerts = scraped.alerts {
-                self.stationAlerts = alerts
+            // Stazione RFI: scraping principale
+            let rfiResult = await performRfiScraping(for: rfiID, isDepartures: isDepartures)
+            if let alerts = rfiResult.alerts { self.stationAlerts = alerts }
+            
+            if !rfiResult.trains.isEmpty {
+                // Controlla se ci sono treni nei prossimi 30 minuti prima di chiamare VT
+                let hasUpcomingTrains = rfiResult.trains.contains { trainIsWithinNextMinutes($0, minutes: 45) }
+                
+                if hasUpcomingTrains && !vtID.isEmpty {
+                    // Almeno un treno imminente → vale la pena arricchire con VT
+                    let vtDateStr = makeVTDateString()
+                    let vtTrains = await performVTFetch(for: vtID, isDepartures: isDepartures, dateStr: vtDateStr)
+                    self.trains = vtTrains.isEmpty
+                        ? rfiResult.trains
+                        : mergeVTDelays(rfiTrains: rfiResult.trains, vtTrains: vtTrains)
+                } else {
+                    // Nessun treno imminente o nessun vtID: usa RFI as-is, risparmia la chiamata VT
+                    self.trains = rfiResult.trains
+                }
+            } else if !vtID.isEmpty {
+                // RFI fallisce → fallback VT puro
+                let vtTrains = await performVTFetch(for: vtID, isDepartures: isDepartures, dateStr: makeVTDateString())
+                self.trains = vtTrains
+            } else {
+                self.trains = []
             }
-            if !scraped.trains.isEmpty {
-                self.trains = scraped.trains
-                scraperSuccess = true
-            }
-        }
-        
-        if !scraperSuccess && !vtID.isEmpty {
-            let f = DateFormatter()
-            f.locale = Locale(identifier: "en_US_POSIX")
-            f.timeZone = TimeZone(identifier: "Europe/Rome")
-            f.dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT'ZZZ"
-            let dateStr = f.string(from: Date()).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
-            let vtTrains = await performVTFetch(for: vtID, isDepartures: isDepartures, dateStr: dateStr)
+        } else if !vtID.isEmpty {
+            // Stazione senza tabellone RFI (es. Ferrovie Nord): usa solo VT, nessun merge
+            let vtTrains = await performVTFetch(for: vtID, isDepartures: isDepartures, dateStr: makeVTDateString())
             self.trains = vtTrains
-            scraperSuccess = true
-        }
-        
-        if !scraperSuccess {
+        } else {
             self.trains = []
         }
         
+        // Cache successful results
+        self.stationCache[stationKey] = (Date(), self.trains, self.stationAlerts)
         self.isLoading = false
     }
     
+    /// Restituisce true se l'orario programmato del treno cade entro i prossimi `minutes` minuti
+    /// (o fino a 5 minuti fa, per coprire treni già partiti di poco).
+    nonisolated private func trainIsWithinNextMinutes(_ train: Train, minutes: Int) -> Bool {
+        // train.time è in formato "HH:mm"
+        let parts = train.time.split(separator: ":")
+        guard parts.count == 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]) else { return false }
+        
+        let now = Date()
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: now)
+        components.hour = hour
+        components.minute = minute
+        components.second = 0
+        
+        guard var trainDate = calendar.date(from: components) else { return false }
+        
+        // Gestione mezzanotte: se il treno sembra molto nel passato, è probabilmente domani
+        let diff = trainDate.timeIntervalSince(now)
+        if diff < -43200 { trainDate = calendar.date(byAdding: .day, value: 1, to: trainDate) ?? trainDate }
+        else if diff > 43200 { trainDate = calendar.date(byAdding: .day, value: -1, to: trainDate) ?? trainDate }
+        
+        let windowStart = calendar.date(byAdding: .minute, value: -5, to: now)!
+        let windowEnd   = calendar.date(byAdding: .minute, value: minutes, to: now)!
+        return trainDate >= windowStart && trainDate <= windowEnd
+    }
     
-    nonisolated func fetchLiveStops(for trainNumber: String) async -> StopsResult {
+    /// Costruisce la stringa data/ora nel formato richiesto da ViaggiaTreno.
+    nonisolated private func makeVTDateString() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Europe/Rome")
+        f.dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT'ZZZ"
+        return f.string(from: Date()).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+    }
+    
+    /// Combina i treni RFI con i ritardi più precisi di ViaggiaTreno.
+    /// - Struttura (numero, destinazione, orario, binario): sempre da RFI
+    /// - Ritardo VT applicato SOLO ai treni nei prossimi 30 minuti
+    /// - Cancellazioni/soppressioni: RFI ha sempre priorità
+    /// - Stazioni FNM (rfiID vuoto): questa funzione NON viene mai chiamata per loro
+    nonisolated private func mergeVTDelays(rfiTrains: [Train], vtTrains: [Train]) -> [Train] {
+        // Indice VT per numero treno — O(1) lookup
+        let vtByNumber: [String: Train] = Dictionary(
+            vtTrains.map { ($0.number, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        
+        // Soglia oltre la quale la discrepanza è sospetta e non ci fidiamo di VT
+        let discrepancyThreshold = 15
+        
+        return rfiTrains.map { rfi in
+            // Treni oltre la finestra dei 45 minuti: non toccare, risparmia il merge
+            guard trainIsWithinNextMinutes(rfi, minutes: 45) else { return rfi }
+            
+            let rfiDelayLower = rfi.delay.lowercased()
+            
+            // 1. Cancellazione/soppressione da RFI ha sempre la priorità assoluta
+            if rfiDelayLower.contains("cancellat") || rfiDelayLower.contains("soppress") {
+                return rfi
+            }
+            
+            // 2. Se VT non conosce il treno → tieni RFI com'è
+            guard let vt = vtByNumber[rfi.number] else { return rfi }
+            
+            let vtDelayLower = vt.delay.lowercased()
+            
+            // 3. Se VT dice cancellato/soppresso → non fidarsi (RFI è più affidabile sulle cancellazioni)
+            if vtDelayLower.contains("cancellat") || vtDelayLower.contains("soppress") {
+                return rfi
+            }
+            
+            // Converti i due ritardi in minuti per il confronto numerico
+            let rfiMin = parseDelayMinutes(rfi.delay)
+            let vtMin  = parseDelayMinutes(vt.delay)
+            let diff   = abs(vtMin - rfiMin)
+            
+            // 4. Discrepanza enorme (> 15 min): VT probabilmente ha un omonimo o dati vecchi
+            //    → mantieni il ritardo RFI e segnala incertezza con il badge "?"
+            if diff > discrepancyThreshold {
+                return Train(
+                    category: rfi.category, number: rfi.number,
+                    destination: rfi.destination, time: rfi.time,
+                    delay: rfi.delay, platform: rfi.platform,
+                    isDelayUncertain: true
+                )
+            }
+            
+            // 5. Caso normale: sostituisci il ritardo RFI con quello più preciso di VT
+            return Train(
+                category: rfi.category, number: rfi.number,
+                destination: rfi.destination, time: rfi.time,
+                delay: vt.delay, platform: rfi.platform,
+                isDelayUncertain: false
+            )
+        }
+    }
+    
+    /// Parsa una stringa di ritardo (es. "+7'", "In orario", "0'") in minuti interi.
+    nonisolated private func parseDelayMinutes(_ delay: String) -> Int {
+        let cleaned = delay
+            .replacingOccurrences(of: "+", with: "")
+            .replacingOccurrences(of: "'", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        if cleaned.lowercased().contains("orario") { return 0 }
+        return Int(cleaned) ?? 0
+    }
+    
+    nonisolated func fetchLiveStops(for trainNumber: String, destination: String? = nil) async -> StopsResult {
         let cleanNumber = trainNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         let searchUrl = "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/cercaNumeroTrenoTrenoAutocomplete/\(cleanNumber)"
         
@@ -1981,7 +2183,7 @@ struct Haptics {
             
             let nowTs = Date().timeIntervalSince1970 * 1000.0
             var bestJson: [String: Any]? = nil
-            var bestScore: Double = -1.0
+            var bestScore: Double = -999999.0
             
             for (targetLine, json) in results {
                 let pipes = targetLine.components(separatedBy: "|")
@@ -1994,7 +2196,28 @@ struct Haptics {
                 let isArrived = (json["arrivato"] as? Bool) ?? false
                 
                 let baseScore = (isDeparted && !isArrived) ? 10000.0 : 1000.0
-                let score = baseScore - (deltaDays * 100.0)
+                var score = baseScore - (deltaDays * 100.0)
+                
+                if let dest = destination, !dest.isEmpty {
+                    let targetUpper = targetLine.uppercased()
+                    let destUpper = dest.uppercased()
+                    
+                    let cleanDest = destUpper.replacingOccurrences(of: "MILANO P. ", with: "MILANO ")
+                                             .replacingOccurrences(of: "MILANO ", with: "")
+                    let cleanTarget = targetUpper.replacingOccurrences(of: "MILANO P. ", with: "MILANO ")
+                                                 .replacingOccurrences(of: "MILANO ", with: "")
+                    
+                    if cleanTarget.contains(cleanDest) || cleanDest.contains(cleanTarget) {
+                        score += 50000.0
+                    } else {
+                        let words = cleanDest.components(separatedBy: " ").filter { $0.count > 3 }
+                        for word in words {
+                            if cleanTarget.contains(word) {
+                                score += 10000.0
+                            }
+                        }
+                    }
+                }
                 
                 if score > bestScore {
                     bestScore = score
@@ -2070,7 +2293,7 @@ struct Haptics {
         }
         
         let cleanNumber = train.number.trimmingCharacters(in: .whitespacesAndNewlines)
-        let result = await fetchLiveStops(for: cleanNumber)
+        let result = await fetchLiveStops(for: cleanNumber, destination: train.destination)
         
         if !isRefresh || result.errorMessage == nil {
             self.selectedTrainStops = result.stops
@@ -2244,6 +2467,16 @@ struct Haptics {
                         }
                     }
                 }
+                
+                Task {
+                    for await state in activity.activityStateUpdates {
+                        if state == .ended || state == .dismissed {
+                            if let deviceToken = self.apnsToken, !deviceToken.isEmpty {
+                                self.unregisterTrainForPush(trainNumber: activity.attributes.trainNumber, token: deviceToken)
+                            }
+                        }
+                    }
+                }
             }
         }
         
@@ -2253,6 +2486,16 @@ struct Haptics {
                 for await tokenData in activity.pushTokenUpdates {
                     if let deviceToken = self.apnsToken, !deviceToken.isEmpty {
                         self.registerLiveActivityToken(pushToken: tokenData, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
+                    }
+                }
+            }
+            
+            Task {
+                for await state in activity.activityStateUpdates {
+                    if state == .ended || state == .dismissed {
+                        if let deviceToken = self.apnsToken, !deviceToken.isEmpty {
+                            self.unregisterTrainForPush(trainNumber: activity.attributes.trainNumber, token: deviceToken)
+                        }
                     }
                 }
             }
@@ -2278,15 +2521,25 @@ struct Haptics {
     }
     // MARK: - Hybrid AI / Fetching News
     
-    func fetchStrikesAndNews() async -> [NewsItem] {
-        let aiManager = AIFeatureManager.shared
+    func fetchStrikesAndNews(forceRefresh: Bool = false) async -> [NewsItem] {
+        let strikeRegion = self.strikeRegion
         let isPremium = hasSupport()
-        let regionParam = strikeRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
         let smartSummaryEnabled = UserDefaults.standard.object(forKey: "ai_smartSummaryEnabled") as? Bool ?? true
         
+        let lastFetch = UserDefaults.standard.double(forKey: "cachedNewsTimestamp")
+        let now = Date().timeIntervalSince1970
+        let cacheAge = now - lastFetch
+        
+        // Carica la cache se non è richiesto un aggiornamento forzato ed è più recente di 5 minuti (300s)
+        if !forceRefresh, cacheAge < 300.0, let cached = loadCache() {
+            return filterExpiredStrikes(cached)
+        }
+        
         var result: [NewsItem]
+        let aiManager = AIFeatureManager.shared
         // SOLO gli utenti premium usano il Cloud backend
         if isPremium && !aiManager.preferLocalAI {
+            let regionParam = strikeRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
             async let backendTask = fetchFromBackend(regionParam: regionParam)
             async let trenitaliaTask = LocalScrapingService.shared.scrapeTrenitalia(region: strikeRegion)
             let backendItems = await backendTask
@@ -2301,11 +2554,12 @@ struct Haptics {
                 if catB == "sciopero" && catA != "sciopero" { return false }
                 return true
             }
-        } else if aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled && smartSummaryEnabled {
+            saveCache(items: result)
+        } else if (aiManager.isAppleIntelligenceAvailable || (aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled)) && smartSummaryEnabled {
             let canRun = isPremium || aiManager.canRunFreeLocalAI()
             if canRun {
                 let items = await executeLocalScrapingAndAI(region: strikeRegion)
-                if !isPremium {
+                if !isPremium && !items.isEmpty {
                     aiManager.recordLocalAIExecution()
                     saveCache(items: items)
                 }
@@ -2357,8 +2611,8 @@ struct Haptics {
         guard !allItems.isEmpty else { return [] }
         
         // Il modello AI formatta TUTTI gli item (scioperi MIT e InfoLavori Trenitalia)
-        if LocalSLMService.shared.initializeModel() {
-            return await LocalSLMService.shared.formatWithLocalModel(rawItems: allItems)
+        if await AIEngine.shared.initializeIfNeeded() {
+            return await AIEngine.shared.formatWithLocalModel(rawItems: allItems)
         }
         return allItems
     }
@@ -2383,12 +2637,22 @@ struct Haptics {
     func saveCache(items: [NewsItem]) {
         if let data = try? JSONEncoder().encode(items) {
             UserDefaults.standard.set(data, forKey: "cachedStrikesAndNews")
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "cachedNewsTimestamp")
         }
     }
     
+    func getCachedStrikesAndNews() -> [NewsItem] {
+        if let cached = loadCache() {
+            return filterExpiredStrikes(cached)
+        }
+        return []
+    }
+    
     private func loadCache() -> [NewsItem]? {
-        guard let data = UserDefaults.standard.data(forKey: "cachedStrikesAndNews") else { return nil }
-        return try? JSONDecoder().decode([NewsItem].self, from: data)
+        guard let data = UserDefaults.standard.data(forKey: "cachedStrikesAndNews"),
+              let decoded = try? JSONDecoder().decode([NewsItem].self, from: data),
+              !decoded.isEmpty else { return nil }
+        return decoded
     }
 }
 
@@ -2522,5 +2786,141 @@ class TipManager: ObservableObject {
     
     func resetState() {
         purchaseState = .idle
+    }
+}
+
+// MARK: - MetroManager
+
+@MainActor class MetroManager: ObservableObject {
+    @Published var favoriteMetroStationIDs: [String] = [] {
+        didSet { save() }
+    }
+    @Published var recentMetroStationIDs: [String] = [] {
+        didSet { save() }
+    }
+
+    private let favKey = "metroFavoriteIDs_v1"
+    private let recentKey = "metroRecentIDs_v1"
+    private let maxRecent = 5
+
+    // MARK: - Alerts and Status
+    @Published var lineStatuses: [String: String] = [:]
+    @Published var metroAlertMessage: String = ""
+    @Published var isFetchingStatus = false
+
+    init() { 
+        load()
+        Task {
+            await fetchMetroStatus()
+        }
+    }
+
+    // MARK: - Persistence
+    private func save() {
+        UserDefaults.standard.set(favoriteMetroStationIDs, forKey: favKey)
+        UserDefaults.standard.set(recentMetroStationIDs, forKey: recentKey)
+    }
+    private func load() {
+        favoriteMetroStationIDs = UserDefaults.standard.stringArray(forKey: favKey) ?? []
+        recentMetroStationIDs = UserDefaults.standard.stringArray(forKey: recentKey) ?? []
+    }
+
+    // MARK: - Fetch Status
+    func fetchMetroStatus() async {
+        guard !isFetchingStatus else { return }
+        isFetchingStatus = true
+        defer { isFetchingStatus = false }
+
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/metro/status/milano") else { return }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            struct StatusResponse: Codable {
+                let M1: String?
+                let M2: String?
+                let M3: String?
+                let M4: String?
+                let M5: String?
+                let message: String?
+            }
+            let decoded = try JSONDecoder().decode(StatusResponse.self, from: data)
+            lineStatuses = [
+                "M1": decoded.M1 ?? "Regolare",
+                "M2": decoded.M2 ?? "Regolare",
+                "M3": decoded.M3 ?? "Regolare",
+                "M4": decoded.M4 ?? "Regolare",
+                "M5": decoded.M5 ?? "Regolare"
+            ]
+            metroAlertMessage = decoded.message ?? ""
+        } catch {
+            print("Errore caricamento stato metropolitana: \(error)")
+        }
+    }
+
+    // MARK: - Data
+    let allStations: [MetroStation] = MilanoMetroCatalog.stations
+
+    var favoriteStations: [MetroStation] {
+        favoriteMetroStationIDs.compactMap { id in allStations.first { $0.id == id } }
+    }
+    var recentStations: [MetroStation] {
+        recentMetroStationIDs.compactMap { id in allStations.first { $0.id == id } }
+    }
+
+    // MARK: - Favorites
+    func isFavorite(_ station: MetroStation) -> Bool {
+        favoriteMetroStationIDs.contains(station.id)
+    }
+    func toggleFavorite(_ station: MetroStation) {
+        if let idx = favoriteMetroStationIDs.firstIndex(of: station.id) {
+            favoriteMetroStationIDs.remove(at: idx)
+        } else {
+            favoriteMetroStationIDs.append(station.id)
+        }
+    }
+
+    // MARK: - Recents
+    func addToRecent(_ station: MetroStation) {
+        recentMetroStationIDs.removeAll { $0 == station.id }
+        recentMetroStationIDs.insert(station.id, at: 0)
+        if recentMetroStationIDs.count > maxRecent {
+            recentMetroStationIDs = Array(recentMetroStationIDs.prefix(maxRecent))
+        }
+    }
+
+    // MARK: - Search
+    func search(query: String) -> [MetroStation] {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return allStations }
+        let cleanedQuery = query.lowercased().replacingOccurrences(of: " ", with: "")
+        var searchTerms = [cleanedQuery]
+        if cleanedQuery.count == 2 {
+            let first = cleanedQuery.prefix(1)
+            let last = cleanedQuery.suffix(1)
+            if (first >= "1" && first <= "5") && (last == "m") {
+                searchTerms.append("m" + first)
+            }
+        }
+        
+        return allStations.filter { station in
+            let nameMatch = searchTerms.contains { term in station.displayName.lowercased().contains(term) }
+            let lineMatch = station.lines.contains { line in
+                searchTerms.contains { term in line.name.lowercased().contains(term) }
+            }
+            return nameMatch || lineMatch
+        }
+    }
+
+    // MARK: - Nearby
+    func nearbyStation(from location: CLLocationCoordinate2D?) -> MetroStation? {
+        guard let loc = location else { return nil }
+        let threshold = 0.008  // ~800m in degrees approx
+        return allStations
+            .map { station -> (MetroStation, Double) in
+                let dlat = station.latitude - loc.latitude
+                let dlon = station.longitude - loc.longitude
+                return (station, sqrt(dlat*dlat + dlon*dlon))
+            }
+            .filter { $0.1 < threshold }
+            .min(by: { $0.1 < $1.1 })
+            .map { $0.0 }
     }
 }

@@ -23,20 +23,40 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     func handleAIProcessingTask(task: BGProcessingTask) {
         let aiManager = AIFeatureManager.shared
-        guard aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled else {
-            task.setTaskCompleted(success: false)
-            return
+        
+        task.expirationHandler = {
+            if aiManager.isDownloadingModel {
+                aiManager.cancelDownload()
+            }
         }
         
-        task.expirationHandler = { }
         Task {
-            let tempManager = TrainManager()
-            if aiManager.canRunFreeLocalAI() || aiManager.preferLocalAI {
-                let items = await tempManager.executeRawScraping(region: tempManager.strikeRegion)
-                let formatted = await LocalSLMService.shared.formatWithLocalModel(rawItems: items)
-                tempManager.saveCache(items: formatted)
-                aiManager.recordLocalAIExecution()
+            if await MainActor.run(resultType: Bool.self, body: { aiManager.preferLocalAI && !aiManager.isLocalModelInstalled }) {
+                await MainActor.run {
+                    aiManager.downloadModel(aiManager.recommendedModel)
+                }
             }
+            
+            let hasLocalAI = await MainActor.run {
+                aiManager.isAppleIntelligenceAvailable || (aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled)
+            }
+            if hasLocalAI {
+                let tempManager = await MainActor.run { TrainManager() }
+                let region = await MainActor.run { tempManager.strikeRegion }
+                let items = await tempManager.executeRawScraping(region: region)
+                let formatted = await AIEngine.shared.formatWithLocalModel(rawItems: items)
+                await MainActor.run {
+                    tempManager.saveCache(items: formatted)
+                    if !tempManager.hasSupport() {
+                        aiManager.recordLocalAIExecution()
+                    }
+                }
+            }
+            
+            await MainActor.run {
+                AIFeatureManager.shared.performDailySpaceCheck()
+            }
+            
             task.setTaskCompleted(success: true)
         }
     }
@@ -85,7 +105,9 @@ struct InOrario: App {
     @StateObject private var manager = TrainManager()
     @StateObject private var passanteManager = PassanteManager()
     @StateObject private var metroCache = MetroCache()
+    @StateObject private var metroManager = MetroManager()
     @StateObject private var locationManager = LocationManager()
+    @StateObject private var usageTracker = UsageTracker()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -94,7 +116,9 @@ struct InOrario: App {
                 .environmentObject(manager)
                 .environmentObject(passanteManager)
                 .environmentObject(metroCache)
+                .environmentObject(metroManager)
                 .environmentObject(locationManager)
+                .environmentObject(usageTracker)
                 .onAppear {
                     appDelegate.manager = manager
                 }
@@ -120,6 +144,10 @@ struct InOrario: App {
             if newPhase == .background {
                 scheduleAppRefresh()
                 scheduleAIProcessing()
+            }
+            if newPhase == .active {
+                // Aggiorna spazio libero ogni volta che l'app torna in foreground
+                AIFeatureManager.shared.refreshFreeSpace()
             }
         }
         .backgroundTask(.appRefresh("com.carlo.InOrario.refresh")) {

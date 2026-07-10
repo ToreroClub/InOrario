@@ -1,30 +1,126 @@
 import Foundation
 import SwiftUI
 import Combine
+import BackgroundTasks
+
+// MARK: - Model Definitions
+
+struct AIModelOption: Identifiable, Codable, Equatable {
+    let id: String
+    let displayName: String
+    let tagline: String
+    let fileName: String
+    let downloadURL: String
+    let sizeBytes: Int64
+    let qualityStars: Int
+    let ramRequiredMB: Int
+    let minFreeSpaceGB: Double  // spazio minimo consigliato per installarlo
+    
+    var formattedSize: String {
+        let mb = Double(sizeBytes) / 1_000_000
+        if mb >= 1000 { return String(format: "%.1f GB", mb / 1000) }
+        return String(format: "%.0f MB", mb)
+    }
+}
+
+enum SpaceAlertLevel {
+    case none
+    case warning(message: String, actionLabel: String)
+    case critical(message: String, freedMB: Int)
+    case upgradeAvailable(toModel: AIModelOption)
+}
+
+// MARK: - AIFeatureManager
 
 @MainActor
 class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     static let shared = AIFeatureManager()
     
+    // MARK: - Persisted State
+    @AppStorage("selectedModelID") var selectedModelID: String = "qwen3-0.6b-q3"
     @AppStorage("isLocalModelInstalled") var isLocalModelInstalled: Bool = false
     @AppStorage("lastLocalAIExecutionDate") private var lastExecutionDateStr: String = ""
     @AppStorage("premium_preferLocalAI") var preferLocalAI: Bool = false
+    @AppStorage("aiModeChoice") var aiModeChoice: AIMode = .none  // none / local / cloud
+    @AppStorage("spaceAlertDismissedAt") private var spaceAlertDismissedAtStr: String = ""
+    @AppStorage("pendingDownloadModelID") var pendingModelID: String = ""
     
+    // MARK: - Published State
     @Published var isDownloadingModel: Bool = false
     @Published var downloadProgress: Double = 0.0
+    @Published var spaceAlertLevel: SpaceAlertLevel = .none
+    @Published var freeDiskSpaceGB: Double = 0
     
     private var downloadTask: URLSessionDownloadTask?
     
-    // Rende privato l'init per garantire il pattern Singleton conforme a NSObject
-    private override init() {
-        super.init()
+    private lazy var backgroundSession: URLSession = {
+        let config = URLSessionConfiguration.background(withIdentifier: "com.inorario.ai.download")
+        config.isDiscretionary = false
+        config.sessionSendsLaunchEvents = true
+        return URLSession(configuration: config, delegate: self, delegateQueue: nil)
+    }()
+    
+    // MARK: - Catalog
+    static let catalog: [AIModelOption] = [
+        AIModelOption(
+            id: "qwen2.5-0.5b-q4",
+            displayName: "Compatto",
+            tagline: "Ottimo rapporto qualità/spazio",
+            fileName: "qwen2.5-0.5b-instruct-q4km.gguf",
+            downloadURL: "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+            sizeBytes: 400_000_000,
+            qualityStars: 3,
+            ramRequiredMB: 600,
+            minFreeSpaceGB: 1.5
+        )
+    ]
+    
+    enum AIMode: String, Codable {
+        case none   // nessuna IA
+        case local  // modello locale
+        case cloud  // cloud (premium)
     }
     
+    // MARK: - Init
+    private override init() {
+        super.init()
+        
+        // Safety check: remove corrupted/tiny models (e.g. 404 HTML pages) to prevent startup crashes
+        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let modelPath = docs.appendingPathComponent(selectedModel.fileName).path
+            if FileManager.default.fileExists(atPath: modelPath) {
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: modelPath),
+                   let size = attrs[.size] as? Int64, size < 10_000_000 { // Less than 10MB is definitely not a GGUF
+                    try? FileManager.default.removeItem(atPath: modelPath)
+                    self.isLocalModelInstalled = false
+                    if self.aiModeChoice == .local { self.aiModeChoice = .none }
+                    print("[-] Rimossa versione corrotta del modello (dimensione troppo piccola).")
+                }
+            }
+        }
+        
+        refreshFreeSpace()
+        Task {
+            let tasks = await backgroundSession.tasks.2 // array of URLSessionDownloadTask
+            if let task = tasks.first {
+                await MainActor.run {
+                    self.downloadTask = task
+                    self.isDownloadingModel = true
+                }
+            } else if !self.pendingModelID.isEmpty {
+                await MainActor.run {
+                    self.pendingModelID = ""
+                    self.isDownloadingModel = false
+                }
+            }
+        }
+    }
+    
+    // MARK: - Hardware Check
     var isHardwareCompatible: Bool {
         let bytesInGB: UInt64 = 1024 * 1024 * 1024
         let requiredMemory = 5.5 * Double(bytesInGB)
         let physicalMemory = Double(ProcessInfo.processInfo.physicalMemory)
-        
         #if targetEnvironment(simulator)
         return true
         #else
@@ -32,111 +128,238 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
         #endif
     }
     
-    func canRunFreeLocalAI() -> Bool {
-        guard isHardwareCompatible, isLocalModelInstalled else { return false }
-        
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "Europe/Rome")
-        let todayStr = formatter.string(from: Date())
-        
-        return lastExecutionDateStr != todayStr
+    // MARK: - Disk Space
+    func refreshFreeSpace() {
+        if let attrs = try? FileManager.default.attributesOfFileSystem(forPath: NSHomeDirectory()),
+           let free = attrs[.systemFreeSize] as? Int64 {
+            freeDiskSpaceGB = Double(free) / 1_000_000_000
+        }
+        evaluateSpaceAlert()
     }
     
-    func recordLocalAIExecution() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "Europe/Rome")
-        lastExecutionDateStr = formatter.string(from: Date())
+    var recommendedModel: AIModelOption {
+        return Self.catalog[0] // Solo Compatto (Qwen 0.5B) rimasto
     }
     
-    func downloadLocalModel() {
-        guard isHardwareCompatible, !isDownloadingModel else { return }
-        
-        // Link diretto LFS ufficiale da Hugging Face per Qwen 2.5 0.5B Instruct Q4_K_M (circa 350MB)
-        guard let url = URL(string: "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf") else {
+    var isAppleIntelligenceAvailable: Bool {
+        if #available(iOS 26.0, *) {
+            // Se AppleFoundationModelProvider è disponibile, ritorna vero
+            return AppleFoundationModelProvider().isAvailable
+        }
+        return false
+    }
+    
+    var selectedModel: AIModelOption {
+        Self.catalog.first { $0.id == selectedModelID } ?? Self.catalog[0]
+    }
+    
+    var installedModelURL: URL? {
+        guard isLocalModelInstalled else { return nil }
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        let url = docs.appendingPathComponent(selectedModel.fileName)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+    
+    var modelFilePath: String? {
+        installedModelURL?.path
+    }
+    
+    // MARK: - Space Alert
+    private var alertDismissedRecently: Bool {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        guard let date = formatter.date(from: spaceAlertDismissedAtStr) else { return false }
+        return Date().timeIntervalSince(date) < 48 * 3600
+    }
+    
+    func dismissSpaceAlert() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        spaceAlertDismissedAtStr = formatter.string(from: Date())
+        spaceAlertLevel = .none
+    }
+    
+    func evaluateSpaceAlert() {
+        guard !alertDismissedRecently else { return }
+        guard isLocalModelInstalled, aiModeChoice == .local else {
+            spaceAlertLevel = .none
             return
         }
         
+        let gb = freeDiskSpaceGB
+        let currentModelSizeMB = Int(selectedModel.sizeBytes / 1_000_000)
+        
+        if gb < 0.8 {
+            // Critico: suggerisci rimozione immediata
+            spaceAlertLevel = .critical(
+                message: "Spazio quasi esaurito. Rimuovi il modello AI per liberare \(currentModelSizeMB) MB.",
+                freedMB: currentModelSizeMB
+            )
+        } else {
+            spaceAlertLevel = .none
+        }
+    }
+    
+    // MARK: - Daily Check (chiamato dall'app entry point una volta al giorno la notte)
+    func performDailySpaceCheck() {
+        refreshFreeSpace()
+    }
+    
+    // MARK: - Usage Gating
+    func canRunFreeLocalAI() -> Bool {
+        guard aiModeChoice == .local else { return false }
+        let hasModel = isAppleIntelligenceAvailable || (isHardwareCompatible && isLocalModelInstalled)
+        return hasModel
+    }
+    
+    func recordLocalAIExecution() {
+        // Rimosso limite di esecuzione giornaliero per l'IA locale (on-device).
+    }
+    
+    // MARK: - Download
+    func downloadModel(_ model: AIModelOption) {
+        guard isHardwareCompatible, !isDownloadingModel else { return }
+        guard let url = URL(string: model.downloadURL) else { return }
+        
+        pendingModelID = model.id
         isDownloadingModel = true
         downloadProgress = 0.0
         
-        let configuration = URLSessionConfiguration.default
-        let session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
-        
-        downloadTask = session.downloadTask(with: url)
+        downloadTask = backgroundSession.downloadTask(with: url)
         downloadTask?.resume()
     }
     
     func cancelDownload() {
         downloadTask?.cancel()
         downloadTask = nil
+        pendingModelID = ""
         isDownloadingModel = false
         downloadProgress = 0.0
     }
     
-    func removeLocalModel() {
-        let fileManager = FileManager.default
-        if let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let modelURL = documentsURL.appendingPathComponent("qwen-0.5b-instruct.gguf")
-            try? fileManager.removeItem(at: modelURL)
+    // MARK: - Remove
+    func removeCurrentModel() {
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        // Rimuovi tutti i file .gguf presenti
+        for model in Self.catalog {
+            let url = docs.appendingPathComponent(model.fileName)
+            try? FileManager.default.removeItem(at: url)
         }
         isLocalModelInstalled = false
-        preferLocalAI = false
+        if aiModeChoice == .local { aiModeChoice = .none }
+        refreshFreeSpace()
     }
     
-    // MARK: - URLSessionDownloadDelegate
+    func removeModel(withFileName fileName: String) {
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let url = docs.appendingPathComponent(fileName)
+        try? FileManager.default.removeItem(at: url)
+    }
     
+    // MARK: - Switch Model
+    func switchTo(_ model: AIModelOption) {
+        if isDownloadingModel {
+            cancelDownload()
+        }
+        
+        let bothFit = freeDiskSpaceGB > Double(selectedModel.sizeBytes + model.sizeBytes) / 1_000_000_000 + 0.5
+        if !bothFit {
+            removeCurrentModel()
+        }
+        
+        self.selectedModelID = model.id
+        self.aiModeChoice = .local
+        
+        // Avvia il download con un piccolissimo ritardo per consentire la cancellazione del task precedente
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.downloadModel(model)
+        }
+    }
+    
+
+    
+    // MARK: - URLSessionDownloadDelegate
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         guard totalBytesExpectedToWrite > 0 else { return }
         let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-        Task { @MainActor in
-            self.downloadProgress = progress
-        }
+        Task { @MainActor in self.downloadProgress = progress }
     }
     
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        let fileManager = FileManager.default
-        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            Task { @MainActor in
-                self.isDownloadingModel = false
-            }
+        if let httpResponse = downloadTask.response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            print("[-] Errore download: Status code \(httpResponse.statusCode)")
+            Task { @MainActor in self.isDownloadingModel = false }
             return
         }
         
-        let destinationURL = documentsURL.appendingPathComponent("qwen-0.5b-instruct.gguf")
-        
-        // Rimuove file preesistente
-        try? fileManager.removeItem(at: destinationURL)
+        let fileManager = FileManager.default
+        let tempURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         
         do {
-            try fileManager.moveItem(at: location, to: destinationURL)
-            
-            // Esclude il file del modello dal backup di iCloud
-            var urlToExclude = destinationURL
-            var resourceValues = URLResourceValues()
-            resourceValues.isExcludedFromBackup = true
-            try? urlToExclude.setResourceValues(resourceValues)
-            
-            Task { @MainActor in
-                self.isLocalModelInstalled = true
-                self.isDownloadingModel = false
-            }
-            print("[+] Modello Qwen scaricato, escluso da backup iCloud e salvato a: \(destinationURL.path)")
+            try fileManager.moveItem(at: location, to: tempURL)
         } catch {
-            print("[-] Errore nel salvataggio del modello scaricato: \(error.localizedDescription)")
-            Task { @MainActor in
+            print("[-] Error saving temporary file: \(error)")
+            Task { @MainActor in self.isDownloadingModel = false }
+            return
+        }
+        
+        Task { @MainActor in
+            guard let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
                 self.isDownloadingModel = false
+                try? fileManager.removeItem(at: tempURL)
+                return
             }
+            
+            let modelID = self.pendingModelID
+            guard !modelID.isEmpty,
+                  let model = AIFeatureManager.catalog.first(where: { $0.id == modelID }) else {
+                self.isDownloadingModel = false
+                try? fileManager.removeItem(at: tempURL)
+                return
+            }
+            
+            let destinationURL = docsURL.appendingPathComponent(model.fileName)
+            try? fileManager.removeItem(at: destinationURL)
+            do {
+                try fileManager.moveItem(at: tempURL, to: destinationURL)
+                var urlToExclude = destinationURL
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = true
+                try? urlToExclude.setResourceValues(resourceValues)
+                
+                // Rimuovi il vecchio modello (ora che il nuovo è installato)
+                let previousID = self.selectedModelID
+                if previousID != modelID {
+                    if let old = AIFeatureManager.catalog.first(where: { $0.id == previousID }) {
+                        self.removeModel(withFileName: old.fileName)
+                    }
+                }
+                
+                self.selectedModelID = modelID
+                self.isLocalModelInstalled = true
+                self.aiModeChoice = .local
+                self.preferLocalAI = true
+                self.pendingModelID = ""
+                self.refreshFreeSpace()
+                print("[+] Modello \(model.displayName) installato in: \(destinationURL.path)")
+            } catch {
+                print("[-] Errore salvataggio modello finale: \(error)")
+                try? fileManager.removeItem(at: tempURL)
+            }
+            self.isDownloadingModel = false
         }
     }
     
     nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error {
-            print("[-] Download interrotto con errore: \(error.localizedDescription)")
-            Task { @MainActor in
-                self.isDownloadingModel = false
-            }
+            print("[-] Download interrotto: \(error.localizedDescription)")
+            Task { @MainActor in self.isDownloadingModel = false }
         }
     }
+}
+
+// MARK: - AppStorage support for AIMode
+extension AIFeatureManager.AIMode: RawRepresentable {
+    // Already has RawValue via String enum
 }

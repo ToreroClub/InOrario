@@ -78,6 +78,27 @@ struct PassanteTunnelThermometerView: View {
         return dest.prefix(5).uppercased()
     }
 
+    private func getMetroColors(for station: String) -> [Color] {
+        let name = station.lowercased()
+        var colors = [Color]()
+        if name.contains("rho fiera") {
+            colors.append(.red)
+        } else if name.contains("garibaldi") {
+            colors.append(.green)
+            colors.append(Color(red: 0.54, green: 0.35, blue: 0.64)) // M5 Lilla
+        } else if name.contains("repubblica") {
+            colors.append(.yellow)
+        } else if name.contains("venezia") {
+            colors.append(.red)
+        } else if name.contains("dateo") {
+            colors.append(.blue)
+        } else if name.contains("forlanini") {
+            colors.append(.blue)
+        } else if name.contains("rogoredo") {
+            colors.append(.yellow)
+        }
+        return colors
+    }
     
     let stations = [
         "Varese", "Gazzada-Schianno-Morazzone", "Gazzada-Schianno", "Castronno", 
@@ -196,7 +217,6 @@ struct PassanteTunnelThermometerView: View {
             return "\(diffInMinutes)m"
         }
     }
-    
     var body: some View {
         let refStationName = passanteManager.selectedPassanteStation.name
         let cleanRefName: String = {
@@ -513,6 +533,17 @@ struct PassanteTunnelThermometerView: View {
                             Text(stationName.replacingOccurrences(of: "Passante", with: "").replacingOccurrences(of: "Milano ", with: ""))
                                 .font(.system(size: 13, weight: isSelected ? .black : .bold, design: .rounded))
                                 .foregroundColor(.primary)
+                            
+                            let mColors = getMetroColors(for: stationName)
+                            if !mColors.isEmpty {
+                                HStack(spacing: 2) {
+                                    ForEach(Array(mColors.enumerated()), id: \.offset) { _, color in
+                                        Circle()
+                                            .fill(color)
+                                            .frame(width: 8, height: 8)
+                                    }
+                                }
+                            }
                         }
                         .frame(width: 150, alignment: .leading)
                         
@@ -596,7 +627,6 @@ struct SuburbanLineBadge: View {
         let isLight = ["S4", "S5", "S6", "S8"].contains(line)
         return isLight ? .black : .white
     }
-    
     var body: some View {
         Text(id)
             .font(.system(size: 10, weight: .black, design: .rounded))
@@ -820,7 +850,6 @@ struct PassanteDepartureBoardView: View {
         
         return filteredStations
     }
-    
     var body: some View {
         VStack(spacing: 12) {
             
@@ -844,7 +873,7 @@ struct PassanteDepartureBoardView: View {
                                             Image(systemName: "mappin.circle.fill")
                                                 .font(.caption)
                                         }
-                                        Text(station.name)
+                                        Text(station.formattedName)
                                             .fontWeight(isSelected ? .bold : .medium)
                                     }
                                     .font(.subheadline)
@@ -1024,7 +1053,6 @@ struct PassanteBranchView: View {
     let color: Color
     let trains: [Train]
     var isLarge: Bool = false
-    
     var body: some View {
         VStack(alignment: .leading, spacing: isLarge ? 10 : 6) {
             HStack(spacing: 4) {
@@ -1065,7 +1093,6 @@ struct SmartConnectorRouteView: View {
     let route: SuburbanRoute
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
-    
     var body: some View {
 
         VStack(alignment: .leading, spacing: 12) {
@@ -1258,7 +1285,6 @@ struct PassanteQuickSetupView: View {
     
     @State private var showOriginSearch = false
     @State private var showDestSearch = false
-    
     var body: some View {
         NavigationStack {
             Form {
@@ -1333,7 +1359,6 @@ struct PassanteTunnelStatusButton: View {
     @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var locationManager: LocationManager
     @Binding var showThermometerSheet: Bool
-    
     var body: some View {
         Button {
             Haptics.play(.light)
@@ -1359,7 +1384,6 @@ struct PassanteTunnelStatusHeaderView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
     @State private var showThermometerSheet = false
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
@@ -1404,83 +1428,336 @@ struct PassanteTunnelStatusHeaderView: View {
     }
 }
 
+struct StuckTrainInfo: Identifiable, Codable {
+    var id = UUID()
+    let trainNumber: String
+    let line: String
+    let destination: String
+    let lastStation: String
+    let lastTime: String
+    let minutesStuck: Int
+    let delay: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case trainNumber, line, destination, lastStation, lastTime, minutesStuck, delay
+    }
+}
+
 struct PassanteTunnelDetailView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
     @Environment(\.dismiss) var dismiss
-    @AppStorage("showOuterSuburbanStations") var showOuterSuburbanStations = false
     @Environment(\.scenePhase) var scenePhase
-
     
-    @State private var currentTab = 0
+    let timer = Timer.publish(every: 45, on: .main, in: .common).autoconnect()
     
-    let timer = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
+    var activeStuckTrains: [StuckTrainInfo] {
+        if passanteManager.isUsingLocalEngine {
+            return computeLocalAnomalies()
+        }
+        return passanteManager.serverStuckTrains
+    }
+    
+    func computeLocalAnomalies() -> [StuckTrainInfo] {
+        var result: [StuckTrainInfo] = []
+        let now = Date()
+        let calendar = Calendar.current
+        
+        for train in passanteManager.passanteTunnelTrains {
+            guard let status = passanteManager.passanteLiveStatuses[train.number] else { continue }
+            
+            let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato") || status.cancellationNote != nil
+            guard status.isDeparted && !status.isArrived && !isCancelled else { continue }
+            
+            let last = status.lastStation.lowercased()
+            let inTunnel = last.contains("lancetti") ||
+                           last.contains("garibaldi") ||
+                           last.contains("repubblica") ||
+                           last.contains("venezia") ||
+                           last.contains("dateo") ||
+                           last.contains("vittoria") ||
+                           last.contains("bovisa") ||
+                           last.contains("villapizzone")
+            
+            guard inTunnel else { continue }
+            
+            let delayMinutes = Int(train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "").replacingOccurrences(of: "R: ", with: "")) ?? 0
+            guard delayMinutes > 5 else { continue }
+            
+            let parts = status.lastTime.split(separator: ":")
+            guard parts.count == 2,
+                  let hour = Int(parts[0]),
+                  let minute = Int(parts[1]) else { continue }
+                  
+            var components = calendar.dateComponents([.year, .month, .day], from: now)
+            components.hour = hour
+            components.minute = minute
+            components.second = 0
+            
+            guard let lastReportDate = calendar.date(from: components) else { continue }
+            
+            var adjustedDate = lastReportDate
+            let diff = now.timeIntervalSince(lastReportDate)
+            if diff < -43200 {
+                adjustedDate = calendar.date(byAdding: .day, value: -1, to: lastReportDate) ?? lastReportDate
+            } else if diff > 43200 {
+                adjustedDate = calendar.date(byAdding: .day, value: 1, to: lastReportDate) ?? lastReportDate
+            }
+            
+            let minutesStuck = Int(round(now.timeIntervalSince(adjustedDate) / 60.0))
+            
+            if minutesStuck > 10 {
+                result.append(StuckTrainInfo(
+                    trainNumber: train.number,
+                    line: train.category.uppercased(),
+                    destination: train.destination,
+                    lastStation: status.lastStation,
+                    lastTime: status.lastTime,
+                    minutesStuck: minutesStuck,
+                    delay: delayMinutes
+                ))
+            }
+        }
+        return result
+    }
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
-                Picker("Sezione", selection: $currentTab) {
-                    Text("Mappa Linea").tag(0)
-                    Text("Treni in Arrivo").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 14)
-                
-                let activeLines = passanteManager.selectedSuburbanLines.filter { ["S1", "S2", "S5", "S6", "S12", "S13"].contains($0) }
-                let isMixed = !activeLines.isEmpty && 
-                              !(activeLines.allSatisfy { ["S5", "S6"].contains($0) } || 
-                                activeLines.allSatisfy { ["S1", "S2", "S12", "S13"].contains($0) })
-                
-                if !isMixed {
-                    Toggle(isOn: $showOuterSuburbanStations) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "map.fill")
-                                .foregroundColor(.orange)
-                            Text("Mostra stazioni esterne")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    .toggleStyle(SwitchToggleStyle(tint: .orange))
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color(.secondarySystemBackground).opacity(0.4))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                }
-                
-                if currentTab == 0 {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            PassanteTunnelThermometerView(
-                                statusMessage: passanteManager.passanteTunnelHealthMessage,
-                                statusColorHex: passanteManager.passanteTunnelHealthColor,
-                                avgDelay: passanteManager.passanteTunnelAverageDelay
-                            )
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                        .padding(.bottom, 24)
-                    }
-                } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            if passanteManager.useSpecialPassanteView {
-                                PassanteDepartureBoardView()
-                            } else {
-                                StationBoardView(station: passanteManager.selectedPassanteStation)
+            ScrollView {
+                VStack(spacing: 20) {
+                    
+                    let stuck = activeStuckTrains
+                    if !stuck.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.white)
+                                Text("Anomalie di Rilevamento")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.bottom, 4)
+                            
+                            ForEach(stuck) { train in
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(train.line)
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.white.opacity(0.2))
+                                            .cornerRadius(4)
+                                        Text("\(train.trainNumber) per \(train.destination)")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(.white)
+                                    
+                                    Text("Possibile treno fermo a \(train.lastStation) dalle \(train.lastTime) (oltre \(train.minutesStuck) min)")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.9))
+                                    Text("Ritardo accumulato: +\(train.delay)'")
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.9))
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.red.opacity(0.8))
+                                .cornerRadius(12)
                             }
                         }
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                        .padding(.bottom, 24)
+                        .padding()
+                        .background(Color.red.opacity(0.15))
+                        .cornerRadius(16)
                     }
+                    
+                    VStack(spacing: 16) {
+                        HStack {
+                            Circle()
+                                .fill(Color(hex: passanteManager.passanteTunnelHealthColor))
+                                .frame(width: 12, height: 12)
+                            Text(passanteManager.passanteTunnelHealthMessage)
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Spacer()
+                        }
+                        
+                        if passanteManager.passanteTunnelAverageDelay > 0 {
+                            HStack {
+                                Text("Ritardo Medio")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("+\(passanteManager.passanteTunnelAverageDelay)'")
+                                    .font(.headline)
+                                    .foregroundColor(passanteManager.passanteTunnelAverageDelay > 5 ? .red : .orange)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(16)
+                    
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Direzione Ovest")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            HStack {
+                                Circle()
+                                    .fill(Color(hex: passanteManager.passanteTunnelWestHealthColor))
+                                    .frame(width: 10, height: 10)
+                                Text(passanteManager.passanteTunnelWestHealthMessage
+                                    .replacingOccurrences(of: "Ovest: ", with: "")
+                                    .replacingOccurrences(of: "ovest: ", with: ""))
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                                    .lineLimit(2)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .cornerRadius(12)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Direzione Est")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            HStack {
+                                Circle()
+                                    .fill(Color(hex: passanteManager.passanteTunnelEastHealthColor))
+                                    .frame(width: 10, height: 10)
+                                Text(passanteManager.passanteTunnelEastHealthMessage
+                                    .replacingOccurrences(of: "Est: ", with: "")
+                                    .replacingOccurrences(of: "est: ", with: ""))
+                                    .font(.footnote)
+                                    .fontWeight(.medium)
+                                    .lineLimit(2)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .cornerRadius(12)
+                    }
+                    
+                    if !passanteManager.passanteSelectedLinesAlerts.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Avvisi di Servizio")
+                                .font(.headline)
+                                .padding(.bottom, 4)
+                            
+                            ForEach(passanteManager.passanteSelectedLinesAlerts, id: \.self) { alert in
+                                HStack(alignment: .top, spacing: 12) {
+                                    Image(systemName: "info.circle.fill")
+                                        .foregroundColor(.orange)
+                                        .padding(.top, 2)
+                                    Text(alert)
+                                        .font(.subheadline)
+                                        .foregroundColor(.primary)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(12)
+                            }
+                        }
+                    }
+                    
+                    if !passanteManager.passanteTunnelTrains.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Treni nel Passante")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            ForEach(passanteManager.passanteTunnelTrains.prefix(8)) { train in
+                                HStack(spacing: 12) {
+                                    SuburbanLineBadge(id: train.category.isEmpty ? "S" : train.category)
+                                        .frame(width: 32, height: 20)
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(SharedFormatters.formatDestination(train.destination))
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                        
+                                        if let status = passanteManager.passanteLiveStatuses[train.number], !status.lastStation.isEmpty, status.lastStation != "--" {
+                                            Text("Ultimo ril.: \(status.lastStation.formattedStationName) (\(status.lastTime))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        } else {
+                                            Text("Partenza prevista: \(train.time)")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    let delayMinutes = Int(train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")) ?? 0
+                                    let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato")
+                                    
+                                    if isCancelled {
+                                        Text("Soppresso")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 3)
+                                            .background(Color.red)
+                                            .cornerRadius(4)
+                                    } else if delayMinutes > 0 {
+                                        Text("+\(delayMinutes)'")
+                                            .font(.system(.subheadline, design: .rounded).bold())
+                                            .foregroundColor(.red)
+                                    } else {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.green)
+                                            .font(.subheadline)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                                
+                                if train.id != passanteManager.passanteTunnelTrains.prefix(8).last?.id {
+                                    Divider()
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                        .cornerRadius(16)
+                    }
+                    
+                    Text("Nota: Il passante è interamente monitorato (S1, S2, S5, S6, S12, S13) a livello di stazioni e tratte per rilevare anomalie e treni fermi globalmente.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
+                        .padding(.horizontal)
+                    
                 }
+                .padding()
             }
-            .navigationTitle("Dettagli")
+            .background(Color(UIColor.systemGroupedBackground))
+            .navigationTitle("Stato Passante")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        Task {
+                            await passanteManager.forceLocalUpdate(manager: manager)
+                        }
+                    }) {
+                        if passanteManager.isLocalUpdating {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(passanteManager.isLocalUpdating)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Chiudi") { dismiss() }
                 }
@@ -1488,17 +1765,24 @@ struct PassanteTunnelDetailView: View {
             .onReceive(timer) { _ in
                 guard scenePhase == .active else { return }
                 Task {
-                    await passanteManager.fetchPassanteLive(manager: manager, includePositions: currentTab == 0)
+                    await passanteManager.fetchPassanteLive(manager: manager, includePositions: true)
                 }
             }
             .task {
-                await passanteManager.fetchPassanteLive(manager: manager, includePositions: currentTab == 0)
+                await passanteManager.fetchPassanteLive(manager: manager, includePositions: true)
             }
-            .onChange(of: currentTab) { _, newValue in
-                Task {
-                    await passanteManager.fetchPassanteLive(manager: manager, includePositions: newValue == 0)
-                }
-            }
+        }
+    }
+    
+    private func getSuburbanColor(for line: String) -> Color {
+        switch line {
+        case "S1": return Color.red
+        case "S2": return Color.green
+        case "S5": return Color.orange
+        case "S6": return Color.blue
+        case "S12": return Color(hex: "#7A1C6A")
+        case "S13": return Color.purple
+        default: return Color.gray
         }
     }
 }
