@@ -1085,7 +1085,7 @@ struct Haptics {
             "trains": trainsPayload,
             "device_model": getDeviceModelName(),
             "os_version": UIDevice.current.systemVersion,
-            "ai_engine": AIFeatureManager.shared.preferLocalAI ? "local" : "gemini",
+            "ai_engine": hasSupport() ? (AIFeatureManager.shared.preferLocalAI ? "local" : "cloud") : (AIFeatureManager.shared.isLocalModelInstalled ? "local" : "none"),
             "has_support": hasSupport()
         ]
         
