@@ -273,7 +273,7 @@ struct RFIStation: Codable, Identifiable, Hashable {
     }
 }
 
-struct Train: Identifiable, Sendable {
+struct Train: Identifiable, Sendable, Equatable {
     let id: String
     let category: String
     let number: String

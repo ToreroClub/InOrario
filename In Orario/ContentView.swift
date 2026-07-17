@@ -42,6 +42,7 @@ struct ContentView: View {
     @EnvironmentObject var metroCache: MetroCache
     @EnvironmentObject var metroManager: MetroManager
     @EnvironmentObject var usageTracker: UsageTracker
+    @EnvironmentObject var guessingEngine: TrainGuessingEngine
     @Environment(\.scenePhase) var scenePhase
     
     @State private var showingMetroView = false
@@ -82,7 +83,7 @@ struct ContentView: View {
     
     let passanteTimer = Timer.publish(every: 45, on: .main, in: .common).autoconnect()
     
-    var appTitle: String {
+    var appTitle: LocalizedStringKey {
         if hasUrgentNews {
             return "In Orario? No!"
         }
@@ -125,17 +126,19 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            Group {
                 if showingMetroView {
                     MetroHomeView()
                 } else {
-                    // Banner spazio AI (sopra la lista)
-                    SpaceAlertBannerView()
-                        .animation(.easeInOut, value: AIFeatureManager.shared.isLocalModelInstalled)
-                    
-                    mainListContent()
+                    VStack(spacing: 0) {
+                        // Banner spazio AI (sopra la lista)
+                        SpaceAlertBannerView()
+                            .animation(.easeInOut, value: AIFeatureManager.shared.isLocalModelInstalled)
+                        
+                        mainListContent()
+                    }
                 }
-            } // end VStack
+            }
             .background(Color(.systemGroupedBackground))
             .navigationTitle(appTitle)
             .toolbar {
@@ -205,16 +208,19 @@ struct ContentView: View {
             }
         }
     }
-    @ViewBuilder
     func favoriteTrainRow(fav: SavedTrain, dummy: Train) -> some View {
-        HStack {
+        let titleText: String = {
+            if let time = fav.departureTime {
+                return "\(dummy.category) \(fav.number) • \(time)"
+            } else {
+                return "\(dummy.category) \(fav.number)"
+            }
+        }()
+        
+        return HStack {
             Image(systemName: "train.side.front.car").foregroundColor(.blue)
             VStack(alignment: .leading) {
-                if let time = fav.departureTime {
-                    Text("\(dummy.category) \(fav.number) • \(time)").font(.headline)
-                } else {
-                    Text("\(dummy.category) \(fav.number)").font(.headline)
-                }
+                Text(titleText).font(.headline)
                 Text(fav.description).font(.caption).foregroundColor(.secondary)
             }
             Spacer()
@@ -395,7 +401,7 @@ struct ContentView: View {
                     NearbySectionView(
                         smartSuggestions: usageTracker.suggestionsForNow(
                             location: locationManager.userLocation?.coordinate,
-                            excludeStations: manager.myStations.map { $0.name } + [locationManager.nearbyStation?.name].compactMap { $0 }
+                            excludeStations: (isMyStationsExpanded ? manager.myStations.map { $0.name } : []) + [locationManager.nearbyStation?.name].compactMap { $0 }
                         ),
                         nearby: locationManager.nearbyStation,
                         selectedFavoriteTrain: $selectedFavoriteTrain
@@ -809,7 +815,7 @@ struct HistoryView: View {
                                     HStack {
                                         Image(systemName: "train.side.front.car").foregroundColor(.blue)
                                         VStack(alignment: .leading) {
-                                            Text("Treno \(result.number)").font(.headline)
+                                            Text(String(format: String(localized: "Treno %@"), result.number)).font(.headline)
                                             Text(result.description).font(.caption).foregroundColor(.secondary)
                                         }
                                     }
@@ -855,115 +861,196 @@ struct HistoryView: View {
     }
 }
 
-// MARK: - Smart Suggestion Card
+// MARK: - Smart Suggestion Row
 
-struct SmartSuggestionCard: View {
+struct SmartSuggestionRow: View {
     let suggestion: SmartSuggestion
+    var isConfirmed: Bool = false
+    var isNearby: Bool = false
     @EnvironmentObject var usageTracker: UsageTracker
+    
+    @State private var isNavigating = false
     
     var body: some View {
         switch suggestion {
         case .station(let station):
-            NavigationLink(destination: SmartBoardView(station: station)) {
-                cardContent(
-                    icon: "tram.fill",
-                    iconColor: .blue,
+            Button {
+                isNavigating = true
+            } label: {
+                rowContent(
+                    icon: isNearby ? "location.fill" : "tram.fill",
                     title: station.formattedName,
-                    subtitle: "Stazione frequente"
+                    subtitle: nil
                 )
             }
             .buttonStyle(.plain)
+            .background(
+                NavigationLink(destination: SmartBoardView(station: station), isActive: $isNavigating) {
+                    EmptyView()
+                }
+                .opacity(0)
+            )
             
         case .train(let train):
-            NavigationLink(destination: TrainStopsView(train: train, showCloseButton: false)) {
-                cardContent(
+            Button {
+                isNavigating = true
+            } label: {
+                rowContent(
                     icon: "train.side.front.car",
-                    iconColor: .orange,
                     title: "\(train.category) \(train.number)",
-                    subtitle: train.destination
+                    subtitle: isConfirmed ? "A bordo" : LocalizedStringKey(train.destination)
                 )
             }
             .buttonStyle(.plain)
+            .background(
+                NavigationLink(destination: TrainStopsView(train: train, showCloseButton: false), isActive: $isNavigating) {
+                    EmptyView()
+                }
+                .opacity(0)
+            )
             
         case .route(let route):
-            NavigationLink(destination: FavoriteRouteSolutionView(route: route)) {
-                cardContent(
+            Button {
+                isNavigating = true
+            } label: {
+                rowContent(
                     icon: "arrow.triangle.swap",
-                    iconColor: .purple,
                     title: "\(route.originName.replacingOccurrences(of: "Milano ", with: "")) → \(route.destinationName.replacingOccurrences(of: "Milano ", with: ""))",
-                    subtitle: "Tratta abituale"
+                    subtitle: nil
                 )
             }
             .buttonStyle(.plain)
+            .background(
+                NavigationLink(destination: FavoriteRouteSolutionView(route: route), isActive: $isNavigating) {
+                    EmptyView()
+                }
+                .opacity(0)
+            )
         }
     }
 
     @ViewBuilder
-    func cardContent(icon: String, iconColor: Color, title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(iconColor)
-                Spacer()
-                Image(systemName: "sparkles")
-                    .font(.caption2)
-                    .foregroundColor(.purple.opacity(0.4))
-            }
+    func rowContent(icon: String, title: String, subtitle: LocalizedStringKey?) -> some View {
+        let accentColor: Color = isConfirmed ? .green : .purple
+        HStack(spacing: 8) {
+            // Icona con accento coordinato
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(accentColor)
+                .frame(width: 28, height: 28)
+                .background(accentColor.opacity(0.12))
+                .clipShape(Circle())
             
-            Spacer(minLength: 4)
-            
-            Text(title)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-            
-            Text(subtitle)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-        }
-        .padding(12)
-        .frame(width: 145, height: 105)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(Color(.secondarySystemGroupedBackground))
+            // Testo compresso e pulito
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
                 
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(
-                        LinearGradient(
-                            colors: [iconColor.opacity(0.06), Color.clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(isConfirmed ? .green : .secondary)
+                        .lineLimit(1)
+                }
             }
-            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+            
+            Spacer()
+            
+            if isConfirmed {
+                // Spunta sulla destra solo se confermato
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(accentColor.opacity(0.8))
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .frame(maxHeight: .infinity)
+        .background(
+            Group {
+                if isConfirmed {
+                    accentColor.opacity(0.05)
+                } else {
+                    LinearGradient(
+                        colors: [Color(.secondarySystemGroupedBackground), Color(.tertiarySystemGroupedBackground)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
         )
+        .cornerRadius(10)
         .overlay(
-            RoundedRectangle(cornerRadius: 15)
-                .stroke(iconColor.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(accentColor.opacity(isConfirmed ? 0.3 : 0.15), lineWidth: 1)
         )
     }
 }
 
-// MARK: - Nearby Section View
 struct NearbySectionView: View {
     let smartSuggestions: [SmartSuggestion]
     let nearby: Station?
     @Binding var selectedFavoriteTrain: Train?
     
     @EnvironmentObject var manager: TrainManager
+    @EnvironmentObject var guessingEngine: TrainGuessingEngine
     @State private var isPulsing = false
     
     var body: some View {
         let hasLiveActivities = !manager.activeLiveActivities.isEmpty
         
         if !smartSuggestions.isEmpty || hasLiveActivities || nearby != nil {
-            Section(header: Label("Per te", systemImage: "sparkles").font(.subheadline.bold()).foregroundColor(.purple)) {
+            Section(header: HStack {
+                Label("Per te", systemImage: "sparkles")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.purple)
+                
+                Spacer()
+                
+                if let activeGuess = guessingEngine.activeGuess {
+                    let prep = guessingEngine.preposizioneArticolata(per: activeGuess)
+                    let originName = guessingEngine.guessOriginStationName.replacingOccurrences(of: "Milano ", with: "")
+                    
+                    HStack(spacing: 6) {
+                        Text("Sei \(prep)\(activeGuess.category) delle \(guessingEngine.guessActualDepartureTime) da \(originName)?")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.purple)
+                            .lineLimit(1)
+                        
+                        // Micro pulsante di conferma
+                        Button(action: {
+                            guessingEngine.confirmGuess()
+                            selectedFavoriteTrain = activeGuess
+                        }) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.system(size: 14))
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Micro pulsante di chiusura
+                        Button(action: {
+                            guessingEngine.dismissGuess()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray.opacity(0.4))
+                                .font(.system(size: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.purple.opacity(0.08))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.purple.opacity(0.15), lineWidth: 0.8)
+                    )
+                }
+            }) {
                 
                 // --- LIVE ACTIVITIES (MONITORED TRAINS) ---
                 if hasLiveActivities {
@@ -982,7 +1069,7 @@ struct NearbySectionView: View {
                                     .cornerRadius(8)
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Treno Monitorato \(trainNum)")
+                                    Text(String(format: String(localized: "Treno Monitorato %@"), trainNum))
                                         .font(.headline)
                                         .foregroundColor(.primary)
                                     Text("Live Activity Attiva")
@@ -1008,40 +1095,73 @@ struct NearbySectionView: View {
                 }
                 
                 // --- SUGGESTIONS ---
-                if !smartSuggestions.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(smartSuggestions) { suggestion in
-                                SmartSuggestionCard(suggestion: suggestion)
-                            }
+                let hasConfirmedGuess = guessingEngine.confirmedGuess != nil
+                if !smartSuggestions.isEmpty || hasConfirmedGuess || nearby != nil {
+                    let stations: [SmartSuggestion] = {
+                        var list = smartSuggestions.filter {
+                            if case .station = $0 { return true }
+                            if case .route = $0 { return true }
+                            return false
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
+                        if let n = nearby {
+                            list.removeAll {
+                                if case .station(let s) = $0 { return s.id == n.id }
+                                return false
+                            }
+                            list.insert(.station(n), at: 0)
+                        }
+                        return Array(list.prefix(3))
+                    }()
+                    let trains: [SmartSuggestion] = {
+                        var list = smartSuggestions.filter {
+                            if case .train = $0 { return true }
+                            return false
+                        }
+                        if let cg = guessingEngine.confirmedGuess {
+                            list.removeAll {
+                                if case .train(let t) = $0 { return t.number == cg.number }
+                                return false
+                            }
+                            list.insert(.train(cg), at: 0)
+                        }
+                        return Array(list.prefix(3))
+                    }()
+                    
+                    HStack(spacing: 12) {
+                        if !stations.isEmpty {
+                            VStack(spacing: 8) {
+                                ForEach(stations) { sug in
+                                    let isNearby: Bool = {
+                                        if case .station(let s) = sug, let n = nearby { return s.id == n.id }
+                                        return false
+                                    }()
+                                    SmartSuggestionRow(suggestion: sug, isConfirmed: false, isNearby: isNearby)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                        
+                        if !trains.isEmpty {
+                            VStack(spacing: 8) {
+                                ForEach(trains) { sug in
+                                    let isConfirmed: Bool = {
+                                        if case .train(let t) = sug, let cg = guessingEngine.confirmedGuess {
+                                            return t.number == cg.number
+                                        }
+                                        return false
+                                    }()
+                                    SmartSuggestionRow(suggestion: sug, isConfirmed: isConfirmed, isNearby: false)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }
-                    .listRowInsets(EdgeInsets())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                     .listRowBackground(Color.clear)
                 }
                 
-                // --- NEARBY STATION ---
-                if let nearby = nearby {
-                    NavigationLink(destination: SmartBoardView(station: nearby)) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "location.fill")
-                                .font(.title3)
-                                .foregroundColor(.orange)
-                                .frame(width: 32, height: 32)
-                                .background(Color.orange.opacity(0.12))
-                                .cornerRadius(8)
-                            
-                            Text(nearby.formattedName)
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
+
             }
         }
     }

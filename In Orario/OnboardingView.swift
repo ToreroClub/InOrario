@@ -1,7 +1,12 @@
 import SwiftUI
 
+enum OnboardingPageType {
+    case welcome, region, stations, passante, metro, features, ai
+}
+
 struct OnboardingPage: Identifiable {
     let id = UUID()
+    let pageType: OnboardingPageType
     let title: String
     let description: String
     let iconName: String
@@ -18,18 +23,21 @@ struct OnboardingView: View {
     var pages: [OnboardingPage] {
         var p: [OnboardingPage] = []
         p.append(OnboardingPage(
+            pageType: .welcome,
             title: "Benvenuto su In Orario",
             description: "Il tuo compagno ideale per viaggiare in treno. Vedi sul tuo iPhone esattamente ciò che mostrano i tabelloni fisici delle stazioni con dati ufficiali RFI aggiornati all'istante.",
             iconName: "train.side.front.car",
             iconColor: .blue
         ))
         p.append(OnboardingPage(
+            pageType: .region,
             title: "La Tua Regione",
             description: "Seleziona la tua regione per ricevere scioperi, notizie rilevanti e abilitare i servizi locali.",
             iconName: "map.fill",
             iconColor: .red
         ))
         p.append(OnboardingPage(
+            pageType: .stations,
             title: "Stazioni & Tratte Preferite",
             description: "Aggiungi le stazioni che frequenti più spesso e le tue tratte preferite per cercarle all'istante.",
             iconName: "star.fill",
@@ -38,6 +46,7 @@ struct OnboardingView: View {
         
         if manager.strikeRegion == "Lombardia" {
             p.append(OnboardingPage(
+                pageType: .passante,
                 title: "Passante & Tunnel",
                 description: "Monitora lo stato del Passante di Milano e del relativo Tunnel sotterraneo in un'unica schermata.",
                 iconName: "tram.fill",
@@ -48,6 +57,7 @@ struct OnboardingView: View {
         let metroRegions = ["Lombardia", "Campania", "Piemonte", "Lazio"]
         if metroRegions.contains(manager.strikeRegion) {
             p.append(OnboardingPage(
+                pageType: .metro,
                 title: "Coincidenze Metropolitana",
                 description: "Interscambi treno-metropolitana calcolati al secondo in base alla conformazione di ciascuna stazione.",
                 iconName: "arrow.triangle.turn.up.right.diamond.fill",
@@ -56,6 +66,7 @@ struct OnboardingView: View {
         }
         
         p.append(OnboardingPage(
+            pageType: .features,
             title: "Funzioni Smart & Widget",
             description: "Tutto ciò di cui hai bisogno per viaggiare senza stress:",
             iconName: "sparkles",
@@ -63,6 +74,7 @@ struct OnboardingView: View {
         ))
         
         p.append(OnboardingPage(
+            pageType: .ai,
             title: "Intelligenza Artificiale",
             description: "Personalizza come In Orario elabora le informazioni e gli scioperi per te:",
             iconName: "brain.head.profile",
@@ -94,20 +106,14 @@ struct OnboardingView: View {
                 TabView(selection: $currentPage) {
                     ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
                         VStack {
-                            if page.title == "Benvenuto su In Orario" {
-                                OnboardingCardView(page: page, isLastPage: false)
-                            } else if page.title == "La Tua Regione" {
-                                OnboardingRegionPickerView(page: page)
-                            } else if page.title == "Stazioni & Tratte Preferite" {
-                                OnboardingUnifiedPreferencesView(page: page)
-                            } else if page.title == "Passante & Tunnel" {
-                                OnboardingPassanteLinePickerView(page: page)
-                            } else if page.title == "Coincidenze Metropolitana" {
-                                OnboardingMetroInterchangesView(page: page)
-                            } else if page.title == "Funzioni Smart & Widget" {
-                                OnboardingFeaturesView(page: page)
-                            } else if page.title == "Intelligenza Artificiale" {
-                                OnboardingAIChoiceView(page: page)
+                            switch page.pageType {
+                            case .welcome:  OnboardingCardView(page: page, isLastPage: false)
+                            case .region:   OnboardingRegionPickerView(page: page)
+                            case .stations: OnboardingUnifiedPreferencesView(page: page)
+                            case .passante: OnboardingPassanteLinePickerView(page: page)
+                            case .metro:    OnboardingMetroInterchangesView(page: page)
+                            case .features: OnboardingFeaturesView(page: page)
+                            case .ai:       OnboardingAIChoiceView(page: page)
                             }
                         }
                         .tag(index)
@@ -179,13 +185,13 @@ struct OnboardingCardView: View {
             }
             
             VStack(spacing: 12) {
-                Text(page.title)
+                Text(LocalizedStringKey(page.title))
                     .font(.system(.title, design: .rounded))
                     .bold()
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
                 
-                Text(page.description)
+                Text(LocalizedStringKey(page.description))
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(page.description.contains("•") ? .leading : .center)
@@ -217,11 +223,11 @@ struct OnboardingRegionPickerView: View {
                     .foregroundStyle(page.iconColor)
                     .padding(.top, 20)
 
-                Text(page.title)
+                Text(LocalizedStringKey(page.title))
                     .font(.title.bold())
                     .multilineTextAlignment(.center)
 
-                Text(page.description)
+                Text(LocalizedStringKey(page.description))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -271,14 +277,14 @@ struct OnboardingUnifiedPreferencesView: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            Text(page.title)
+            Text(LocalizedStringKey(page.title))
                 .font(.system(.title, design: .rounded))
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             
-            Text(page.description)
+            Text(LocalizedStringKey(page.description))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -472,14 +478,14 @@ struct OnboardingPassanteLinePickerView: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            Text(page.title)
+            Text(LocalizedStringKey(page.title))
                 .font(.system(.title, design: .rounded))
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             
-            Text(page.description)
+            Text(LocalizedStringKey(page.description))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -540,14 +546,14 @@ struct OnboardingMetroInterchangesView: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            Text(page.title)
+            Text(LocalizedStringKey(page.title))
                 .font(.system(.title, design: .rounded))
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             
-            Text(page.description)
+            Text(LocalizedStringKey(page.description))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -602,8 +608,8 @@ struct FeasibilityTutorialRow: View {
     let icon: String
     let color: Color
     let bg: Color
-    let title: String
-    let desc: String
+    let title: LocalizedStringKey
+    let desc: LocalizedStringKey
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -627,14 +633,14 @@ struct OnboardingFeaturesView: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            Text(page.title)
+            Text(LocalizedStringKey(page.title))
                 .font(.system(.title, design: .rounded))
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             
-            Text(page.description)
+            Text(LocalizedStringKey(page.description))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -661,8 +667,8 @@ struct OnboardingFeaturesView: View {
 struct FeatureRow: View {
     let icon: String
     let color: Color
-    let title: String
-    let desc: String
+    let title: LocalizedStringKey
+    let desc: LocalizedStringKey
     
     var body: some View {
         HStack(alignment: .top, spacing: 15) {
@@ -692,14 +698,14 @@ struct OnboardingAIChoiceView: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Text(page.title)
+            Text(LocalizedStringKey(page.title))
                 .font(.system(.title, design: .rounded))
                 .bold()
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             
-            Text(page.description)
+            Text(LocalizedStringKey(page.description))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

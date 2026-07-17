@@ -25,7 +25,7 @@ struct LiveTrainBand: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(res.status.statusMessage).font(.subheadline).bold().foregroundColor(.secondary)
                             if res.status.lastStation != "--" {
-                                Text("Ultimo rilevamento: \(res.status.lastStation) alle \(res.status.lastTime)").font(.caption).foregroundColor(.secondary)
+                                Text(String(format: String(localized: "Ultimo rilevamento: %@ alle %@"), res.status.lastStation, res.status.lastTime)).font(.caption).foregroundColor(.secondary)
                             }
                         }
                         
@@ -74,8 +74,8 @@ struct LiveTrainBand: View {
                 
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("Da: \(segment.origin)").font(.subheadline)
-                        Text("A: \(segment.destination)").font(.subheadline)
+                        Text(String(format: String(localized: "Da: %@"), segment.origin)).font(.subheadline)
+                        Text(String(format: String(localized: "A: %@"), segment.destination)).font(.subheadline)
                     }
                     Spacer()
                     VStack(alignment: .trailing) {
@@ -422,7 +422,7 @@ struct SearchView: View {
                                             HStack {
                                                 Image(systemName: "clock").foregroundColor(.gray)
                                                 VStack(alignment: .leading) {
-                                                    Text("Treno \(result.number)").font(.headline)
+                                                    Text(String(format: String(localized: "Treno %@"), result.number)).font(.headline)
                                                     Text(result.description.formattedStationName).font(.caption).foregroundColor(.secondary)
                                                 }
                                             }
@@ -444,7 +444,7 @@ struct SearchView: View {
                                         HStack {
                                             Image(systemName: "train.side.front.car").foregroundColor(.blue)
                                             VStack(alignment: .leading) {
-                                                Text("Treno \(result.number)").font(.headline)
+                                                Text(String(format: String(localized: "Treno %@"), result.number)).font(.headline)
                                                 Text(result.description.formattedStationName).font(.caption).foregroundColor(.secondary)
                                             }
                                         }

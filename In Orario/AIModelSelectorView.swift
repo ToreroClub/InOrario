@@ -18,7 +18,7 @@ struct AIModelSelectorView: View {
                 HStack {
                     Image(systemName: "internaldrive")
                         .foregroundColor(.secondary)
-                    Text("Spazio libero: \(String(format: "%.1f", aiManager.freeDiskSpaceGB)) GB")
+                    Text(String(format: String(localized: "Spazio libero: %@ GB"), String(format: "%.1f", aiManager.freeDiskSpaceGB)))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -202,11 +202,11 @@ struct AIModelSelectorView: View {
 private struct AIOptionCard: View {
     let icon: String
     let iconColor: Color
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
     let isSelected: Bool
     let isDisabled: Bool
-    let badgeText: String?
+    let badgeText: LocalizedStringKey?
     let onTap: () -> Void
     
     var body: some View {
@@ -313,7 +313,7 @@ private struct LocalModelCard: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        Text("Spazio richiesto: \(model.formattedSize)")
+                        Text(String(format: String(localized: "Spazio richiesto: %@"), model.formattedSize))
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -338,7 +338,7 @@ private struct LocalModelCard: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
                         .font(.caption)
-                    Text("Spazio insufficiente (richiesti \(String(format: "%.1f", model.minFreeSpaceGB)) GB liberi)")
+                    Text(String(format: String(localized: "Spazio insufficiente (richiesti %@ GB liberi)"), String(format: "%.1f", model.minFreeSpaceGB)))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -352,7 +352,7 @@ private struct LocalModelCard: View {
                             ProgressView(value: downloadProgress)
                                 .tint(.indigo)
                             HStack {
-                                Text("Download in corso... \(Int(downloadProgress * 100))%")
+                                Text(String(format: String(localized: "Download in corso... %d%%"), Int(downloadProgress * 100)))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -373,7 +373,7 @@ private struct LocalModelCard: View {
                                         .foregroundColor(.secondary)
                                 } else {
                                     Image(systemName: "arrow.down.circle.fill")
-                                    Text("Scarica ed Attiva (\(model.formattedSize))")
+                                    Text(String(format: String(localized: "Scarica ed Attiva (%@)"), model.formattedSize))
                                         .font(.subheadline.bold())
                                 }
                                 Spacer()

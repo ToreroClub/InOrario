@@ -5,6 +5,24 @@ class LocalScrapingService {
     
     private init() {}
     
+    static func loadReferenceStations() -> [Station] {
+        guard let url = Bundle.main.url(forResource: "rfi_stations", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let decoded = try? JSONDecoder().decode([RFIStation].self, from: data) else {
+            return []
+        }
+        return decoded.compactMap { rfi in
+            guard rfi.lat != nil, rfi.lon != nil else { return nil }
+            return Station(
+                name: rfi.name,
+                rfiID: rfi.rfiID,
+                vtID: rfi.vtID,
+                lat: rfi.lat,
+                lon: rfi.lon
+            )
+        }
+    }
+    
     private func matches(in text: String, regex: String) -> [String] {
         guard let regexObj = try? NSRegularExpression(pattern: regex, options: [.dotMatchesLineSeparators]) else { return [] }
         let nsString = text as NSString

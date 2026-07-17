@@ -303,7 +303,7 @@ struct TrainRowView: View {
                         return train.platform
                     }()
                     
-                    Text("Bin. \(displayPlatform)")
+                    Text(String(format: String(localized: "Bin. %@"), displayPlatform))
                         .padding(.horizontal, 4)
                         .background(Color.black.opacity(0.8))
                         .foregroundColor(.yellow)
@@ -372,7 +372,7 @@ struct PassanteTrainRowView: View {
                     .font(.system(size: 13, weight: .bold))
                     .lineLimit(1)
                 
-                Text("Part. \(train.time)")
+                Text(String(format: String(localized: "Part. %@"), train.time))
                     .font(.system(size: 10, design: .rounded))
                     .foregroundColor(.secondary)
             }
@@ -431,7 +431,7 @@ struct PassanteBranchTrainRow: View {
                     .font(.system(size: isLarge ? 14 : 11, weight: .bold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
-                Text("Part. \(train.time)")
+                Text(String(format: String(localized: "Part. %@"), train.time))
                     .font(.system(size: isLarge ? 11 : 9, design: .rounded))
                     .foregroundColor(.secondary)
             }

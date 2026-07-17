@@ -33,56 +33,510 @@ GatherProvisioningInputs
 
 CreateBuildDescription
 
-ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
-
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -x c -c /dev/null
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/carlo/Locale/Xcode/In Orario/In Orario/Assets.xcassets
 
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool compile --dry-run --output-directory /Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build /Users/carlo/Locale/Xcode/In Orario/In Orario/Localizable.xcstrings
+
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
 
-Build description signature: 64f6680cce165cbe37402fdb6119e966
-Build description path: /Users/carlo/Locale/Xcode/In Orario/build/XCBuildData/64f6680cce165cbe37402fdb6119e966.xcbuilddata
+Build description signature: c42b137638565bf99143e47064b74efe
+Build description path: /Users/carlo/Locale/Xcode/In Orario/build/XCBuildData/c42b137638565bf99143e47064b74efe.xcbuilddata
 ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache
     cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -o /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache
+
+CreateBuildDirectory /Users/carlo/Locale/Xcode/In\ Orario/build
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Locale/Xcode/In\ Orario/build
+
+CreateBuildDirectory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build
+
+CreateBuildDirectory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/EagerLinkingTBDs/Debug-iphoneos
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/EagerLinkingTBDs/Debug-iphoneos
+
+CreateBuildDirectory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/SwiftExplicitPrecompiledModules
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/carlo/Locale/Xcode/In\ Orario/build/SwiftExplicitPrecompiledModules
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Locale/Xcode/In\ Orario/build/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/ExplicitPrecompiledModules
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/carlo/Locale/Xcode/In\ Orario/build/ExplicitPrecompiledModules
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Locale/Xcode/In\ Orario/build/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/carlo/Locale/Xcode/In\ Orario/build/EagerLinkingTBDs/Debug-iphoneos
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Locale/Xcode/In\ Orario/build/EagerLinkingTBDs/Debug-iphoneos
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml
+
+CreateBuildDirectory /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos
+
+CreateBuildDirectory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos
+
+CreateBuildDirectory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/PackageFrameworks
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/PackageFrameworks
+
+CreateBuildDirectory /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-create-build-directory /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-own-target-headers.hmap (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.DependencyMetadataFileList (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-all-target-headers.hmap (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-project-headers.hmap (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-project-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.hmap (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.DependencyStaticMetadataFileList (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-generated-files.hmap (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-generated-files.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-all-non-framework-target-headers.hmap (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_const_extract_protocols.json (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftFileList (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftConstValuesFileList (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.LinkFileList (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.LinkFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-OutputFileMap.json (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/Entitlements.plist (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/Entitlements.plist
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex
+
+ProcessProductPackaging /Users/carlo/Locale/Xcode/In\ Orario/TrainWidgetExtension.entitlements /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.appex.xcent (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "9H7K68M6U6.carlo.InOrario.TrainWidget";
+    "aps-environment" = development;
+    "com.apple.developer.team-identifier" = 9H7K68M6U6;
+    "com.apple.security.application-groups" =     (
+        "group.carlo.InOrario"
+    );
+    "get-task-allow" = 1;
+}
+    
+    builtin-productPackagingUtility /Users/carlo/Locale/Xcode/In\ Orario/TrainWidgetExtension.entitlements -entitlements -format xml -o /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.appex.xcent
+
+ProcessProductPackaging /Users/carlo/Library/Developer/Xcode/UserData/Provisioning\ Profiles/9d5a13ac-2a39-4f4c-8c78-b939dec7fbc9.mobileprovision /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/embedded.mobileprovision (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-productPackagingUtility /Users/carlo/Library/Developer/Xcode/UserData/Provisioning\ Profiles/9d5a13ac-2a39-4f4c-8c78-b939dec7fbc9.mobileprovision -o /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/embedded.mobileprovision
+
+ProcessXCFramework /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/artifacts/llama.swift/llama-cpp/llama.xcframework /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/llama.framework ios
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-process-xcframework --xcframework /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/artifacts/llama.swift/llama-cpp/llama.xcframework --platform ios --target-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos
+
+ProcessXCFramework /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/artifacts/llama.swift/llama-cpp/llama.xcframework /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/llama.framework ios
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-process-xcframework --xcframework /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/artifacts/llama.swift/llama-cpp/llama.xcframework --platform ios --target-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos
+
+ProcessProductPackagingDER /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.appex.xcent /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.appex.xcent.der (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /usr/bin/derq query -f xml -i /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.appex.xcent -o /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.appex.xcent.der --raw
+
+GenerateAssetSymbols /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/Assets.xcassets (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/Assets.xcassets --compile /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex --output-format human-readable-text --notices --warnings --export-dependency-info /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_dependencies --output-partial-info-plist /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_generated_info.plist --accent-color AccentColor --widget-background-color WidgetBackground --compress-pngs --enable-on-demand-resources NO --standalone-icon-behavior all --development-region it --target-device iphone --target-device ipad --minimum-deployment-target 18 --platform iphoneos --bundle-identifier carlo.InOrario.TrainWidget --generate-swift-asset-symbols /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_output/thinned (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_output/thinned
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_output/unthinned (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_output/unthinned
+
+CompileAssetCatalogVariant thinned /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/Assets.xcassets (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/Assets.xcassets --compile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_generated_info.plist_thinned --accent-color AccentColor --widget-background-color WidgetBackground --compress-pngs --enable-on-demand-resources NO --standalone-icon-behavior all --development-region it --target-device iphone --target-device ipad --minimum-deployment-target 18 --platform iphoneos
+/* com.apple.actool.compilation-results */
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_generated_info.plist_thinned
+
+
+LinkAssetCatalog /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/Assets.xcassets (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-linkAssetCatalog --thinned /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_output/thinned --thinned-dependencies /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_generated_info.plist_unthinned --output /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex --plist-output /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_generated_info.plist
 
 ProcessInfoPlistFile /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/Info.plist /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/Info.plist (in target 'TrainWidgetExtension' from project 'In Orario')
     cd /Users/carlo/Locale/Xcode/In\ Orario
     builtin-infoPlistUtility /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/Info.plist -producttype com.apple.product-type.app-extension -expandbuildsettings -format binary -platform iphoneos -additionalcontentfile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/assetcatalog_generated_info.plist -requiredArchitecture arm64 -o /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/Info.plist
 
-SwiftDriver In\ Orario? normal arm64 com.apple.xcode.tools.swift.compiler (in target 'In Orario?' from project 'In Orario')
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_const_extract_protocols.json (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftConstValuesFileList (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftFileList (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftFileList
+
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.LinkFileList (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.LinkFileList
+
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.modulemap (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.modulemap
+
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-OutputFileMap.json (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.DependencyStaticMetadataFileList (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.DependencyMetadataFileList (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    write-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.DependencyMetadataFileList
+
+Copy /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/GeneratedModuleMaps-iphoneos/LlamaSwift.modulemap /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.modulemap (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.modulemap /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/GeneratedModuleMaps-iphoneos
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In\ Orario?_const_extract_protocols.json (in target 'In Orario?' from project 'In Orario')
     cd /Users/carlo/Locale/Xcode/In\ Orario
-    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name In_Orario_ -Onone @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios17 -cxx-interoperability-mode\=default -g -Xfrontend -serialize-debugging-options -enable-testing -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_const_extract_protocols.json -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario -experimental-emit-module-separately -disable-cmo
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_const_extract_protocols.json
 
-SwiftCompile normal arm64 Compiling\ ContentView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ContentView.swift (in target 'In Orario?' from project 'In Orario')
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In\ Orario?.SwiftFileList (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftFileList
 
-SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ContentView.swift (in target 'In Orario?' from project 'In Orario')
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In\ Orario?.SwiftConstValuesFileList (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In\ Orario?.LinkFileList (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.LinkFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?.hmap (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?.DependencyStaticMetadataFileList (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In\ Orario?-OutputFileMap.json (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?.DependencyMetadataFileList (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?-project-headers.hmap (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-project-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?-generated-files.hmap (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-generated-files.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?-own-target-headers.hmap (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?-all-target-headers.hmap (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?-all-non-framework-target-headers.hmap (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/DerivedSources/Entitlements.plist (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    write-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/Entitlements.plist
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/Frameworks (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Frameworks
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/PlugIns (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/PlugIns
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+SwiftDriver LlamaSwift normal arm64 com.apple.xcode.tools.swift.compiler (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name LlamaSwift -Onone @/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios16.0 -g -Xfrontend -serialize-debugging-options -enable-testing -suppress-warnings -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 6 -I /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib -F /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/SwiftExplicitPrecompiledModules -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftmodule -user-module-version 2.9852.0 -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -package-name llama_swift -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_const_extract_protocols.json -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver TrainWidgetExtension normal arm64 com.apple.xcode.tools.swift.compiler (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name TrainWidgetExtension -Onone @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios18 -cxx-interoperability-mode\=default -g -Xfrontend -serialize-debugging-options -application-extension -enable-testing -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_const_extract_protocols.json -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ TrainWidgetControl.swift /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidgetControl.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidgetControl.swift (in target 'TrainWidgetExtension' from project 'In Orario')
     cd /Users/carlo/Locale/Xcode/In\ Orario
     
-/Users/carlo/Locale/Xcode/In Orario/In Orario/ContentView.swift:209:57: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
-                                                        Text(fav.description).font(.caption).foregroundColor(.secondary)
-                                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Failed frontend command:
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIFeatureManager.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIModelSelectorView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AISettingsView.swift -primary-file /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ContentView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/In\ Orario.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocalScrapingService.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocalSLMService.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocationManager.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Managers.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroLineTopology.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroManager.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MilanoMetroCatalog.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Models.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/NetworkService.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/OnboardingView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/PassanteManager.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/PassanteViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ProfileViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/RowViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SavedTripsView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SearchViews.swift /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainAttributes.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/StationViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/test.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/TrainModels.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/TrainStopsView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/UIComponents.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/UsageTracker.swift /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/GeneratedAssetSymbols.swift -emit-dependencies-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/ContentView.d -emit-const-values-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/ContentView.swiftconstvalues -emit-reference-dependencies-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/ContentView.swiftdeps -serialize-diagnostics-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/ContentView.dia -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64 -target arm64-apple-ios17 -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -cxx-interoperability-mode\=default -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -swift-version 5 -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_const_extract_protocols.json -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -default-isolation\=MainActor -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/carlo/Locale/Xcode/In\ Orario -enable-anonymous-context-mangled-names -file-compilation-dir /Users/carlo/Locale/Xcode/In\ Orario -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name In_Orario_ -frontend-parseable-output -disable-clang-spi -target-sdk-version 26.5 -target-sdk-name iphoneos26.5 -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/local/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -o /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/ContentView.o -index-unit-output-path /In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/ContentView.o
+SwiftCompile normal arm64 Compiling\ GeneratedAssetSymbols.swift /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ TrainWidgetExtension (in target 'TrainWidgetExtension' from project 'In Orario')
+EmitSwiftModule normal arm64 (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ TrainAttributes.swift /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainAttributes.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainAttributes.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ TrainWidgetBundle.swift /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidgetBundle.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidgetBundle.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ TrainWidgetLiveActivity.swift /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidgetLiveActivity.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidgetLiveActivity.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ TrainWidget.swift /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidget.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainWidget.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftDriver\ Compilation\ Requirements LlamaSwift normal arm64 com.apple.xcode.tools.swift.compiler (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name LlamaSwift -Onone @/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios16.0 -g -Xfrontend -serialize-debugging-options -enable-testing -suppress-warnings -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 6 -I /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib -F /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/SwiftExplicitPrecompiledModules -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftmodule -user-module-version 2.9852.0 -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -package-name llama_swift -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_const_extract_protocols.json -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver\ Compilation LlamaSwift normal arm64 com.apple.xcode.tools.swift.compiler (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name LlamaSwift -Onone @/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios16.0 -g -Xfrontend -serialize-debugging-options -enable-testing -suppress-warnings -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 6 -I /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib -F /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk/Developer/Library/Frameworks -parse-as-library -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/SwiftExplicitPrecompiledModules -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftmodule -user-module-version 2.9852.0 -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -package-name llama_swift -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_const_extract_protocols.json -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/GeneratedModuleMaps-iphoneos/LlamaSwift-Swift.h /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-Swift.h (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    builtin-swiftHeaderTool -arch arm64 /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-Swift.h -o /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/GeneratedModuleMaps-iphoneos/LlamaSwift-Swift.h
+
+Copy /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/arm64-apple-ios.swiftmodule /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftmodule (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftmodule /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/arm64-apple-ios.swiftmodule
+
+Copy /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/arm64-apple-ios.swiftdoc /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftdoc (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftdoc /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/arm64-apple-ios.swiftdoc
+
+Copy /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/arm64-apple-ios.abi.json /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.abi.json (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.abi.json /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/arm64-apple-ios.abi.json
+
+Copy /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/Project/arm64-apple-ios.swiftsourceinfo /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftsourceinfo (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftsourceinfo /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.swiftmodule/Project/arm64-apple-ios.swiftsourceinfo
+
+Ld /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.o normal (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios16.0 -r -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -O0 -w -F/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/EagerLinkingTBDs/Debug-iphoneos -F/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/Frameworks -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk/Developer/Library/Frameworks -filelist /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.LinkFileList -nostdlib -Xlinker -object_path_lto -Xlinker /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_lto.o -Xlinker -no_deduplicate -Xlinker -dependency_info -Xlinker /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftmodule @/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-linker-args.resp -o /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.o
+
+ExtractAppIntentsMetadata (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name LlamaSwift --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk --xcode-version 17F42 --platform-family iOS --deployment-target 16.0 --bundle-identifier llama.swift.LlamaSwift --output /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.appintents --target-triple arm64-apple-ios16.0 --binary-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.o --dependency-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift_dependency_info.dat --stringsdata-file /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftFileList --metadata-file-list /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.DependencyMetadataFileList --static-metadata-file-list /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/LlamaSwift.DependencyStaticMetadataFileList --swift-const-vals-list /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.SwiftConstValuesFileList --force --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2026-07-15 14:01:08.233 appintentsmetadataprocessor[41758:35854500] Starting appintentsmetadataprocessor export
+2026-07-15 14:01:08.247 appintentsmetadataprocessor[41758:35854500] Extracted no relevant App Intents symbols, skipping writing output
+
+RegisterExecutionPolicyException /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.o (in target 'LlamaSwift' from project 'llama.swift')
+    cd /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift
+    builtin-RegisterExecutionPolicyException /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/Debug-iphoneos/LlamaSwift.o
+
+SwiftDriverJobDiscovery normal arm64 Compiling TrainWidgetBundle.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling TrainWidgetControl.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling GeneratedAssetSymbols.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for TrainWidgetExtension (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftDriver\ Compilation\ Requirements TrainWidgetExtension normal arm64 com.apple.xcode.tools.swift.compiler (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name TrainWidgetExtension -Onone @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios18 -cxx-interoperability-mode\=default -g -Xfrontend -serialize-debugging-options -application-extension -enable-testing -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_const_extract_protocols.json -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/TrainWidgetExtension-Swift.h /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-Swift.h (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-swiftHeaderTool -arch arm64 /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-Swift.h -o /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/TrainWidgetExtension-Swift.h
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/arm64-apple-ios.swiftdoc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftdoc (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftdoc /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/arm64-apple-ios.swiftdoc
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/arm64-apple-ios.abi.json /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.abi.json (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.abi.json /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/arm64-apple-ios.abi.json
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/arm64-apple-ios.swiftmodule /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftmodule (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftmodule /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/arm64-apple-ios.swiftmodule
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/Project/arm64-apple-ios.swiftsourceinfo /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftsourceinfo (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftsourceinfo /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.swiftmodule/Project/arm64-apple-ios.swiftsourceinfo
+
+ProcessProductPackaging /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario?.entitlements /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?.app.xcent (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "9H7K68M6U6.carlo.InOrario";
+    "aps-environment" = development;
+    "com.apple.developer.icloud-container-identifiers" =     (
+    );
+    "com.apple.developer.team-identifier" = 9H7K68M6U6;
+    "com.apple.developer.ubiquity-kvstore-identifier" = "9H7K68M6U6.carlo.InOrario";
+    "com.apple.security.application-groups" =     (
+        "group.carlo.InOrario"
+    );
+    "get-task-allow" = 1;
+}
+    
+    builtin-productPackagingUtility /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario\?.entitlements -entitlements -format xml -o /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.app.xcent
+
+ProcessProductPackaging /Users/carlo/Library/Developer/Xcode/UserData/Provisioning\ Profiles/26f9ff60-c313-4fac-89c2-68e6c70e8fc7.mobileprovision /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/embedded.mobileprovision (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-productPackagingUtility /Users/carlo/Library/Developer/Xcode/UserData/Provisioning\ Profiles/26f9ff60-c313-4fac-89c2-68e6c70e8fc7.mobileprovision -o /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/embedded.mobileprovision
+
+ProcessProductPackagingDER /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?.app.xcent /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/In\ Orario?.app.xcent.der (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /usr/bin/derq query -f xml -i /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.app.xcent -o /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.app.xcent.der --raw
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/assetcatalog_output/thinned (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_output/thinned
+
+MkDir /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/assetcatalog_output/unthinned (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /bin/mkdir -p /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_output/unthinned
+
+GenerateStringSymbols /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/DerivedSources/GeneratedStringSymbols_Localizable.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Localizable.xcstrings (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool generate-symbols --language swift --output-directory /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Localizable.xcstrings
+
+GenerateAssetSymbols /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Assets.xcassets (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Assets.xcassets --compile /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_dependencies --output-partial-info-plist /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_generated_info.plist --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region it --target-device iphone --target-device ipad --minimum-deployment-target 18 --platform iphoneos --bundle-identifier carlo.InOrario --generate-swift-asset-symbols /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CompileXCStrings /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/ /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Localizable.xcstrings (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool compile --output-directory /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Localizable.xcstrings
+
+CompileAssetCatalogVariant thinned /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Assets.xcassets (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Assets.xcassets --compile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region it --target-device iphone --target-device ipad --minimum-deployment-target 18 --platform iphoneos
+/* com.apple.actool.compilation-results */
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/assetcatalog_generated_info.plist_thinned
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/assetcatalog_output/thinned/Assets.car
+
+
+SwiftDriver In\ Orario? normal arm64 com.apple.xcode.tools.swift.compiler (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name In_Orario_ -Onone @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios18 -cxx-interoperability-mode\=default -g -Xfrontend -serialize-debugging-options -enable-testing -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_const_extract_protocols.json -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario -experimental-emit-module-separately -disable-cmo
+
+CopyStringsFile /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/en.lproj/Localizable.strings /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/en.lproj/Localizable.strings (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/en.lproj -- /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/en.lproj/Localizable.strings
+/Users/carlo/Locale/Xcode/In Orario/build/In Orario.build/Debug-iphoneos/In Orario?.build/en.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'In Orario?' from project 'In Orario')
+
 SwiftEmitModule normal arm64 Emitting\ module\ for\ In_Orario_ (in target 'In Orario?' from project 'In Orario')
 
 EmitSwiftModule normal arm64 (in target 'In Orario?' from project 'In Orario')
     cd /Users/carlo/Locale/Xcode/In\ Orario
     
-/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:75:10: warning: instance method 'userNotificationCenter(_:willPresent:withCompletionHandler:)' nearly matches optional requirement 'userNotificationCenter(_:willPresent:withCompletionHandler:)' of protocol 'UNUserNotificationCenterDelegate'
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: warning: instance method 'userNotificationCenter(_:willPresent:withCompletionHandler:)' nearly matches optional requirement 'userNotificationCenter(_:willPresent:withCompletionHandler:)' of protocol 'UNUserNotificationCenterDelegate'
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
          ^
-/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:75:10: note: candidate has non-matching type '(UNUserNotificationCenter, UNNotification, @escaping (UNNotificationPresentationOptions) -> Void) -> ()'
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: note: candidate has non-matching type '(UNUserNotificationCenter, UNNotification, @escaping (UNNotificationPresentationOptions) -> Void) -> ()'
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
          ^
-/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:75:10: note: move 'userNotificationCenter(_:willPresent:withCompletionHandler:)' to an extension to silence this warning
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: note: move 'userNotificationCenter(_:willPresent:withCompletionHandler:)' to an extension to silence this warning
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
          ^
-/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:75:10: note: make 'userNotificationCenter(_:willPresent:withCompletionHandler:)' private to silence this warning
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: note: make 'userNotificationCenter(_:willPresent:withCompletionHandler:)' private to silence this warning
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
          ^
     private 
@@ -90,10 +544,355 @@ UserNotifications.UNUserNotificationCenterDelegate.userNotificationCenter:3:17: 
   optional func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping @Sendable (Int) -> Void)}
                 ^
 
+SwiftCompile normal arm64 Compiling\ MetroManager.swift,\ MetroViews.swift,\ MilanoMetroCatalog.swift,\ Models.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroManager.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MilanoMetroCatalog.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Models.swift (in target 'In Orario?' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroManager.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroViews.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MilanoMetroCatalog.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Models.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ AIEngine.swift,\ AIFeatureManager.swift,\ TrainAttributes.swift,\ AIModelSelectorView.swift,\ AISettingsView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIEngine.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIFeatureManager.swift /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainAttributes.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIModelSelectorView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AISettingsView.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIEngine.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIFeatureManager.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+/Users/carlo/Locale/Xcode/In Orario/In Orario/AIFeatureManager.swift:297:33: warning: capture of 'fileManager' with non-Sendable type 'FileManager' in a '@Sendable' closure; this is an error in the Swift 6 language mode
+            guard let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                                ^
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk/System/Library/Frameworks/Foundation.framework/Headers/NSFileManager.h:96:12: note: class 'FileManager' does not conform to the 'Sendable' protocol
+@interface NSFileManager : NSObject
+           ^
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/TrainWidget/TrainAttributes.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AIModelSelectorView.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AISettingsView.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ SLMProvider.swift,\ StationViews.swift,\ TrainModels.swift,\ TrainStopsView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SLMProvider.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/StationViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/TrainModels.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/TrainStopsView.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SLMProvider.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/StationViews.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/TrainModels.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/TrainStopsView.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ AppleFoundationModelProvider.swift,\ ContentView.swift,\ In\ Orario.swift,\ LocalScrapingService.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AppleFoundationModelProvider.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ContentView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/In\ Orario.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocalScrapingService.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/AppleFoundationModelProvider.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ContentView.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/In\ Orario.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: warning: instance method 'userNotificationCenter(_:willPresent:withCompletionHandler:)' nearly matches optional requirement 'userNotificationCenter(_:willPresent:withCompletionHandler:)' of protocol 'UNUserNotificationCenterDelegate'
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+         ^
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: note: candidate has non-matching type '(UNUserNotificationCenter, UNNotification, @escaping (UNNotificationPresentationOptions) -> Void) -> ()'
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+         ^
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: note: move 'userNotificationCenter(_:willPresent:withCompletionHandler:)' to an extension to silence this warning
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+         ^
+/Users/carlo/Locale/Xcode/In Orario/In Orario/In Orario.swift:81:10: note: make 'userNotificationCenter(_:willPresent:withCompletionHandler:)' private to silence this warning
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+         ^
+    private 
+UserNotifications.UNUserNotificationCenterDelegate.userNotificationCenter:3:17: note: requirement 'userNotificationCenter(_:willPresent:withCompletionHandler:)' declared here
+  optional func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping @Sendable (Int) -> Void)}
+                ^
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocalScrapingService.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling TrainAttributes.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftCompile normal arm64 Compiling\ LocalSLMService.swift,\ LocationManager.swift,\ Managers.swift,\ MetroLineTopology.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocalSLMService.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocationManager.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Managers.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroLineTopology.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocalSLMService.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/LocationManager.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Managers.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/MetroLineTopology.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling TrainWidgetLiveActivity.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftCompile normal arm64 Compiling\ ProfileViews.swift,\ RowViews.swift,\ SavedTripsView.swift,\ SearchViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ProfileViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/RowViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SavedTripsView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SearchViews.swift (in target 'In Orario?' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ProfileViews.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/RowViews.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SavedTripsView.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/SearchViews.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling TrainWidget.swift (in target 'TrainWidgetExtension' from project 'In Orario')
+
+SwiftDriver\ Compilation TrainWidgetExtension normal arm64 com.apple.xcode.tools.swift.compiler (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name TrainWidgetExtension -Onone @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios18 -cxx-interoperability-mode\=default -g -Xfrontend -serialize-debugging-options -application-extension -enable-testing -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_const_extract_protocols.json -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for In_Orario_ (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriver\ Compilation\ Requirements In\ Orario? normal arm64 com.apple.xcode.tools.swift.compiler (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name In_Orario_ -Onone @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios18 -cxx-interoperability-mode\=default -g -Xfrontend -serialize-debugging-options -enable-testing -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_const_extract_protocols.json -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/TrainWidgetExtension normal (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios18 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -O0 -L/Users/carlo/Locale/Xcode/In\ Orario/build/EagerLinkingTBDs/Debug-iphoneos -L/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F/Users/carlo/Locale/Xcode/In\ Orario/build/EagerLinkingTBDs/Debug-iphoneos -F/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -filelist /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/../../Frameworks -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -dependency_info -Xlinker /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_dependency_info.dat -e _NSExtensionMain -fapplication-extension -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.swiftmodule @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension-linker-args.resp -Xlinker -no_adhoc_codesign -o /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/TrainWidgetExtension
+
+SwiftMergeGeneratedHeaders /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/DerivedSources/In_Orario_-Swift.h /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In_Orario_-Swift.h (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-swiftHeaderTool -arch arm64 /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_-Swift.h -o /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/In_Orario_-Swift.h
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/arm64-apple-ios.swiftmodule /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In_Orario_.swiftmodule (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftmodule /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/arm64-apple-ios.swiftmodule
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/arm64-apple-ios.swiftdoc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In_Orario_.swiftdoc (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftdoc /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/arm64-apple-ios.swiftdoc
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/arm64-apple-ios.abi.json /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In_Orario_.abi.json (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.abi.json /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/arm64-apple-ios.abi.json
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/Project/arm64-apple-ios.swiftsourceinfo /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/Objects-normal/arm64/In_Orario_.swiftsourceinfo (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftsourceinfo /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In_Orario_.swiftmodule/Project/arm64-apple-ios.swiftsourceinfo
+
+SwiftCompile normal arm64 Compiling\ NetworkService.swift,\ OnboardingView.swift,\ PassanteManager.swift,\ PassanteViews.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/NetworkService.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/OnboardingView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/PassanteManager.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/PassanteViews.swift (in target 'In Orario?' from project 'In Orario')
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/NetworkService.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/OnboardingView.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/PassanteManager.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/PassanteViews.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 Compiling\ UIComponents.swift,\ UsageTracker.swift,\ GeneratedAssetSymbols.swift,\ GeneratedStringSymbols_Localizable.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/UIComponents.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/UsageTracker.swift /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/DerivedSources/GeneratedAssetSymbols.swift /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/DerivedSources/GeneratedStringSymbols_Localizable.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/UIComponents.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/UsageTracker.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario?.build/DerivedSources/GeneratedStringSymbols_Localizable.swift (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling AIEngine.swift, AIFeatureManager.swift, TrainAttributes.swift, AIModelSelectorView.swift, AISettingsView.swift (in target 'In Orario?' from project 'In Orario')
+
+LinkAssetCatalog /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/Assets.xcassets (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-linkAssetCatalog --thinned /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_output/thinned --thinned-dependencies /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_generated_info.plist_unthinned --output /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app --plist-output /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/carlo/Locale/Xcode/In Orario/build/Debug-iphoneos/In Orario?.app/Assets.car (in target 'In Orario?' from project 'In Orario')
+note: Emplaced /Users/carlo/Locale/Xcode/In Orario/build/Debug-iphoneos/In Orario?.app/AppIcon60x60@2x.png (in target 'In Orario?' from project 'In Orario')
+note: Emplaced /Users/carlo/Locale/Xcode/In Orario/build/Debug-iphoneos/In Orario?.app/AppIcon76x76@2x~ipad.png (in target 'In Orario?' from project 'In Orario')
+
+ExtractAppIntentsMetadata (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name TrainWidgetExtension --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk --xcode-version 17F42 --platform-family iOS --deployment-target 18 --bundle-identifier carlo.InOrario.TrainWidget --output /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex --target-triple arm64-apple-ios18 --binary-file /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/TrainWidgetExtension --dependency-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension_dependency_info.dat --stringsdata-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftFileList --metadata-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.DependencyMetadataFileList --static-metadata-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.DependencyStaticMetadataFileList --swift-const-vals-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/Objects-normal/arm64/TrainWidgetExtension.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2026-07-15 14:01:16.902 appintentsmetadataprocessor[41791:35854743] Starting appintentsmetadataprocessor export
+2026-07-15 14:01:16.964 appintentsmetadataprocessor[41791:35854743] Writing Metadata.appintents
+2026-07-15 14:01:16.964 appintentsmetadataprocessor[41791:35854743] Metadata root: /Users/carlo/Locale/Xcode/In Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/Metadata.appintents
+
+AppIntentsSSUTraining (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/Info.plist --temp-dir-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/ssu --bundle-id carlo.InOrario.TrainWidget --product-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex --extracted-metadata-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/Metadata.appintents --metadata-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.DependencyMetadataFileList --source-file /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex/Info.plist --archive-ssu-assets
+2026-07-15 14:01:17.035 appintentsnltrainingprocessor[41792:35854749] Parsing options for appintentsnltrainingprocessor
+2026-07-15 14:01:17.037 appintentsnltrainingprocessor[41792:35854749] Starting AppIntents SSU YAML Generation
+2026-07-15 14:01:17.086 appintentsnltrainingprocessor[41792:35854749] No AppShortcuts found - Skipping.
+
+CodeSign /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+    Signing Identity:     "Apple Development: Carlo Porta (ZKH7FM86MJ)"
+    Provisioning Profile: "iOS Team Provisioning Profile: carlo.InOrario.TrainWidget"
+                          (9d5a13ac-2a39-4f4c-8c78-b939dec7fbc9)
+    
+    /usr/bin/codesign --force --sign A7ABAE96ED6C106B9AC47B4A2404D23A4469BEA8 --entitlements /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/TrainWidgetExtension.build/TrainWidgetExtension.appex.xcent --timestamp\=none --generate-entitlement-der /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex
+
+RegisterExecutionPolicyException /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-RegisterExecutionPolicyException /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex
+
+Touch /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex (in target 'TrainWidgetExtension' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /usr/bin/touch -c /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex
+
+CpResource /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/rfi_stations.json /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/rfi_stations.json (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/rfi_stations.json /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+CpResource /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/metro_map.pdf /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/metro_map.pdf (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/metro_map.pdf /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+CpResource /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/metro_lines_milan.json /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/metro_lines_milan.json (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/metro_lines_milan.json /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+CpResource /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/In\ Orario.storekit /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/In\ Orario.storekit (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/In\ Orario.storekit /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/Frameworks/llama.framework /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/artifacts/llama.swift/llama-cpp/llama.xcframework/ios-arm64/llama.framework (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -bitcode-strip all -bitcode-strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip -resolve-src-symlinks -remove-static-executable /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/artifacts/llama.swift/llama-cpp/llama.xcframework/ios-arm64/llama.framework /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Frameworks
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/artifacts/llama.swift/llama-cpp/llama.xcframework/ios-arm64/llama.framework/llama -r -o /Users/carlo/Locale/Xcode/In Orario/build/Debug-iphoneos/In Orario?.app/Frameworks/llama.framework/llama
+
+CodeSign /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/Frameworks/llama.framework (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+    Signing Identity:     "Apple Development: Carlo Porta (ZKH7FM86MJ)"
+    Provisioning Profile: "iOS Team Provisioning Profile: carlo.InOrario"
+                          (26f9ff60-c313-4fac-89c2-68e6c70e8fc7)
+    
+    /usr/bin/codesign --force --sign A7ABAE96ED6C106B9AC47B4A2404D23A4469BEA8 --timestamp\=none --preserve-metadata\=identifier,entitlements,flags --generate-entitlement-der /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Frameworks/llama.framework
+
+SwiftDriverJobDiscovery normal arm64 Compiling AppleFoundationModelProvider.swift, ContentView.swift, In Orario.swift, LocalScrapingService.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling UIComponents.swift, UsageTracker.swift, GeneratedAssetSymbols.swift, GeneratedStringSymbols_Localizable.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling SLMProvider.swift, StationViews.swift, TrainModels.swift, TrainStopsView.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling LocalSLMService.swift, LocationManager.swift, Managers.swift, MetroLineTopology.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MetroManager.swift, MetroViews.swift, MilanoMetroCatalog.swift, Models.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ProfileViews.swift, RowViews.swift, SavedTripsView.swift, SearchViews.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriverJobDiscovery normal arm64 Compiling NetworkService.swift, OnboardingView.swift, PassanteManager.swift, PassanteViews.swift (in target 'In Orario?' from project 'In Orario')
+
+SwiftDriver\ Compilation In\ Orario? normal arm64 com.apple.xcode.tools.swift.compiler (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name In_Orario_ -Onone @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios18 -cxx-interoperability-mode\=default -g -Xfrontend -serialize-debugging-options -enable-testing -Xcc -std\=gnu++20 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks -F /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/com.apple.DeveloperTools/26.5-17F42/Xcode/SDKStatCaches.noindex/iphoneos26.5-23F73-32daed1954a7d5dd0789fcaf2a9bb78b.sdkstatcache -output-file-map /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftmodule -validate-clang-modules-once -clang-build-session-file /var/folders/p0/khbs1c7j6n3304645cd_6tzr0000gn/C/org.llvm.clang/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_const_extract_protocols.json -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-generated-files.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-own-target-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario-9933258f6863fb6fbbbef9cd84d33e43-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?-project-headers.hmap -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/include -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources-normal/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources/arm64 -Xcc -I/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_-Swift.h -working-directory /Users/carlo/Locale/Xcode/In\ Orario -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/In\ Orario? normal (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios18 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -O0 -L/Users/carlo/Locale/Xcode/In\ Orario/build/EagerLinkingTBDs/Debug-iphoneos -L/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -F/Users/carlo/Locale/Xcode/In\ Orario/build/EagerLinkingTBDs/Debug-iphoneos -F/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks -F/Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos -filelist /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -rpath -Xlinker /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -dependency_info -Xlinker /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_.swiftmodule @/Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In_Orario_-linker-args.resp -Wl,-no_warn_duplicate_libraries -framework llama -framework StoreKit -Xlinker -no_adhoc_codesign -o /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/In\ Orario\? -Xlinker -add_ast_path -Xlinker /Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift.swiftmodule @/Users/carlo/Library/Developer/Xcode/DerivedData/In_Orario-gxivxbcrebqygxaxgcmrdaxjahkf/SourcePackages/checkouts/llama.swift/build/llama.swift.build/Debug-iphoneos/LlamaSwift.build/Objects-normal/arm64/LlamaSwift-linker-args.resp
+
+Copy /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/PlugIns/TrainWidgetExtension.appex /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -exclude Headers -exclude PrivateHeaders -exclude Modules -exclude \*.tbd -resolve-src-symlinks -remove-static-executable /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/TrainWidgetExtension.appex /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/PlugIns
+
+ProcessInfoPlistFile /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/Info.plist /Users/carlo/Locale/Xcode/In\ Orario/In-Orario-Info.plist (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-infoPlistUtility /Users/carlo/Locale/Xcode/In\ Orario/In-Orario-Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/PkgInfo -expandbuildsettings -format binary -platform iphoneos -additionalcontentfile /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/assetcatalog_generated_info.plist -scanforprivacyfile /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Frameworks/llama.framework -scanforprivacyfile /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/PlugIns/TrainWidgetExtension.appex -requiredArchitecture arm64 -o /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Info.plist
+
+CopySwiftLibs /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-swiftStdLibTool --copy --verbose --sign A7ABAE96ED6C106B9AC47B4A2404D23A4469BEA8 --scan-executable /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/In\ Orario\? --scan-folder /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Frameworks --scan-folder /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/PlugIns --scan-folder /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/SystemExtensions --scan-folder /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Extensions --scan-folder /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk/System/Library/Frameworks/StoreKit.framework --platform iphoneos --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+
+ExtractAppIntentsMetadata (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name In_Orario_ --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk --xcode-version 17F42 --platform-family iOS --deployment-target 18 --bundle-identifier carlo.InOrario --output /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app --target-triple arm64-apple-ios18 --binary-file /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/In\ Orario\? --dependency-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?_dependency_info.dat --stringsdata-file /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftFileList --metadata-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.DependencyMetadataFileList --static-metadata-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.DependencyStaticMetadataFileList --swift-const-vals-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/Objects-normal/arm64/In\ Orario\?.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2026-07-15 14:01:30.573 appintentsmetadataprocessor[41830:35855134] Starting appintentsmetadataprocessor export
+2026-07-15 14:01:30.574 appintentsmetadataprocessor[41830:35855134] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+
+AppIntentsSSUTraining (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Info.plist --temp-dir-path /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/ssu --bundle-id carlo.InOrario --product-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app --extracted-metadata-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Metadata.appintents --metadata-file-list /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.DependencyMetadataFileList --source-file /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Info.plist --archive-ssu-assets
+2026-07-15 14:01:30.592 appintentsnltrainingprocessor[41831:35855138] Parsing options for appintentsnltrainingprocessor
+2026-07-15 14:01:30.593 appintentsnltrainingprocessor[41831:35855138] Starting AppIntents SSU YAML Generation
+2026-07-15 14:01:30.593 appintentsnltrainingprocessor[41831:35855138] No AppShortcuts found - Skipping.
+
+CodeSign /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    
+    Signing Identity:     "Apple Development: Carlo Porta (ZKH7FM86MJ)"
+    Provisioning Profile: "iOS Team Provisioning Profile: carlo.InOrario"
+                          (26f9ff60-c313-4fac-89c2-68e6c70e8fc7)
+    
+    /usr/bin/codesign --force --sign A7ABAE96ED6C106B9AC47B4A2404D23A4469BEA8 --entitlements /Users/carlo/Locale/Xcode/In\ Orario/build/In\ Orario.build/Debug-iphoneos/In\ Orario\?.build/In\ Orario\?.app.xcent --timestamp\=none --generate-entitlement-der /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+ValidateEmbeddedBinary /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app/PlugIns/TrainWidgetExtension.appex (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /Applications/Xcode.app/Contents/Developer/usr/bin/embeddedBinaryValidationUtility /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/PlugIns/TrainWidgetExtension.appex -signing-cert A7ABAE96ED6C106B9AC47B4A2404D23A4469BEA8 -info-plist-path /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app/Info.plist
+
+RegisterExecutionPolicyException /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-RegisterExecutionPolicyException /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+Validate /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    builtin-validationUtility /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario?.app (in target 'In Orario?' from project 'In Orario')
+    cd /Users/carlo/Locale/Xcode/In\ Orario
+    /usr/bin/touch -c /Users/carlo/Locale/Xcode/In\ Orario/build/Debug-iphoneos/In\ Orario\?.app
+
+error: error: accessing build database "/Users/carlo/Locale/Xcode/In Orario/build/XCBuildData/build.db": disk I/O error
 ** BUILD FAILED **
 
-
-The following build commands failed:
-	SwiftCompile normal arm64 /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ContentView.swift (in target 'In Orario?' from project 'In Orario')
-	SwiftCompile normal arm64 Compiling\ ContentView.swift /Users/carlo/Locale/Xcode/In\ Orario/In\ Orario/ContentView.swift (in target 'In Orario?' from project 'In Orario')
-(2 failures)

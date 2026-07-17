@@ -438,7 +438,7 @@ struct PassanteTunnelThermometerView: View {
                 
                 Spacer()
                 
-                Text("Ritardo medio: \(avgDelay)'")
+                Text(String(format: String(localized: "Ritardo medio: %d'"), avgDelay))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
@@ -1171,7 +1171,7 @@ struct SmartConnectorRouteView: View {
                                 .cornerRadius(4)
                             
                             if let exchange = details.exchangeStation {
-                                Text("Cambio a \(SharedFormatters.formatDestination(exchange.name).replacingOccurrences(of: " Passante", with: ""))")
+                                Text(String(format: String(localized: "Cambio a %@"), SharedFormatters.formatDestination(exchange.name).replacingOccurrences(of: " Passante", with: "")))
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(.secondary)
                             }
@@ -1201,7 +1201,7 @@ struct SmartConnectorRouteView: View {
                                     .foregroundColor(isDelay ? .red : .green)
                             }
                         } else {
-                            Text("Nessun treno da \(route.originName) in tempo reale.")
+                            Text(String(format: String(localized: "Nessun treno da %@ in tempo reale."), route.originName))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .italic()
@@ -1554,10 +1554,10 @@ struct PassanteTunnelDetailView: View {
                                     }
                                     .foregroundColor(.white)
                                     
-                                    Text("Possibile treno fermo a \(train.lastStation) dalle \(train.lastTime) (oltre \(train.minutesStuck) min)")
+                                    Text(String(format: String(localized: "Possibile treno fermo a %@ dalle %@ (oltre %d min)"), train.lastStation, train.lastTime, train.minutesStuck))
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.9))
-                                    Text("Ritardo accumulato: +\(train.delay)'")
+                                    Text(String(format: String(localized: "Ritardo accumulato: +%d'"), train.delay))
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.9))
                                 }
@@ -1684,11 +1684,11 @@ struct PassanteTunnelDetailView: View {
                                             .lineLimit(1)
                                         
                                         if let status = passanteManager.passanteLiveStatuses[train.number], !status.lastStation.isEmpty, status.lastStation != "--" {
-                                            Text("Ultimo ril.: \(status.lastStation.formattedStationName) (\(status.lastTime))")
+                                            Text(String(format: String(localized: "Ultimo ril.: %@ (%@)"), status.lastStation.formattedStationName, status.lastTime))
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         } else {
-                                            Text("Partenza prevista: \(train.time)")
+                                            Text(String(format: String(localized: "Partenza prevista: %@"), train.time))
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }

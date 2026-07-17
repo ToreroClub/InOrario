@@ -11,6 +11,7 @@ struct SmartBoardView: View {
     @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var usageTracker: UsageTracker
+    @EnvironmentObject var guessingEngine: TrainGuessingEngine
     
     var body: some View {
         let isFerrovienord = station.vtID?.hasPrefix("N") == true
@@ -29,6 +30,9 @@ struct SmartBoardView: View {
             }
             let isNear = locationManager.nearbyStation?.name == station.name
             usageTracker.recordStationVisit(name: station.name, vtID: station.vtID, rfiID: station.rfiID, gpsNear: isNear, location: locationManager.userLocation?.coordinate)
+            
+            // Register for guessing engine
+            guessingEngine.markStationSeen(station.id.uuidString)
         }
     }
 }

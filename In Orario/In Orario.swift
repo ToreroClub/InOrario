@@ -108,6 +108,7 @@ struct InOrario: App {
     @StateObject private var metroManager = MetroManager()
     @StateObject private var locationManager = LocationManager()
     @StateObject private var usageTracker = UsageTracker()
+    @StateObject private var guessingEngine = TrainGuessingEngine()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -119,6 +120,7 @@ struct InOrario: App {
                 .environmentObject(metroManager)
                 .environmentObject(locationManager)
                 .environmentObject(usageTracker)
+                .environmentObject(guessingEngine)
                 .onAppear {
                     appDelegate.manager = manager
                 }
@@ -148,6 +150,9 @@ struct InOrario: App {
             if newPhase == .active {
                 // Aggiorna spazio libero ogni volta che l'app torna in foreground
                 AIFeatureManager.shared.refreshFreeSpace()
+                
+                // Trigger guessing engine single-shot GPS and logic
+                guessingEngine.appEnteredActive(locationManager: locationManager, passanteManager: passanteManager, manager: manager)
             }
         }
         .backgroundTask(.appRefresh("com.carlo.InOrario.refresh")) {

@@ -585,6 +585,10 @@ struct Haptics {
             viewedRecentTrains.removeLast()
         }
         saveViewedRecentTrains()
+        
+        // Save intent for TrainGuessingEngine
+        UserDefaults.standard.set(number, forKey: "lastConsultedTrainID")
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastConsultedTimestamp")
     }
     
     func saveViewedRecentTrains() {

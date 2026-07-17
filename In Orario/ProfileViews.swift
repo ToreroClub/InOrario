@@ -8,6 +8,10 @@ enum NewsCategory: String, CaseIterable, Identifiable {
     
     var id: String { self.rawValue }
     
+    var localizedName: LocalizedStringKey {
+        LocalizedStringKey(rawValue)
+    }
+    
     var filterKey: String {
         switch self {
         case .sciopero: return "sciopero"
@@ -33,7 +37,7 @@ struct NewsCenterView: View {
             VStack(spacing: 0) {
                 Picker("Categoria", selection: $selectedCategory) {
                     ForEach(NewsCategory.allCases) { category in
-                        Text(category.rawValue).tag(category)
+                        Text(category.localizedName).tag(category)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -44,7 +48,8 @@ struct NewsCenterView: View {
                         VStack(spacing: 15) {
                             Spacer()
                             Image(systemName: "tray.full").font(.system(size: 50)).foregroundColor(.secondary)
-                            Text("Nessuna notizia in \(selectedCategory.rawValue)").font(.headline).foregroundColor(.secondary)
+                            let localizedCat = String(localized: String.LocalizationValue(selectedCategory.rawValue))
+                            Text(String(format: String(localized: "Nessuna notizia in %@"), localizedCat)).font(.headline).foregroundColor(.secondary)
                             Spacer()
                         }.frame(maxWidth: .infinity).listRowBackground(Color.clear)
                     } else {
