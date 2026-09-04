@@ -18,6 +18,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             self.handleAIProcessingTask(task: bgTask)
         }
         
+        UIApplication.shared.registerForRemoteNotifications()
+        
         return true
     }
     
@@ -110,6 +112,8 @@ struct InOrario: App {
     @StateObject private var usageTracker = UsageTracker()
     @StateObject private var guessingEngine = TrainGuessingEngine()
     @Environment(\.scenePhase) private var scenePhase
+    
+    @AppStorage("app_language") private var appLanguage: String = "it"
 
     var body: some Scene {
         WindowGroup {
@@ -121,6 +125,7 @@ struct InOrario: App {
                 .environmentObject(locationManager)
                 .environmentObject(usageTracker)
                 .environmentObject(guessingEngine)
+                .environment(\.locale, Locale(identifier: appLanguage))
                 .onAppear {
                     appDelegate.manager = manager
                 }

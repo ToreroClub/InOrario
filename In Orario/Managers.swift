@@ -1046,36 +1046,35 @@ struct Haptics {
         }
         
         if !remoteNotificationsEnabled {
-            print("[syncRemoteNotifications] Notifiche globali disabilitate. Cancello tutte le registrazioni.")
-            // Unregister all
+            print("[syncRemoteNotifications] Notifiche globali disabilitate. Sincronizzo stato vuoto sul server.")
             unregisterDeviceForStrikes(token: token)
             Task {
                 for train in favoriteTrains {
                     unregisterTrainForPush(trainNumber: train.number, token: token)
                 }
             }
-            return
+            // Non faccio return, proseguo per sincronizzare sul server che le notifiche sono disabilitate
         }
         
-        // Registriamo l'utente sul server per gli scioperi se ha abilitato le notifiche scioperi
-        let strikeEnabled = strikeNotificationsEnabled
+        let strikeEnabled = remoteNotificationsEnabled ? strikeNotificationsEnabled : false
         
-        // Sincronizziamo in un'unica chiamata atomica tutte le sottoscrizioni
         var trainsPayload: [[String: Any]] = []
-        for train in favoriteTrains {
-            if train.notifyDelay ?? false {
-                trainsPayload.append([
-                    "train_number": train.number,
-                    "notify_delay": train.notifyDelay ?? true,
-                    "notify_station_pass": train.notifyStationPass ?? false,
-                    "station_pass_name": train.stationPassName ?? "",
-                    "notify_departure": train.notifyDeparture ?? false,
-                    "departure_time": train.departureTime ?? "",
-                    "arrival_time": train.arrivalTime ?? "",
-                    "active_days": train.activeDays ?? [],
-                    "notify_platform_change": train.notifyPlatformChange ?? false,
-                    "platform_change_station_name": train.platformChangeStationName ?? ""
-                ])
+        if remoteNotificationsEnabled {
+            for train in favoriteTrains {
+                if train.notifyDelay ?? false {
+                    trainsPayload.append([
+                        "train_number": train.number,
+                        "notify_delay": train.notifyDelay ?? true,
+                        "notify_station_pass": train.notifyStationPass ?? false,
+                        "station_pass_name": train.stationPassName ?? "",
+                        "notify_departure": train.notifyDeparture ?? false,
+                        "departure_time": train.departureTime ?? "",
+                        "arrival_time": train.arrivalTime ?? "",
+                        "active_days": train.activeDays ?? [],
+                        "notify_platform_change": train.notifyPlatformChange ?? false,
+                        "platform_change_station_name": train.platformChangeStationName ?? ""
+                    ])
+                }
             }
         }
         
@@ -1553,12 +1552,18 @@ struct Haptics {
         guard query.count >= 2 else { self.searchStationResults = []; return }
         self.isSearching = true
         
-        let lowerQ = query.lowercased()
-        let hits = allRFIStations.filter { $0.name.lowercased().contains(lowerQ) && isValidStationName($0.name) }
+        let lowerQ = normalizeStationName(query)
+        let hits = allRFIStations.filter { normalizeStationName($0.name).contains(lowerQ) && isValidStationName($0.name) }
         
         var results: [VTSearchStation] = []
+        var seenIDs = Set<String>()
         for r in hits {
-            results.append(VTSearchStation(nomeLungo: r.name, nomeBreve: r.name, vtID: r.vtID ?? r.rfiID ?? ""))
+            let vtID = r.vtID ?? r.rfiID ?? ""
+            let key = vtID.isEmpty ? r.name : vtID
+            if !seenIDs.contains(key) {
+                seenIDs.insert(key)
+                results.append(VTSearchStation(nomeLungo: r.name, nomeBreve: r.name, vtID: vtID))
+            }
         }
         
         results.sort { $0.nomeLungo < $1.nomeLungo }
@@ -1732,8 +1737,19 @@ struct Haptics {
     
     func searchRFIStationsLocally(query: String) {
         guard query.count >= 2 else { self.searchRFIStationResults = []; return }
-        let lowerQuery = query.lowercased()
-        self.searchRFIStationResults = self.allRFIStations.filter { $0.name.lowercased().contains(lowerQuery) && isValidStationName($0.name) }
+        let lowerQuery = normalizeStationName(query)
+        let hits = self.allRFIStations.filter { normalizeStationName($0.name).contains(lowerQuery) && isValidStationName($0.name) }
+        
+        var unique: [RFIStation] = []
+        var seen = Set<String>()
+        for r in hits {
+            let key = r.vtID ?? r.rfiID ?? r.name
+            if !seen.contains(key) {
+                seen.insert(key)
+                unique.append(r)
+            }
+        }
+        self.searchRFIStationResults = unique
     }
     
     
@@ -1778,7 +1794,7 @@ struct Haptics {
                     else if num.hasPrefix("248") || num.hasPrefix("238") { cat = "S8" }
                     else if num.hasPrefix("249") || num.hasPrefix("239") { cat = "S9" }
                     else if num.hasPrefix("250") || num.hasPrefix("251") || num.hasPrefix("252") { cat = "S11" }
-                    else if cat.uppercased() != "REG" {
+                    else {
                         let d = dest.lowercased()
                         if d.contains("saronno") || d.contains("lodi") { cat = "S1" }
                         else if d.contains("mariano") || d.contains("seveso") || d.contains("camnago") { cat = "S2" }
@@ -1926,7 +1942,7 @@ struct Haptics {
                         else if num.hasPrefix("248") || num.hasPrefix("238") { cat = "S8" }
                         else if num.hasPrefix("249") || num.hasPrefix("239") { cat = "S9" }
                         else if num.hasPrefix("250") || num.hasPrefix("251") || num.hasPrefix("252") { cat = "S11" }
-                        else if cat.uppercased() != "REG" {
+                        else {
                             let d = dest.lowercased()
                             if d.contains("saronno") || d.contains("lodi") { cat = "S1" }
                             else if d.contains("mariano") || d.contains("seveso") || d.contains("camnago") { cat = "S2" }
@@ -2043,7 +2059,8 @@ struct Haptics {
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "Europe/Rome")
         f.dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT'ZZZ"
-        return f.string(from: Date()).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        let str = f.string(from: Date()).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        return str.replacingOccurrences(of: "+", with: "%2B")
     }
     
     /// Combina i treni RFI con i ritardi più precisi di ViaggiaTreno.
@@ -2600,6 +2617,7 @@ struct Haptics {
             guard item.category == "sciopero", let dateStr = item.date else {
                 return true // InfoLavori o altri item rimangono sempre
             }
+            if item.isUrgent { return true }
             if let date = fmt1.date(from: dateStr) ?? fmt2.date(from: dateStr) {
                 let strikeDay = Calendar.current.startOfDay(for: date)
                 return strikeDay >= today

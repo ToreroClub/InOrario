@@ -2,25 +2,73 @@
   "sourceLanguage" : "it",
   "strings" : {
     "" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ""
+          }
+        }
+      }
     },
     " " : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " "
+          }
+        }
+      }
     },
     "—" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—"
+          }
+        }
+      }
     },
     "?" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "?"
+          }
+        }
+      }
     },
     "..." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "..."
+          }
+        }
+      }
     },
     "%@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
     },
     "%@ - %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ - %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -31,6 +79,12 @@
     },
     "%@ %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -41,6 +95,12 @@
     },
     "%@ → %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -51,6 +111,12 @@
     },
     "%@ ➔ %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ➔ %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -61,6 +127,12 @@
     },
     "%@ per %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ for %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -70,13 +142,34 @@
       }
     },
     "%lld" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        }
+      }
     },
     "•" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "•"
+          }
+        }
+      }
     },
     "←" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "←"
+          }
+        }
+      }
     },
     "← Bovisa/Rho" : {
       "localizations" : {
@@ -89,13 +182,34 @@
       }
     },
     "→" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "→"
+          }
+        }
+      }
     },
     "+%lld'" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld'"
+          }
+        }
+      }
     },
     "⚠️ %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⚠️ %@"
+          }
+        }
+      }
     },
     "🇮🇹 Nazionale / Tutte" : {
       "extractionState" : "stale",
@@ -109,7 +223,14 @@
       }
     },
     "📍" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "📍"
+          }
+        }
+      }
     },
     "📍 Stazioni più vicine" : {
       "localizations" : {
@@ -132,10 +253,24 @@
       }
     },
     "A" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A"
+          }
+        }
+      }
     },
     "A bordo" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On board"
+          }
+        }
+      }
     },
     "A: %@" : {
       "localizations" : {
@@ -211,7 +346,14 @@
       }
     },
     "Aggiungi i tuoi treni abituali ai preferiti per abilitare e configurare le notifiche personalizzate." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your regular trains to favourites to enable and configure custom notifications."
+          }
+        }
+      }
     },
     "Aggiungi le stazioni che frequenti più spesso e le tue tratte preferite per cercarle all'istante." : {
       "extractionState" : "stale",
@@ -257,7 +399,14 @@
       }
     },
     "Aggiungi Tratta Preferita" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Favourite Route"
+          }
+        }
+      }
     },
     "Aggiungi Treno" : {
       "extractionState" : "stale",
@@ -271,10 +420,24 @@
       }
     },
     "alle %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "at %@"
+          }
+        }
+      }
     },
     "Altre partenze" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other departures"
+          }
+        }
+      }
     },
     "Altre Stazioni" : {
       "localizations" : {
@@ -287,7 +450,14 @@
       }
     },
     "Altro 💬" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other 💬"
+          }
+        }
+      }
     },
     "Annulla" : {
       "localizations" : {
@@ -300,7 +470,14 @@
       }
     },
     "Anomalie di Rilevamento" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detection Anomalies"
+          }
+        }
+      }
     },
     "Apple Intelligence" : {
       "localizations" : {
@@ -334,7 +511,14 @@
       }
     },
     "Arrivo treno: %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Train arrival: %@"
+          }
+        }
+      }
     },
     "Assistente IA" : {
       "localizations" : {
@@ -358,10 +542,24 @@
       }
     },
     "ATTENZIONE: Qwen è un modello sperimentale eseguito in-app. Potrebbe causare crash per esaurimento memoria (RAM) o consumi elevati su alcuni dispositivi." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WARNING: Qwen is an experimental in-app model. It may cause crashes due to running out of memory (RAM) or high battery consumption on some devices."
+          }
+        }
+      }
     },
     "Attive" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active"
+          }
+        }
+      }
     },
     "Avanti" : {
       "localizations" : {
@@ -374,13 +572,34 @@
       }
     },
     "Avvisi di Servizio" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service Alerts"
+          }
+        }
+      }
     },
     "Avvisi Treno" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Train Alerts"
+          }
+        }
+      }
     },
     "Avviso mobilità ATM" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ATM mobility alert"
+          }
+        }
+      }
     },
     "Benvenuto su In Orario" : {
       "extractionState" : "stale",
@@ -425,7 +644,14 @@
       }
     },
     "Bug 🐛" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bug 🐛"
+          }
+        }
+      }
     },
     "Cambio a %@" : {
       "localizations" : {
@@ -438,7 +664,14 @@
       }
     },
     "Cambio comodo sullo stesso marciapiede (~4 min)" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy transfer on the same platform (~4 min)"
+          }
+        }
+      }
     },
     "Cancella" : {
       "localizations" : {
@@ -451,7 +684,14 @@
       }
     },
     "Cancella preferenze apprese" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear learned preferences"
+          }
+        }
+      }
     },
     "CANCELLATO" : {
       "localizations" : {
@@ -462,6 +702,12 @@
           }
         }
       }
+    },
+    "Cantieri & Deviazioni con LavoraMi" : {
+
+    },
+    "Cantieri, Deviazioni & Linee" : {
+
     },
     "Capolinea" : {
       "localizations" : {
@@ -474,7 +720,14 @@
       }
     },
     "Caricamento offerte..." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading offers..."
+          }
+        }
+      }
     },
     "Caricamento treni..." : {
       "localizations" : {
@@ -580,7 +833,14 @@
       }
     },
     "Cerca stazione metro..." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search metro station..."
+          }
+        }
+      }
     },
     "Cerca stazione..." : {
       "localizations" : {
@@ -665,13 +925,34 @@
       }
     },
     "COLLEGAMENTO DIRETTO" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIRECT CONNECTION"
+          }
+        }
+      }
     },
     "Comportamento Espansione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expansion Behaviour"
+          }
+        }
+      }
     },
     "Conferma eliminazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm deletion"
+          }
+        }
+      }
     },
     "Configura le tue tratte preferite generiche o pianifica un viaggio qui sopra." : {
       "localizations" : {
@@ -715,7 +996,14 @@
       }
     },
     "Contatto (Opzionale)" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contact (Optional)"
+          }
+        }
+      }
     },
     "Continua" : {
       "localizations" : {
@@ -758,10 +1046,24 @@
       }
     },
     "Cronologia Recenti" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent History"
+          }
+        }
+      }
     },
     "Cronologia vuota" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty history"
+          }
+        }
+      }
     },
     "Da: %@" : {
       "localizations" : {
@@ -774,7 +1076,14 @@
       }
     },
     "Dashboard" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        }
+      }
     },
     "Data e Ora" : {
       "localizations" : {
@@ -807,13 +1116,34 @@
       }
     },
     "Dati raccolti" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collected data"
+          }
+        }
+      }
     },
     "Descrivi qui cosa è successo o il tuo suggerimento..." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Describe what happened or your suggestion here..."
+          }
+        }
+      }
     },
     "Dettagli" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        }
+      }
     },
     "Dettagli Viaggio" : {
       "localizations" : {
@@ -846,13 +1176,34 @@
       }
     },
     "Direzione Est" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eastbound"
+          }
+        }
+      }
     },
     "Direzione Ovest" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Westbound"
+          }
+        }
+      }
     },
     "Disattive" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disabled"
+          }
+        }
+      }
     },
     "Download in corso per un altro modello..." : {
       "localizations" : {
@@ -885,7 +1236,14 @@
       }
     },
     "Elimina" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
     },
     "Elimina Modello" : {
       "localizations" : {
@@ -898,10 +1256,24 @@
       }
     },
     "Errore" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        }
+      }
     },
     "Errore di Invio" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Error"
+          }
+        }
+      }
     },
     "Errore di rete" : {
       "extractionState" : "stale",
@@ -945,7 +1317,14 @@
       }
     },
     "Espandi" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand"
+          }
+        }
+      }
     },
     "Esplora gli orari integrati delle principali metropolitane italiane." : {
       "localizations" : {
@@ -958,13 +1337,34 @@
       }
     },
     "Fa troppo Caldo" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It's too hot"
+          }
+        }
+      }
     },
     "Fa troppo Freddo" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It's too cold"
+          }
+        }
+      }
     },
     "Fatto" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
     },
     "Fermata" : {
       "extractionState" : "stale",
@@ -989,7 +1389,14 @@
       }
     },
     "Filtro Rapido Destinazione (Casa)" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Destination Filter (Home)"
+          }
+        }
+      }
     },
     "Fisicamente impossibile." : {
       "localizations" : {
@@ -1023,16 +1430,44 @@
       }
     },
     "Generali e Località" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General & Locations"
+          }
+        }
+      }
     },
     "Giorni attivi:" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active days:"
+          }
+        }
+      }
     },
     "Grazie di cuore! ❤️" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thank you so much! ❤️"
+          }
+        }
+      }
     },
     "Grazie mille! ❤️" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thank you very much! ❤️"
+          }
+        }
+      }
     },
     "Hai abbastanza spazio per il modello %@." : {
       "extractionState" : "stale",
@@ -1046,10 +1481,24 @@
       }
     },
     "Ho creato In Orario per rendere un po’ più semplice la vita di chi prende il treno ogni giorno. L’app mostra le stesse informazioni presenti sui tabelloni in stazione, aggiornate in tempo reale.\n\nLa sviluppo e la mantengo da solo, nel mio tempo libero. Ho scelto di offrirla gratuitamente e senza pubblicità, ma mantenerla attiva comporta alcuni costi.\n\nSe In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, una piccola donazione è un aiuto concreto per continuare a farla crescere.\n\nGrazie davvero ❤️" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I created In Orario to make life a bit simpler for those who take the train every day. The app shows the same information as the boards in the station, updated in real time.\n\nI develop and maintain it alone in my free time. I chose to offer it for free and without ads, but keeping it active incurs some costs.\n\nIf In Orario helps you travel more peacefully, avoid unnecessary waiting, or simply travel with peace of mind, a small donation is a concrete help to keep it growing.\n\nThank you so much ❤️"
+          }
+        }
+      }
     },
     "I miei Treni" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Trains"
+          }
+        }
+      }
     },
     "I Miei Treni" : {
       "extractionState" : "stale",
@@ -1073,7 +1522,14 @@
       }
     },
     "I treni e le stazioni che aprirai appariranno qui automaticamente." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trains and stations you open will appear here automatically."
+          }
+        }
+      }
     },
     "IA Locale (Offline - Beta)" : {
       "localizations" : {
@@ -1086,10 +1542,24 @@
       }
     },
     "Il Progetto In Orario" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The In Orario Project"
+          }
+        }
+      }
     },
     "Il treno non ha ancora lasciato la stazione di partenza." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The train has not left the origin station yet."
+          }
+        }
+      }
     },
     "Il tuo compagno ideale per viaggiare in treno. Vedi sul tuo iPhone esattamente ciò che mostrano i tabelloni fisici delle stazioni con dati ufficiali RFI aggiornati all'istante." : {
       "extractionState" : "stale",
@@ -1113,7 +1583,14 @@
       }
     },
     "Il tuo supporto è fondamentale per coprire i costi di gestione e sostenere il futuro di In Orario. Buon viaggio!" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your support is fundamental to cover running costs and support the future of In Orario. Have a nice trip!"
+          }
+        }
+      }
     },
     "Impostazioni" : {
       "localizations" : {
@@ -1126,7 +1603,14 @@
       }
     },
     "Impostazioni Notifiche" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification Settings"
+          }
+        }
+      }
     },
     "IN ORARIO" : {
       "localizations" : {
@@ -1139,10 +1623,26 @@
       }
     },
     "In orario da %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On time from %@"
+          }
+        }
+      }
+    },
+    "In Orario mostra ritardi e partenze in tempo reale. Per approfondimenti su cantieri, deviazioni e fermate sospese (Metro, Bus e Treni), scopri LavoraMi." : {
 
     },
     "In Orario v%@ (%@)" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Orario v%@ (%@)"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -1204,7 +1704,14 @@
       }
     },
     "Informativa sulla Privacy" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        }
+      }
     },
     "Inizia ora" : {
       "localizations" : {
@@ -1217,7 +1724,14 @@
       }
     },
     "Inserisci un'email se desideri essere ricontattato." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter an email address if you want to be contacted."
+          }
+        }
+      }
     },
     "Installato" : {
       "localizations" : {
@@ -1251,10 +1765,24 @@
       }
     },
     "Invia Segnalazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Report"
+          }
+        }
+      }
     },
     "L'app apprende le tue abitudini (stazioni cercate, treni consultati, tratte preferite) per mostrarti informazioni personalizzate nella home al momento opportuno. I dati sono salvati esclusivamente in locale sul tuo dispositivo." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app learns your habits (searched stations, viewed trains, favourite routes) to show you personalised information on the home screen at the right time. Data is saved exclusively locally on your device."
+          }
+        }
+      }
     },
     "L'elaborazione Cloud è riservata a chi sostiene il progetto per coprire i costi dei server." : {
       "localizations" : {
@@ -1278,13 +1806,34 @@
       }
     },
     "La tua segnalazione è stata inviata con successo direttamente agli sviluppatori." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your report has been successfully sent directly to the developers."
+          }
+        }
+      }
     },
     "Le donazioni non sono al momento disponibili." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Donations are not available at this time."
+          }
+        }
+      }
     },
     "Le funzionalità AI usano il motore selezionato (Cloud o Locale) per arricchire la tua esperienza." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI features use the selected engine (Cloud or Local) to enrich your experience."
+          }
+        }
+      }
     },
     "Le funzionalità AI usano il motore selezionato per elaborare le informazioni sugli scioperi." : {
       "extractionState" : "stale",
@@ -1318,16 +1867,54 @@
       }
     },
     "Le notifiche automatiche ti avvisano se il treno è in ritardo o quando passa dalla stazione scelta." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic notifications alert you if the train is delayed or when it passes through the chosen station."
+          }
+        }
+      }
     },
     "Limite gratuito raggiunto" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free limit reached"
+          }
+        }
+      }
     },
     "Limite Raggiunto" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limit Reached"
+          }
+        }
+      }
     },
     "Linea %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Line %@"
+          }
+        }
+      }
+    },
+    "Linee Suburbane" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suburban Lines"
+          }
+        }
+      }
     },
     "Live Activities & Dynamic Island" : {
       "localizations" : {
@@ -1361,10 +1948,24 @@
       }
     },
     "Mappa Metropolitana" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metro Map"
+          }
+        }
+      }
     },
     "Mappa non disponibile" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map not available"
+          }
+        }
+      }
     },
     "Margine ridotto, cammina veloce." : {
       "localizations" : {
@@ -1377,7 +1978,14 @@
       }
     },
     "Metro" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metro"
+          }
+        }
+      }
     },
     "Metropolitana" : {
       "localizations" : {
@@ -1433,7 +2041,14 @@
       }
     },
     "Mostra Linee Suburbane" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Suburban Lines"
+          }
+        }
+      }
     },
     "Mostra Partenze" : {
       "extractionState" : "stale",
@@ -1447,16 +2062,44 @@
       }
     },
     "Mostra partenze metro" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show metro departures"
+          }
+        }
+      }
     },
     "Mostra Vista Speciale Passante" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Passante Special View"
+          }
+        }
+      }
     },
     "Nazionale / Tutte" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "National / All"
+          }
+        }
+      }
     },
     "Nelle impostazioni dell'app potrai configurare le singole stazioni da mostrare per ciascuna linea." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the app settings you can configure the individual stations to show for each line."
+          }
+        }
+      }
     },
     "Nelle impostazioni dell'app potrai configurare le singole stazioni per scegliere se mostrare partenze, arrivi o entrambi." : {
       "extractionState" : "stale",
@@ -1522,19 +2165,54 @@
       }
     },
     "Nessun treno diretto in tempo reale." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No direct trains in real time."
+          }
+        }
+      }
     },
     "Nessun treno in coincidenza trovato." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connecting trains found."
+          }
+        }
+      }
     },
     "Nessun treno in partenza" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No trains departing"
+          }
+        }
+      }
     },
     "Nessun Treno Preferito" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Favourite Train"
+          }
+        }
+      }
     },
     "Nessun treno suburbano in tempo reale." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No suburban trains in real time."
+          }
+        }
+      }
     },
     "Nessun treno trovato al momento" : {
       "localizations" : {
@@ -1587,7 +2265,14 @@
       }
     },
     "Nessuna metropolitana disponibile" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No metro available"
+          }
+        }
+      }
     },
     "Nessuna notizia" : {
       "extractionState" : "stale",
@@ -1611,7 +2296,14 @@
       }
     },
     "Nessuna partenza" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No departures"
+          }
+        }
+      }
     },
     "Nessuna soluzione trovata in questo orario. Riprova con un'altra data o orario." : {
       "localizations" : {
@@ -1655,7 +2347,14 @@
       }
     },
     "Nessuna tratta preferita configurata." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No favourite routes configured."
+          }
+        }
+      }
     },
     "Nessuno sciopero previsto" : {
       "extractionState" : "stale",
@@ -1679,7 +2378,14 @@
       }
     },
     "Non è stato possibile inviare il feedback. Verifica la tua connessione internet o riprova più tardi." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not send feedback. Check your internet connection or try again later."
+          }
+        }
+      }
     },
     "Non supportato" : {
       "localizations" : {
@@ -1692,22 +2398,64 @@
       }
     },
     "Nota: Il passante è interamente monitorato (S1, S2, S5, S6, S12, S13) a livello di stazioni e tratte per rilevare anomalie e treni fermi globalmente." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note: The passante is fully monitored (S1, S2, S5, S6, S12, S13) at station and route level to detect anomalies and stopped trains globally."
+          }
+        }
+      }
     },
     "Notifica al passaggio in stazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify when passing station"
+          }
+        }
+      }
     },
     "Notifica alla partenza da origine" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify on departure from origin"
+          }
+        }
+      }
     },
     "Notifica cambio binario in stazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify platform change at station"
+          }
+        }
+      }
     },
     "Notifica di Base" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic Notification"
+          }
+        }
+      }
     },
     "Notifica variazione Ritardo" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify delay changes"
+          }
+        }
+      }
     },
     "Notifiche" : {
       "localizations" : {
@@ -1731,7 +2479,14 @@
       }
     },
     "Notifiche Avanzate" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced Notifications"
+          }
+        }
+      }
     },
     "Notifiche disabilitate" : {
       "extractionState" : "stale",
@@ -1745,10 +2500,24 @@
       }
     },
     "Notifiche Scioperi e News" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strike & News Notifications"
+          }
+        }
+      }
     },
     "Notifiche Treni Preferiti" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favourite Train Notifications"
+          }
+        }
+      }
     },
     "OFFLINE" : {
       "localizations" : {
@@ -1761,10 +2530,24 @@
       }
     },
     "Offrimi un Caffè" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy me a coffee"
+          }
+        }
+      }
     },
     "OK" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
     },
     "Orari Metropolitana" : {
       "localizations" : {
@@ -1777,10 +2560,24 @@
       }
     },
     "Ordine Sezioni Dashboard" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard Section Order"
+          }
+        }
+      }
     },
     "P" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D"
+          }
+        }
+      }
     },
     "Part. %@" : {
       "localizations" : {
@@ -1844,11 +2641,15 @@
         }
       }
     },
-    "Passante Ferroviario" : {
-
-    },
     "Per te" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For you"
+          }
+        }
+      }
     },
     "Personalizza come In Orario elabora le informazioni e gli scioperi per te:" : {
       "extractionState" : "stale",
@@ -1862,13 +2663,34 @@
       }
     },
     "Personalizza Dashboard" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customise Dashboard"
+          }
+        }
+      }
     },
     "Personalizza Passante" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customise Passante"
+          }
+        }
+      }
     },
     "Personalizzazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customisation"
+          }
+        }
+      }
     },
     "Pianifica un Viaggio" : {
       "localizations" : {
@@ -1892,7 +2714,14 @@
       }
     },
     "Possibile accodamento dovuto a forti ritardi. Valuta metropolitane (M3/M4) per attraversare Milano." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Possible queueing due to heavy delays. Consider metro lines (M3/M4) to cross Milan."
+          }
+        }
+      }
     },
     "Possibile treno fermo a %@ dalle %@ (oltre %d min)" : {
       "localizations" : {
@@ -1926,7 +2755,14 @@
       }
     },
     "Prego!" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're welcome!"
+          }
+        }
+      }
     },
     "Pressione Prolungata" : {
       "localizations" : {
@@ -1960,13 +2796,34 @@
       }
     },
     "Prossime partenze metro" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next metro departures"
+          }
+        }
+      }
     },
     "Quando attivo, il passante raggruppa le partenze in Ovest ed Est. Se disattivato, vedrai la lista classica Arrivi/Partenze." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When active, the passante groups departures into West and East. If disabled, you will see the classic Arrivals/Departures list."
+          }
+        }
+      }
     },
     "Recenti:" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recents:"
+          }
+        }
+      }
     },
     "Regione" : {
       "localizations" : {
@@ -2030,13 +2887,34 @@
       }
     },
     "Ricorda stato Passante" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remember Passante state"
+          }
+        }
+      }
     },
     "Ricorda stato Stazioni Preferite" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remember Favourite Stations state"
+          }
+        }
+      }
     },
     "Ricorda stato Treni Preferiti" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remember Favourite Trains state"
+          }
+        }
+      }
     },
     "Riepilogo Scioperi" : {
       "localizations" : {
@@ -2090,10 +2968,24 @@
       }
     },
     "Ripristina Acquisti" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Purchases"
+          }
+        }
+      }
     },
     "Riproduci Tutorial Iniziale" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play Initial Tutorial"
+          }
+        }
+      }
     },
     "Riprova" : {
       "localizations" : {
@@ -2116,7 +3008,14 @@
       }
     },
     "Riprova caricamento" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry loading"
+          }
+        }
+      }
     },
     "rit." : {
       "localizations" : {
@@ -2161,6 +3060,12 @@
     },
     "Ritardo di %lld' (previsto %@ da %@)" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delay of %lld' (expected %@ from %@)"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -2170,7 +3075,14 @@
       }
     },
     "Ritardo Medio" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Delay"
+          }
+        }
+      }
     },
     "Ritardo medio: %d'" : {
       "localizations" : {
@@ -2214,7 +3126,14 @@
       }
     },
     "Salva Destinazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Destination"
+          }
+        }
+      }
     },
     "Salva Tratta nei Preferiti" : {
       "localizations" : {
@@ -2257,7 +3176,14 @@
       }
     },
     "Scegli se mantenere in memoria lo stato aperto o chiuso delle varie sezioni." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose whether to remember the open or closed state of the various sections."
+          }
+        }
+      }
     },
     "Scioperi" : {
       "extractionState" : "stale",
@@ -2323,10 +3249,24 @@
       }
     },
     "Segnala Bug o Feedback" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report Bug or Feedback"
+          }
+        }
+      }
     },
     "Segnalazioni attive:" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active reports:"
+          }
+        }
+      }
     },
     "Segnalazioni in Tempo Reale" : {
       "localizations" : {
@@ -2360,6 +3300,12 @@
     },
     "Sei %@%@ delle %@ da %@?" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you %@%@ of %@ from %@?"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "new",
@@ -2369,7 +3315,14 @@
       }
     },
     "Sei sicuro di voler eliminare tutte le preferenze e le abitudini apprese finora? Questa operazione non può essere annullata." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to delete all preferences and habits learned so far? This operation cannot be undone."
+          }
+        }
+      }
     },
     "Seleziona" : {
       "extractionState" : "stale",
@@ -2414,7 +3367,14 @@
       }
     },
     "Servizio non attivo o dati non disponibili" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service not active or data not available"
+          }
+        }
+      }
     },
     "Servizio terminato" : {
       "localizations" : {
@@ -2507,13 +3467,34 @@
       }
     },
     "Stato" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        }
+      }
     },
     "Stato Passante" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passante Status"
+          }
+        }
+      }
     },
     "Stato Treno" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Train Status"
+          }
+        }
+      }
     },
     "Stazione di Arrivo" : {
       "extractionState" : "stale",
@@ -2538,10 +3519,24 @@
       }
     },
     "Stazione di rilevamento:" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detection station:"
+          }
+        }
+      }
     },
     "Stazione di transito:" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transit station:"
+          }
+        }
+      }
     },
     "Stazione frequente" : {
       "extractionState" : "stale",
@@ -2627,10 +3622,24 @@
       }
     },
     "Suggerimenti personalizzati" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalised suggestions"
+          }
+        }
+      }
     },
     "Suggerimento 💡" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestion 💡"
+          }
+        }
+      }
     },
     "Suggerirà percorsi alternativi in caso di cancellazioni o ritardi" : {
       "localizations" : {
@@ -2643,10 +3652,24 @@
       }
     },
     "Supporto e Info" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support & Info"
+          }
+        }
+      }
     },
     "Tabellone — seleziona stazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Board — select station"
+          }
+        }
+      }
     },
     "Tempo ampiamente sufficiente." : {
       "localizations" : {
@@ -2659,7 +3682,14 @@
       }
     },
     "Tieni premuto per segnalare" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long press to report"
+          }
+        }
+      }
     },
     "Tieni premuto su una fermata di interscambio per vedere la stima di coincidenza." : {
       "extractionState" : "stale",
@@ -2673,10 +3703,24 @@
       }
     },
     "Tieni premuto su una fermata di interscambio per vedere le partenze metro in tempo reale." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press and hold an interchange stop to see live metro departures."
+          }
+        }
+      }
     },
     "Tipo di Segnalazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report Type"
+          }
+        }
+      }
     },
     "Tipo Ricerca" : {
       "localizations" : {
@@ -2689,7 +3733,14 @@
       }
     },
     "Tocca il tasto - per nascondere le stazioni che non ti interessano, o + per ripristinarle." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the - button to hide stations you are not interested in, or + to restore them."
+          }
+        }
+      }
     },
     "Tocca per cercare le partenze reali" : {
       "localizations" : {
@@ -2702,13 +3753,34 @@
       }
     },
     "Trascina la home verso il basso per caricare i dati." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull down to refresh data."
+          }
+        }
+      }
     },
     "Trascina la home verso il basso per caricare l'itinerario live." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pull down to load live itinerary."
+          }
+        }
+      }
     },
     "Tratta" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route"
+          }
+        }
+      }
     },
     "Tratta abituale" : {
       "extractionState" : "stale",
@@ -2752,7 +3824,14 @@
       }
     },
     "Treni nel Passante" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trains in Passante"
+          }
+        }
+      }
     },
     "Treni visti di recente" : {
       "localizations" : {
@@ -2765,7 +3844,14 @@
       }
     },
     "Treno" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Train"
+          }
+        }
+      }
     },
     "Treno %@" : {
       "localizations" : {
@@ -2778,10 +3864,24 @@
       }
     },
     "Treno Affollato" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crowded Train"
+          }
+        }
+      }
     },
     "Treno Fermo" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped Train"
+          }
+        }
+      }
     },
     "Treno Monitorato %@" : {
       "localizations" : {
@@ -2794,7 +3894,14 @@
       }
     },
     "Treno segnalato fermo nei pressi di: %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Train reported stopped near: %@"
+          }
+        }
+      }
     },
     "Treno Soppresso" : {
       "extractionState" : "stale",
@@ -2818,7 +3925,14 @@
       }
     },
     "Tua email" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your email"
+          }
+        }
+      }
     },
     "Tutte le Stazioni" : {
       "localizations" : {
@@ -2852,7 +3966,14 @@
       }
     },
     "Ultimo rilevamento: " : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last detected: "
+          }
+        }
+      }
     },
     "Ultimo rilevamento: %@ alle %@" : {
       "localizations" : {
@@ -2885,7 +4006,14 @@
       }
     },
     "Usa la ricerca in alto per trovare e salvare stazioni metro preferite" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use search at the top to find and save favourite metro stations"
+          }
+        }
+      }
     },
     "Viaggi e Tratte" : {
       "localizations" : {
@@ -2909,7 +4037,14 @@
       }
     },
     "Vista Speciale Stazioni" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Special Station View"
+          }
+        }
+      }
     },
     "Visualizza lo stato dei tuoi treni senza aprire l'app." : {
       "localizations" : {
@@ -2922,7 +4057,14 @@
       }
     },
     "Visualizzazione" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        }
+      }
     },
     "Widget" : {
       "localizations" : {

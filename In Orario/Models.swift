@@ -41,8 +41,9 @@ struct SharedFormatters {
     }
     
     nonisolated static func formatDestination(_ name: String) -> String {
-        let lower = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        if lower.isEmpty { return name }
+        let normalized = name.normalizedForDisplay
+        let lower = normalized.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if lower.isEmpty { return normalized }
         
         if lower == "milano centrale" || lower == "centrale" || lower == "m. centrale" || lower == "m.centrale" || lower == "milano cle" || lower == "m. cle" || lower == "cle" {
             return "Milano Centrale"
@@ -786,9 +787,20 @@ struct SavedTrip: Codable, Identifiable, Equatable {
 }
 
 extension String {
+    var normalizedForDisplay: String {
+        var str = self.precomposedStringWithCanonicalMapping
+        if str.contains("Ã") || str.contains("©") || str.contains("¨") || str.contains("¬") || str.contains("³") {
+            if let data = str.data(using: .isoLatin1), let utf8Str = String(data: data, encoding: .utf8) {
+                str = utf8Str
+            }
+        }
+        return str
+    }
+    
     var formattedStationName: String {
-        let lower = self.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        if lower.isEmpty { return self }
+        let normalized = self.normalizedForDisplay
+        let lower = normalized.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if lower.isEmpty { return normalized }
         
         var formatted = lower
             .replacingOccurrences(of: "p.ta ", with: "Porta ")

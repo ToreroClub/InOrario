@@ -60,6 +60,12 @@ struct PassanteTunnelThermometerView: View {
         if d.contains("treviglio") { return "TREV" }
         if d.contains("varese") { return "VAR" }
         if d.contains("gallarate") { return "GALL" }
+        if d.contains("cantu") || d.contains("cantù") { return "CANTÙ" }
+        if d.contains("como") { return "COMO" }
+        if d.contains("chiasso") { return "CHIAS" }
+        if d.contains("lecco") { return "LECCO" }
+        if d.contains("albairate") { return "ALB" }
+        if d.contains("seregno") { return "SER" }
         if d.contains("saronno") { return "SAR" }
         if d.contains("lodi") { return "LODI" }
         if d.contains("mariano") { return "MAR" }
@@ -341,7 +347,7 @@ struct PassanteTunnelThermometerView: View {
         let lineArrivals: [LineArrivalInfo] = {
             var result: [LineArrivalInfo] = []
             for lineId in linesToProcess {
-                let trainsOfLine = passanteManager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
+                let trainsOfLine = passanteManager.passanteTrains.filter { passanteManager.isTrain($0, belongingToLine: lineId) }
                 
                 var destMinMins: [String: Int] = [:]
                 for train in trainsOfLine {
@@ -902,6 +908,13 @@ struct PassanteDepartureBoardView: View {
             
             Divider()
             
+            let currentStationName = passanteManager.selectedPassanteStation.name
+            let urbanNodes = ["Lancetti", "Garibaldi", "Repubblica", "Venezia", "Dateo", "Vittoria", "Bovisa", "Rogoredo", "Forlanini", "Certosa", "Villapizzone", "Rho Fiera"]
+            if urbanNodes.contains(where: { currentStationName.contains($0) }) {
+                LavoraMiBannerView()
+                    .padding(.horizontal)
+            }
+            
             let allTrains = passanteManager.passanteTrains
             if passanteManager.isLoadingPassanteBoard && allTrains.isEmpty {
                 HStack {
@@ -937,7 +950,7 @@ struct PassanteDepartureBoardView: View {
                             color: .orange,
                             trains: passanteManager.passanteTrainsViaRho.filter { t in
                                 let cat = t.category.uppercased()
-                                return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                return activeLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                             },
                             isLarge: true
                         )
@@ -946,7 +959,7 @@ struct PassanteDepartureBoardView: View {
                             color: .orange,
                             trains: passanteManager.passanteTrainsViaForlanini.filter { t in
                                 let cat = t.category.uppercased()
-                                return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                return activeLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                             },
                             isLarge: true
                         )
@@ -958,7 +971,7 @@ struct PassanteDepartureBoardView: View {
                             color: .red,
                             trains: passanteManager.passanteTrainsViaBovisa.filter { t in
                                 let cat = t.category.uppercased()
-                                return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                return activeLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                             },
                             isLarge: true
                         )
@@ -967,7 +980,7 @@ struct PassanteDepartureBoardView: View {
                             color: .red,
                             trains: passanteManager.passanteTrainsViaRogoredo.filter { t in
                                 let cat = t.category.uppercased()
-                                return activeLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                return activeLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                             },
                             isLarge: true
                         )
@@ -980,7 +993,7 @@ struct PassanteDepartureBoardView: View {
                                 color: .red,
                                 trains: passanteManager.passanteTrainsViaBovisa.filter { t in
                                     let cat = t.category.uppercased()
-                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                                 }
                             )
                             PassanteBranchView(
@@ -988,7 +1001,7 @@ struct PassanteDepartureBoardView: View {
                                 color: .orange,
                                 trains: passanteManager.passanteTrainsViaForlanini.filter { t in
                                     let cat = t.category.uppercased()
-                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                                 }
                             )
                         }
@@ -998,7 +1011,7 @@ struct PassanteDepartureBoardView: View {
                                 color: .orange,
                                 trains: passanteManager.passanteTrainsViaRho.filter { t in
                                     let cat = t.category.uppercased()
-                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                                 }
                             )
                             PassanteBranchView(
@@ -1006,7 +1019,7 @@ struct PassanteDepartureBoardView: View {
                                 color: .red,
                                 trains: passanteManager.passanteTrainsViaRogoredo.filter { t in
                                     let cat = t.category.uppercased()
-                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "REG" || cat == "RV"
+                                    return passanteManager.selectedSuburbanLines.isEmpty || passanteManager.selectedSuburbanLines.contains(cat) || cat == "S" || cat == "SUB" || cat == "REG" || cat == "RV"
                                 }
                             )
                         }

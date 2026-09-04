@@ -18,7 +18,7 @@ struct PassanteNodeView: View {
     private var arrivalsLines: [String]? {
         guard isNearby, let lineId = lineId else { return nil }
         guard passanteManager.selectedPassanteStation.matches(station) else { return nil }
-        let trainsOfLine = passanteManager.passanteTrains.filter { $0.category.uppercased() == lineId.uppercased() }
+        let trainsOfLine = passanteManager.passanteTrains.filter { passanteManager.isTrain($0, belongingToLine: lineId) }
         if trainsOfLine.isEmpty { return nil }
         
         var dirBestTrain: [String: (dest: String, mins: Int)] = [:]

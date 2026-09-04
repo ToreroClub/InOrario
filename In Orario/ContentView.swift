@@ -353,7 +353,7 @@ struct ContentView: View {
                     passanteLinesContent(activeNearby: locationManager.manualNearbyStation ?? locationManager.nearbyStation)
                     .padding(.vertical, 10)
                 } label: {
-                    Label("Passante Ferroviario", systemImage: "tram.fill")
+                    Label("Linee Suburbane", systemImage: "tram.fill")
                         .font(.headline)
                         .foregroundColor(.orange)
                         .padding(.vertical, 4)
@@ -1157,7 +1157,7 @@ struct NearbySectionView: View {
                         }
                     }
                     .fixedSize(horizontal: false, vertical: true)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 6, leading: 4, bottom: 6, trailing: 4))
                     .listRowBackground(Color.clear)
                 }
                 

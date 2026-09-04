@@ -142,4 +142,139 @@ struct AutocompleteField: View {
     }
 }
 
+struct FormattedNewsContentView: View {
+    let content: String
+    
+    private var isStructured: Bool {
+        content.contains(" — ") || content.contains("Date:") || content.contains("Data:")
+    }
+    
+    private var keyValues: [(key: String, value: String)] {
+        let parts = content.components(separatedBy: " — ")
+        var result: [(key: String, value: String)] = []
+        for part in parts {
+            let kv = part.components(separatedBy: ": ")
+            if kv.count >= 2 {
+                let key = kv[0].trimmingCharacters(in: .whitespaces)
+                let val = kv[1...].joined(separator: ": ").trimmingCharacters(in: .whitespaces)
+                result.append((key: key, value: val))
+            } else if !part.trimmingCharacters(in: .whitespaces).isEmpty {
+                result.append((key: "", value: part.trimmingCharacters(in: .whitespaces)))
+            }
+        }
+        return result
+    }
+    
+    var body: some View {
+        if isStructured && !keyValues.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(keyValues.indices, id: \.self) { idx in
+                    let item = keyValues[idx]
+                    HStack(alignment: .top, spacing: 8) {
+                        if !item.key.isEmpty {
+                            Text(item.key)
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                                .frame(width: 70, alignment: .leading)
+                        }
+                        Text(item.value)
+                            .font(.caption)
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding(10)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(8)
+        } else {
+            Text(content)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+        }
+    }
+}
+
+struct LavoraMiBannerView: View {
+    @AppStorage("lavoramiBannerImpressionCount") private var impressionCount: Int = 0
+    @AppStorage("lavoramiBannerIsCollapsed") private var isCollapsed: Bool = false
+    
+    var body: some View {
+        let isExpanded = !isCollapsed && impressionCount < 2
+        
+        Button {
+            if impressionCount < 2 {
+                impressionCount += 1
+            }
+            openLavoraMi()
+        } label: {
+            if isExpanded {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.title2)
+                        .foregroundColor(.orange)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Cantieri, Deviazioni & Linee")
+                                .font(.subheadline.bold())
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Button {
+                                withAnimation(.spring()) {
+                                    isCollapsed = true
+                                }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 16))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        
+                        Text("In Orario mostra ritardi e partenze in tempo reale. Per approfondimenti su cantieri, deviazioni e fermate sospese (Metro, Bus e Treni), scopri LavoraMi.")
+                            .font(.caption)
+                            .foregroundColor(.primary.opacity(0.85))
+                            .multilineTextAlignment(.leading)
+                    }
+                }
+                .padding(12)
+                .background(Color.orange.opacity(0.18))
+                .cornerRadius(12)
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.caption.bold())
+                    
+                    Text("Cantieri & Deviazioni con LavoraMi")
+                        .font(.caption.bold())
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "arrow.up.right.app.fill")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color.orange.opacity(0.18))
+                .cornerRadius(10)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func openLavoraMi() {
+        if let url = URL(string: "lavorami://"), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        } else if let url = URL(string: "https://apps.apple.com/app/id6760344298") {
+            UIApplication.shared.open(url)
+        } else if let url = URL(string: "https://lavorami.it") {
+            UIApplication.shared.open(url)
+        }
+    }
+}
+
 

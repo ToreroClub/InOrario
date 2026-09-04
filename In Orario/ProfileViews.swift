@@ -43,6 +43,12 @@ struct NewsCenterView: View {
                 .pickerStyle(.segmented)
                 .padding()
                 
+                if manager.strikeRegion == "Lombardia" && selectedCategory != .realtime {
+                    LavoraMiBannerView()
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                }
+                
                 List {
                     if filteredNews.isEmpty {
                         VStack(spacing: 15) {
@@ -62,7 +68,7 @@ struct NewsCenterView: View {
                                         Text("URGENTE").font(.system(size: 10, weight: .bold)).padding(.horizontal, 6).padding(.vertical, 2).background(.red).foregroundColor(.white).cornerRadius(4)
                                     }
                                 }
-                                Text(item.content).font(.subheadline).foregroundColor(.secondary)
+                                FormattedNewsContentView(content: item.content)
                                 
                                 if selectedCategory == .sciopero {
                                     Button(action: {
@@ -74,18 +80,14 @@ struct NewsCenterView: View {
                                             UIApplication.shared.open(url)
                                         }
                                     }) {
-                                        HStack {
+                                        HStack(spacing: 4) {
                                             Image(systemName: "magnifyingglass")
                                             Text("Cerca su Google")
                                         }
-                                        .font(.caption)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(Color.blue.opacity(0.1))
+                                        .font(.caption.bold())
                                         .foregroundColor(.blue)
-                                        .cornerRadius(8)
                                     }
-                                    .padding(.top, 4)
+                                    .padding(.top, 2)
                                 }
                             }.padding(.vertical, 8)
                         }

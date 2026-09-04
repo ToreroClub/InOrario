@@ -104,20 +104,27 @@ import SwiftUI
         }
         self.lastLocalUpdateTimestamp = now
         
-        let centralStation = Station(name: "Milano Porta Venezia", rfiID: nil, vtID: "S01649", lat: 45.4746, lon: 9.2052)
-        let lancettiStation = Station(name: "Milano Lancetti", rfiID: nil, vtID: "S01643", lat: 45.4925, lon: 9.1751)
+        let venezia = Station(name: "Milano Porta Venezia", rfiID: nil, vtID: "S01649", lat: 45.4746, lon: 9.2052)
+        let repubblica = Station(name: "Milano Repubblica", rfiID: nil, vtID: "S01648", lat: 45.4795, lon: 9.1963)
+        let lancetti = Station(name: "Milano Lancetti", rfiID: nil, vtID: "S01643", lat: 45.4925, lon: 9.1751)
         
-        async let trainsVenezia = manager.fetchTrainsForStation(station: centralStation)
-        async let trainsLancetti = manager.fetchTrainsForStation(station: lancettiStation)
+        async let trainsVenezia = manager.fetchTrainsForStation(station: venezia)
+        async let trainsRepubblica = manager.fetchTrainsForStation(station: repubblica)
+        async let trainsLancetti = manager.fetchTrainsForStation(station: lancetti)
         
         let ven = await trainsVenezia
+        let rep = await trainsRepubblica
         let lan = await trainsLancetti
         
-        var allTrains = ven
-        let existingNumbers = Set(ven.map { $0.number })
-        for t in lan {
-            if !existingNumbers.contains(t.number) {
-                allTrains.append(t)
+        var allTrains: [Train] = []
+        var existingNumbers = Set<String>()
+        
+        for list in [ven, rep, lan].sorted(by: { $0.count > $1.count }) {
+            for t in list {
+                if !existingNumbers.contains(t.number) {
+                    allTrains.append(t)
+                    existingNumbers.insert(t.number)
+                }
             }
         }
         
@@ -143,21 +150,7 @@ import SwiftUI
         }
         
         var validDelays: [Int] = []
-        var selectedTrains: [Train] = []
-        var seenNumbers = Set<String>()
-        
-        for t in ven.prefix(4) {
-            if !seenNumbers.contains(t.number) {
-                seenNumbers.insert(t.number)
-                selectedTrains.append(t)
-            }
-        }
-        for t in lan.prefix(3) {
-            if !seenNumbers.contains(t.number) {
-                seenNumbers.insert(t.number)
-                selectedTrains.append(t)
-            }
-        }
+        let selectedTrains = Array(allTrains.prefix(7))
         
         for t in selectedTrains {
             let delayStr = t.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "").replacingOccurrences(of: "R: ", with: "")
@@ -338,6 +331,11 @@ import SwiftUI
             return isRogoredoDestination(dest) ? "Rogoredo" : "Bovisa"
         } else if cat == "S5" || cat == "S6" {
             return isForlaniniDestination(dest) ? "Forlanini" : "Rho"
+        } else if cat == "SUB" {
+            if isForlaniniDestination(dest) { return "Forlanini" }
+            if isRhoDestination(dest) { return "Rho" }
+            if isRogoredoDestination(dest) { return "Rogoredo" }
+            if isBovisaDestination(dest) { return "Bovisa" }
         }
         return nil
     }
@@ -376,6 +374,28 @@ import SwiftUI
             return "Est"
         }
         return nil
+    }
+    
+    func isTrain(_ train: Train, belongingToLine lineId: String) -> Bool {
+        let cat = train.category.uppercased()
+        let lid = lineId.uppercased()
+        if cat == lid { return true }
+        
+        if cat == "SUB" || cat == "REG" || cat == "RV" {
+            let d = train.destination.lowercased()
+            if lid == "S5" && (d.contains("varese") || d.contains("treviglio") || d.contains("gallarate")) { return true }
+            if lid == "S6" && (d.contains("novara") || d.contains("pioltello") || d.contains("magenta") || d.contains("rho")) { return true }
+            if lid == "S1" && (d.contains("lodi") || d.contains("saronno")) { return true }
+            if lid == "S2" && (d.contains("mariano") || d.contains("seveso") || (d.contains("rogoredo") && !d.contains("lodi"))) { return true }
+            if lid == "S12" && (d.contains("melegnano") || d.contains("cormano")) { return true }
+            if lid == "S13" && (d.contains("pavia") || d.contains("garbagnate") || d.contains("bovisa")) { return true }
+            if lid == "S3" && (d.contains("saronno") || d.contains("cadorna")) { return true }
+            if lid == "S4" && (d.contains("camnago") || d.contains("cadorna")) { return true }
+            if lid == "S8" && (d.contains("lecco") || d.contains("garibaldi")) { return true }
+            if lid == "S9" && (d.contains("saronno") || d.contains("albairate")) { return true }
+            if lid == "S11" && (d.contains("chiasso") || d.contains("como") || d.contains("cantu") || d.contains("cantù") || d.contains("seregno") || d.contains("rho")) { return true }
+        }
+        return false
     }
     
     func resolvedPlatform(for stationName: String, train: Train) -> String {

@@ -76,10 +76,6 @@ class TrainGuessingEngine: ObservableObject {
     init() {
         // Explicitly reset the lock on a cold start of the application session
         self.activeGuessLocked = false
-        // 🛠️ RIGA DA AGGIUNGERE TEMPORANEAMENTE PER SIMULAZIONE:
-        self.currentGuess = .found(train: Train(category: "S6", number: "24653", destination: "Treviglio", time: "15:34", delay: "In orario", platform: "2"))
-        self.guessOriginStationName = "Magenta"
-        self.guessActualDepartureTime = "15:38"
     }
     
     func markStationSeen(_ stationID: String) {
