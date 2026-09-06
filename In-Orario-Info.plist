@@ -7,6 +7,14 @@
 		<string>com.carlo.InOrario.refresh</string>
 		<string>com.toreroclub.inorario.ai_processing</string>
 	</array>
+	<key>NSCalendarsUsageDescription</key>
+	<string>L'app richiede l'accesso al calendario per aggiungere promemoria degli scioperi.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>L'app richiede l'accesso al calendario per aggiungere promemoria degli scioperi.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>lavorami</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

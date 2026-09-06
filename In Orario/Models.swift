@@ -28,6 +28,54 @@ struct NewsItem: Codable, Identifiable, Equatable {
     }
 }
 
+extension NewsItem {
+    var sortableDate: Date {
+        if let dateStr = date, !dateStr.isEmpty {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "it_IT")
+            
+            // YYYY-MM-DD
+            formatter.dateFormat = "yyyy-MM-dd"
+            if let d = formatter.date(from: dateStr) { return d }
+            
+            // DD/MM/YYYY
+            formatter.dateFormat = "dd/MM/yyyy"
+            if let d = formatter.date(from: dateStr) { return d }
+            
+            // DD/MM
+            formatter.dateFormat = "dd/MM"
+            if let d = formatter.date(from: dateStr) {
+                let calendar = Calendar.current
+                let currentYear = calendar.component(.year, from: Date())
+                var components = calendar.dateComponents([.month, .day], from: d)
+                components.year = currentYear
+                if let fullDate = calendar.date(from: components) { return fullDate }
+            }
+        }
+        
+        // Estrazione data DD/MM dal titolo (es. "Sciopero ... 08/09")
+        if let regex = try? NSRegularExpression(pattern: #"(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?"#) {
+            let nsTitle = title as NSString
+            if let match = regex.firstMatch(in: title, options: [], range: NSRange(location: 0, length: nsTitle.length)) {
+                let dayStr = nsTitle.substring(with: match.range(at: 1))
+                let monthStr = nsTitle.substring(with: match.range(at: 2))
+                var yearStr = String(Calendar.current.component(.year, from: Date()))
+                if match.range(at: 3).location != NSNotFound {
+                    yearStr = nsTitle.substring(with: match.range(at: 3))
+                    if yearStr.count == 2 { yearStr = "20" + yearStr }
+                }
+                let formatter = DateFormatter()
+                formatter.dateFormat = "d/M/yyyy"
+                if let d = formatter.date(from: "\(dayStr)/\(monthStr)/\(yearStr)") {
+                    return d
+                }
+            }
+        }
+        
+        return Date.distantFuture
+    }
+}
+
 struct SharedFormatters {
     nonisolated static var time: DateFormatter {
         if let formatter = Thread.current.threadDictionary["timeFormatter"] as? DateFormatter {

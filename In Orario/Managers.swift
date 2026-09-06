@@ -2567,14 +2567,6 @@ struct Haptics {
             let localItems = await trenitaliaTask
             result = backendItems + localItems.filter { $0.category == "realtime" }
             
-            result.sort { a, b in
-                if a.isUrgent != b.isUrgent { return a.isUrgent }
-                let catA = a.category ?? ""
-                let catB = b.category ?? ""
-                if catA == "sciopero" && catB != "sciopero" { return true }
-                if catB == "sciopero" && catA != "sciopero" { return false }
-                return true
-            }
             saveCache(items: result)
         } else if (aiManager.isAppleIntelligenceAvailable || (aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled)) && smartSummaryEnabled {
             let canRun = isPremium || aiManager.canRunFreeLocalAI()
@@ -2597,6 +2589,21 @@ struct Haptics {
         } else {
             result = await executeRawScraping(region: strikeRegion)
             saveCache(items: result)
+        }
+        
+        result.sort { a, b in
+            let dateA = a.sortableDate
+            let dateB = b.sortableDate
+            if dateA != dateB {
+                return dateA < dateB
+            }
+            if a.isUrgent != b.isUrgent { return a.isUrgent }
+            let catA = a.category ?? ""
+            let catB = b.category ?? ""
+            if catA == "sciopero" && catB != "sciopero" { return true }
+            if catB == "sciopero" && catA != "sciopero" { return false }
+            
+            return a.title < b.title
         }
         
         return filterExpiredStrikes(result)

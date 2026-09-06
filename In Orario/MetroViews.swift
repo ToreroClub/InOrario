@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import Combine
 
 // MARK: - Metro Home View
 
@@ -20,13 +21,23 @@ struct MetroHomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // MARK: Subtitle
-                Text("Metro")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.secondary)
-                    .padding(.leading, 20)
-                    .padding(.top, -4)
-                    .padding(.bottom, -10)
+                HStack(spacing: 8) {
+                    Text("Metro")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    
+                    Text("BETA")
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.purple.opacity(0.15))
+                        .foregroundColor(.purple)
+                        .cornerRadius(6)
+                }
+                .padding(.leading, 20)
+                .padding(.top, -4)
+                .padding(.bottom, -10)
 
                 // MARK: Status Dashboard
                 MetroStatusDashboardView()
@@ -665,12 +676,74 @@ struct MetroMapFullScreenView: View {
     }
 }
 
+@MainActor
+class MetroMapManager: ObservableObject {
+    static let shared = MetroMapManager()
+    
+    @Published var isDownloading = false
+    @Published var errorMessage: String? = nil
+    @Published var isDownloaded = false
+    
+    private let remoteURL = URL(string: "https://gestioneinorario.toreroclub.com/metro_map.pdf")!
+    
+    var localPDFURL: URL? {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let localFile = docs.appendingPathComponent("metro_map.pdf")
+        if FileManager.default.fileExists(atPath: localFile.path) {
+            return localFile
+        }
+        if let bundleURL = Bundle.main.url(forResource: "metro_map", withExtension: "pdf") {
+            return bundleURL
+        }
+        return nil
+    }
+    
+    init() {
+        checkStatus()
+    }
+    
+    func checkStatus() {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let localFile = docs.appendingPathComponent("metro_map.pdf")
+        isDownloaded = FileManager.default.fileExists(atPath: localFile.path) || Bundle.main.url(forResource: "metro_map", withExtension: "pdf") != nil
+    }
+    
+    func downloadMap() async {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let destinationURL = docs.appendingPathComponent("metro_map.pdf")
+        
+        isDownloading = true
+        errorMessage = nil
+        
+        do {
+            let (tempURL, response) = try await URLSession.shared.download(from: remoteURL)
+            guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
+                throw NSError(domain: "DownloadError", code: 404, userInfo: [NSLocalizedDescriptionKey: "Impossibile scaricare la mappa dal server."])
+            }
+            
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            try FileManager.default.moveItem(at: tempURL, to: destinationURL)
+            
+            isDownloading = false
+            isDownloaded = true
+            Haptics.play(.medium)
+        } catch {
+            isDownloading = false
+            errorMessage = "Errore durante il download: \(error.localizedDescription)"
+            Haptics.play(.light)
+        }
+    }
+}
+
 struct MetroInteractiveMapView: View {
     let onStationTap: (MetroStation) -> Void
+    @StateObject private var mapManager = MetroMapManager.shared
     @State private var showFullScreen = false
     
     var body: some View {
-        if let pdfURL = Bundle.main.url(forResource: "metro_map", withExtension: "pdf") {
+        if let pdfURL = mapManager.localPDFURL {
             Button {
                 Haptics.play(.medium)
                 showFullScreen = true
@@ -707,18 +780,67 @@ struct MetroInteractiveMapView: View {
                 })
             }
         } else {
-            VStack {
-                Image(systemName: "map.fill")
-                    .font(.title)
-                    .foregroundColor(.secondary)
-                Text("Mappa non disponibile")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+            VStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                        .frame(height: 190)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                        )
+                    
+                    VStack(spacing: 8) {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 36))
+                            .foregroundColor(.purple)
+                        
+                        Text("Mappa Metropolitana Interattiva")
+                            .font(.headline)
+                        
+                        Text("Scarica la mappa HD per consultarla ed esplorare le stazioni.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                        
+                        if mapManager.isDownloading {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                Text("Download in corso...")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.purple)
+                            }
+                            .padding(.top, 4)
+                        } else {
+                            Button {
+                                Task {
+                                    await mapManager.downloadMap()
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                    Text("Scarica Mappa Metro (~1.4 MB)")
+                                }
+                                .font(.caption.bold())
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(Color.purple)
+                                .foregroundColor(.white)
+                                .cornerRadius(20)
+                            }
+                            .padding(.top, 4)
+                        }
+                        
+                        if let error = mapManager.errorMessage {
+                            Text(error)
+                                .font(.caption2)
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .padding(14)
+                }
             }
-            .frame(height: 200)
-            .frame(maxWidth: .infinity)
-            .background(Color(.secondarySystemGroupedBackground))
-            .cornerRadius(14)
         }
     }
 }

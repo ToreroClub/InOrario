@@ -199,6 +199,9 @@ struct LavoraMiBannerView: View {
     @AppStorage("lavoramiBannerImpressionCount") private var impressionCount: Int = 0
     @AppStorage("lavoramiBannerIsCollapsed") private var isCollapsed: Bool = false
     
+    private let brandRed = Color(red: 233/255.0, green: 33/255.0, blue: 33/255.0)
+    private let brandRedGradientEnd = Color(red: 237/255.0, green: 39/255.0, blue: 42/255.0)
+    
     var body: some View {
         let isExpanded = !isCollapsed && impressionCount < 2
         
@@ -209,66 +212,130 @@ struct LavoraMiBannerView: View {
             openLavoraMi()
         } label: {
             if isExpanded {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.title2)
-                        .foregroundColor(.orange)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("Cantieri, Deviazioni & Linee")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Button {
-                                withAnimation(.spring()) {
-                                    isCollapsed = true
-                                }
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                                    .font(.system(size: 16))
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .center, spacing: 12) {
+                        // App Icon
+                        if let uiImage = UIImage(named: "LavoraMiIcon") {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 44, height: 44)
+                                .cornerRadius(10)
+                                .shadow(color: Color.black.opacity(0.1), radius: 2)
+                        } else {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(LinearGradient(colors: [brandRed, brandRedGradientEnd], startPoint: .top, endPoint: .bottom))
+                                    .frame(width: 44, height: 44)
+                                
+                                Image(systemName: "square.stack.3d.down.right.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.white)
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                         
-                        Text("In Orario mostra ritardi e partenze in tempo reale. Per approfondimenti su cantieri, deviazioni e fermate sospese (Metro, Bus e Treni), scopri LavoraMi.")
-                            .font(.caption)
-                            .foregroundColor(.primary.opacity(0.85))
-                            .multilineTextAlignment(.leading)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text("LavoraMi")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                Text("Consigliata")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(brandRed.opacity(0.15))
+                                    .foregroundColor(brandRed)
+                                    .cornerRadius(6)
+                            }
+                            
+                            Text("Scioperi, cantieri e deviazioni a Milano")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button {
+                            withAnimation(.spring()) {
+                                isCollapsed = true
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary.opacity(0.6))
+                                .font(.system(size: 18))
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                }
-                .padding(12)
-                .background(Color.orange.opacity(0.18))
-                .cornerRadius(12)
-            } else {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                        .font(.caption.bold())
                     
-                    Text("Cantieri & Deviazioni con LavoraMi")
+                    Text("In Orario monitora ritardi e tabelloni dei treni. Per approfondire scioperi del trasporto pubblico, cantieri stradali e deviazioni a Milano, scopri l'app LavoraMi.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineSpacing(2)
+                        .multilineTextAlignment(.leading)
+                }
+                .padding(14)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(brandRed.opacity(0.25), lineWidth: 1)
+                )
+            } else {
+                HStack(spacing: 10) {
+                    if let uiImage = UIImage(named: "LavoraMiIcon") {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
+                            .cornerRadius(6)
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(brandRed)
+                                .frame(width: 24, height: 24)
+                            Image(systemName: "square.stack.3d.down.right.fill")
+                                .font(.caption2)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    
+                    Text("Scioperi e deviazioni Milano su LavoraMi")
                         .font(.caption.bold())
                         .foregroundColor(.primary)
                     
                     Spacer()
                     
-                    Image(systemName: "arrow.up.right.app.fill")
-                        .font(.caption)
-                        .foregroundColor(.orange)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.bold())
+                        .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal, 12)
-                .background(Color.orange.opacity(0.18))
-                .cornerRadius(10)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(brandRed.opacity(0.2), lineWidth: 1)
+                )
             }
         }
         .buttonStyle(PlainButtonStyle())
     }
     
     private func openLavoraMi() {
-        if let url = URL(string: "lavorami://"), UIApplication.shared.canOpenURL(url) {
+        if let url = URL(string: "lavorami://train"), UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
+        } else if let url = URL(string: "lavorami://"), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        } else if let url = URL(string: "lavorami://train") {
+            UIApplication.shared.open(url) { success in
+                if !success {
+                    if let storeUrl = URL(string: "https://apps.apple.com/app/id6760344298") {
+                        UIApplication.shared.open(storeUrl)
+                    }
+                }
+            }
         } else if let url = URL(string: "https://apps.apple.com/app/id6760344298") {
             UIApplication.shared.open(url)
         } else if let url = URL(string: "https://lavorami.it") {

@@ -85,15 +85,17 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     private override init() {
         super.init()
         
-        // Impostiamo il default corretto in base all'hardware e supportiamo la migrazione a Apple Intelligence
+        // Impostiamo il default corretto in base alla disponibilità di Apple Intelligence
         if isAppleIntelligenceAvailable {
             if selectedModelID == "qwen3-0.6b-q3" || selectedModelID.isEmpty || selectedModelID.starts(with: "qwen") {
                 selectedModelID = "apple_intelligence"
-                aiModeChoice = .local
+                if aiModeChoice != .cloud && aiModeChoice != .none {
+                    aiModeChoice = .local
+                }
             }
         } else {
-            if selectedModelID == "qwen3-0.6b-q3" || selectedModelID == "apple_intelligence" {
-                selectedModelID = "qwen2.5-0.5b-q4"
+            if aiModeChoice == .local {
+                aiModeChoice = .none
             }
         }
         
@@ -197,8 +199,7 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     // MARK: - Usage Gating
     func canRunFreeLocalAI() -> Bool {
         guard aiModeChoice == .local else { return false }
-        let hasModel = isAppleIntelligenceSelected || (isHardwareCompatible && isLocalModelInstalled)
-        return hasModel
+        return isAppleIntelligenceAvailable
     }
     
     func recordLocalAIExecution() {

@@ -2,11 +2,7 @@ import Foundation
 import Combine
 import CoreLocation
 import SwiftUI
-
-import Foundation
-import Combine
-import CoreLocation
-import SwiftUI
+import UserNotifications
 
 enum GuessState: Equatable {
     case guessing
@@ -28,6 +24,7 @@ class TrainGuessingEngine: ObservableObject {
     
     // We keep this in memory, not AppStorage, so it resets each session (cold start)
     @Published var activeGuessLocked: Bool = false
+    private var cancellables = Set<AnyCancellable>()
     
     var lastSeenTimestamp: Date? {
         get {
@@ -71,11 +68,54 @@ class TrainGuessingEngine: ObservableObject {
         currentGuess = nil
     }
     
+    func sendGuessNotification(for train: Train) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            guard granted else { return }
+            
+            let content = UNMutableNotificationContent()
+            let prep = self.preposizioneArticolata(per: train)
+            let originName = self.guessOriginStationName.replacingOccurrences(of: "Milano ", with: "")
+            
+            content.title = "Sei in viaggio con In Orario?"
+            content.body = "Sei \(prep)\(train.category) \(train.number) delle \(self.guessActualDepartureTime) da \(originName)?"
+            content.sound = .default
+            content.categoryIdentifier = "TRAIN_GUESS_CATEGORY"
+            content.userInfo = [
+                "train_number": train.number,
+                "train_category": train.category,
+                "train_destination": train.destination,
+                "train_time": train.time,
+                "train_delay": train.delay,
+                "train_platform": train.platform
+            ]
+            
+            let request = UNNotificationRequest(identifier: "TRAIN_GUESS_NOTIFICATION", content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
+    
     private var isCurrentlyGuessing = false
     
     init() {
         // Explicitly reset the lock on a cold start of the application session
         self.activeGuessLocked = false
+        
+        // Listen for notification action responses
+        NotificationCenter.default.publisher(for: NSNotification.Name("ConfirmTrainGuessNotification"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    self?.confirmGuess()
+                }
+            }
+            .store(in: &cancellables)
+            
+        NotificationCenter.default.publisher(for: NSNotification.Name("DismissTrainGuessNotification"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    self?.dismissGuess()
+                }
+            }
+            .store(in: &cancellables)
     }
     
     func markStationSeen(_ stationID: String) {
@@ -85,6 +125,7 @@ class TrainGuessingEngine: ObservableObject {
     
     func appEnteredActive(locationManager: LocationManager, passanteManager: PassanteManager, manager: TrainManager) {
         guard !activeGuessLocked else { return }
+        if case .found = currentGuess { return }
         
         // Don't start another guess if we are already doing one
         guard !isCurrentlyGuessing else { return }
@@ -336,6 +377,7 @@ class TrainGuessingEngine: ObservableObject {
                 }
                 
                 self.currentGuess = .found(train: chosenTrain)
+                self.sendGuessNotification(for: chosenTrain)
             }
         }
     }

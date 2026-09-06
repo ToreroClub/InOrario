@@ -11,7 +11,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         let ignoreAction = UNNotificationAction(identifier: "IGNORE_STRIKE", title: "Sì lo so, non avvisarmi più", options: [.destructive])
         let strikeCategory = UNNotificationCategory(identifier: "STRIKE_CATEGORY", actions: [ignoreAction], intentIdentifiers: [], options: [])
-        UNUserNotificationCenter.current().setNotificationCategories([strikeCategory])
+        
+        let confirmTrainAction = UNNotificationAction(identifier: "CONFIRM_TRAIN_GUESS", title: "Sì, sono a bordo", options: [.foreground])
+        let dismissTrainAction = UNNotificationAction(identifier: "DISMISS_TRAIN_GUESS", title: "No", options: [.destructive])
+        let trainGuessCategory = UNNotificationCategory(identifier: "TRAIN_GUESS_CATEGORY", actions: [confirmTrainAction, dismissTrainAction], intentIdentifiers: [], options: [])
+        
+        UNUserNotificationCenter.current().setNotificationCategories([strikeCategory, trainGuessCategory])
         
         BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.toreroclub.inorario.ai_processing", using: nil) { task in
             guard let bgTask = task as? BGProcessingTask else { return }
@@ -33,14 +38,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         }
         
         Task {
-            if await MainActor.run(resultType: Bool.self, body: { aiManager.preferLocalAI && !aiManager.isLocalModelInstalled }) {
-                await MainActor.run {
-                    aiManager.downloadModel(aiManager.recommendedModel)
-                }
-            }
-            
             let hasLocalAI = await MainActor.run {
-                aiManager.isAppleIntelligenceAvailable || (aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled)
+                aiManager.aiModeChoice == .local && aiManager.isAppleIntelligenceAvailable
             }
             if hasLocalAI {
                 let tempManager = await MainActor.run { TrainManager() }
@@ -86,12 +85,32 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     @MainActor
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        if response.actionIdentifier == "IGNORE_STRIKE" {
-            if let strikeId = response.notification.request.content.userInfo["strike_id"] as? String {
+        let action = response.actionIdentifier
+        let category = response.notification.request.content.categoryIdentifier
+        let userInfo = response.notification.request.content.userInfo
+        
+        if action == "IGNORE_STRIKE" {
+            if let strikeId = userInfo["strike_id"] as? String {
                 manager?.ignoreStrike(strikeId: strikeId)
             }
+        } else if action == "CONFIRM_TRAIN_GUESS" || (action == UNNotificationDefaultActionIdentifier && category == "TRAIN_GUESS_CATEGORY") {
+            NotificationCenter.default.post(name: NSNotification.Name("ConfirmTrainGuessNotification"), object: nil, userInfo: userInfo)
+            if let trainNumber = userInfo["train_number"] as? String {
+                let cat = userInfo["train_category"] as? String ?? "Treno"
+                let dest = userInfo["train_destination"] as? String ?? "Destinazione"
+                let time = userInfo["train_time"] as? String ?? "--:--"
+                let delay = userInfo["train_delay"] as? String ?? "In orario"
+                let platform = userInfo["train_platform"] as? String ?? "--"
+                
+                let t = Train(category: cat, number: trainNumber, destination: dest, time: time, delay: delay, platform: platform)
+                DispatchQueue.main.async {
+                    self.manager?.deepLinkTrain = t
+                }
+            }
+        } else if action == "DISMISS_TRAIN_GUESS" {
+            NotificationCenter.default.post(name: NSNotification.Name("DismissTrainGuessNotification"), object: nil)
         } else {
-            if let trainNumber = response.notification.request.content.userInfo["train_number"] as? String {
+            if let trainNumber = userInfo["train_number"] as? String {
                 DispatchQueue.main.async {
                     self.manager?.deepLinkTrain = Train(category: "Treno", number: trainNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
                 }

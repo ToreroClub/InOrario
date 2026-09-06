@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import EventKit
 
 enum NewsCategory: String, CaseIterable, Identifiable {
     case sciopero = "Scioperi"
@@ -27,74 +28,133 @@ struct NewsCenterView: View {
     @Environment(\.dismiss) var dismiss
     @State private var selectedCategory: NewsCategory = .sciopero
     @State private var isRefreshing = false
+    @State private var showCalendarAlert = false
+    @State private var calendarAlertMessage = ""
+    @State private var addedCalendarItemIds: Set<UUID> = []
     
     var filteredNews: [NewsItem] {
         news.filter { ($0.category ?? "sciopero") == selectedCategory.filterKey }
+            .sorted { a, b in
+                let dateA = a.sortableDate
+                let dateB = b.sortableDate
+                if dateA != dateB {
+                    return dateA < dateB
+                }
+                if a.isUrgent != b.isUrgent { return a.isUrgent }
+                return a.title < b.title
+            }
     }
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                Picker("Categoria", selection: $selectedCategory) {
-                    ForEach(NewsCategory.allCases) { category in
-                        Text(category.localizedName).tag(category)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding()
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                if manager.strikeRegion == "Lombardia" && selectedCategory != .realtime {
-                    LavoraMiBannerView()
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                }
-                
-                List {
-                    if filteredNews.isEmpty {
-                        VStack(spacing: 15) {
-                            Spacer()
-                            Image(systemName: "tray.full").font(.system(size: 50)).foregroundColor(.secondary)
-                            let localizedCat = String(localized: String.LocalizationValue(selectedCategory.rawValue))
-                            Text(String(format: String(localized: "Nessuna notizia in %@"), localizedCat)).font(.headline).foregroundColor(.secondary)
-                            Spacer()
-                        }.frame(maxWidth: .infinity).listRowBackground(Color.clear)
-                    } else {
-                        ForEach(filteredNews) { item in
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text(item.title).font(.headline)
-                                    Spacer()
-                                    if item.isUrgent {
-                                        Text("URGENTE").font(.system(size: 10, weight: .bold)).padding(.horizontal, 6).padding(.vertical, 2).background(.red).foregroundColor(.white).cornerRadius(4)
-                                    }
-                                }
-                                FormattedNewsContentView(content: item.content)
-                                
-                                if selectedCategory == .sciopero {
-                                    Button(action: {
-                                        let locality = item.regions?.joined(separator: " ") ?? ""
-                                        let dateText = item.date ?? ""
-                                        let query = "sciopero treni \(locality) giorno \(dateText)"
-                                        if let urlString = "https://www.google.com/search?q=\(query)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-                                           let url = URL(string: urlString) {
-                                            UIApplication.shared.open(url)
+                ScrollView {
+                    VStack(spacing: 12) {
+                        Picker("Categoria", selection: $selectedCategory) {
+                            ForEach(NewsCategory.allCases) { category in
+                                Text(category.localizedName).tag(category)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        
+                        if manager.strikeRegion == "Lombardia" && selectedCategory != .realtime {
+                            LavoraMiBannerView()
+                                .padding(.horizontal, 16)
+                        }
+                        
+                        if filteredNews.isEmpty {
+                            VStack(spacing: 15) {
+                                Image(systemName: "tray.full")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.secondary)
+                                let localizedCat = String(localized: String.LocalizationValue(selectedCategory.rawValue))
+                                Text(String(format: String(localized: "Nessuna notizia in %@"), localizedCat))
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                        } else {
+                            LazyVStack(spacing: 12) {
+                                ForEach(filteredNews) { item in
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text(item.title).font(.headline)
+                                            Spacer()
+                                            if item.isUrgent {
+                                                Text("URGENTE")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(Color.red)
+                                                    .foregroundColor(.white)
+                                                    .cornerRadius(4)
+                                            }
                                         }
-                                    }) {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "magnifyingglass")
-                                            Text("Cerca su Google")
+                                        FormattedNewsContentView(content: item.content)
+                                        
+                                        if selectedCategory == .sciopero {
+                                            HStack {
+                                                let isAdded = addedCalendarItemIds.contains(item.id)
+                                                Button(action: {
+                                                    addStrikeToCalendar(item: item)
+                                                }) {
+                                                    HStack(spacing: 5) {
+                                                        Image(systemName: isAdded ? "calendar.badge.checkmark" : "calendar.badge.plus")
+                                                        Text(isAdded ? "Aggiunto" : "Aggiungi al Calendario")
+                                                    }
+                                                    .font(.caption.bold())
+                                                    .padding(.vertical, 5)
+                                                    .padding(.horizontal, 10)
+                                                    .background(isAdded ? Color.green.opacity(0.12) : Color.red.opacity(0.12))
+                                                    .foregroundColor(isAdded ? .green : .red)
+                                                    .cornerRadius(8)
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                Button(action: {
+                                                    let locality = item.regions?.joined(separator: " ") ?? ""
+                                                    let dateText = item.date ?? ""
+                                                    let query = "sciopero treni \(locality) giorno \(dateText)"
+                                                    if let urlString = "https://www.google.com/search?q=\(query)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                                                       let url = URL(string: urlString) {
+                                                        UIApplication.shared.open(url)
+                                                    }
+                                                }) {
+                                                    HStack(spacing: 4) {
+                                                        Image(systemName: "magnifyingglass")
+                                                        Text("Cerca su Google")
+                                                    }
+                                                    .font(.caption.bold())
+                                                    .foregroundColor(.blue)
+                                                }
+                                            }
+                                            .padding(.top, 4)
                                         }
-                                        .font(.caption.bold())
-                                        .foregroundColor(.blue)
                                     }
-                                    .padding(.top, 2)
+                                    .padding(16)
+                                    .background(Color(.secondarySystemGroupedBackground))
+                                    .cornerRadius(16)
+                                    .padding(.horizontal, 16)
                                 }
-                            }.padding(.vertical, 8)
+                            }
                         }
                     }
+                    .padding(.bottom, 20)
                 }
             }
             .navigationTitle("Centro News")
+            .alert("Calendario", isPresented: $showCalendarAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(calendarAlertMessage)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Chiudi") { dismiss() }.fontWeight(.bold) }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -115,6 +175,62 @@ struct NewsCenterView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+    
+    private func addStrikeToCalendar(item: NewsItem) {
+        let eventStore = EKEventStore()
+        
+        let performSave = {
+            let event = EKEvent(eventStore: eventStore)
+            event.title = item.title
+            event.notes = item.content
+            
+            let strikeDate = item.sortableDate
+            let startDate = (strikeDate != Date.distantFuture) ? strikeDate : Date()
+            
+            event.startDate = startDate
+            event.endDate = startDate
+            event.isAllDay = true
+            event.calendar = eventStore.defaultCalendarForNewEvents
+            
+            do {
+                try eventStore.save(event, span: .thisEvent)
+                DispatchQueue.main.async {
+                    addedCalendarItemIds.insert(item.id)
+                    Haptics.play(.medium)
+                    calendarAlertMessage = "Lo sciopero '\(item.title)' è stato aggiunto al calendario dell'iPhone."
+                    showCalendarAlert = true
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    Haptics.play(.light)
+                    calendarAlertMessage = "Impossibile salvare lo sciopero nel calendario: \(error.localizedDescription)"
+                    showCalendarAlert = true
+                }
+            }
+        }
+        
+        let handlePermission: (Bool, Error?) -> Void = { granted, error in
+            if granted && error == nil {
+                performSave()
+            } else {
+                DispatchQueue.main.async {
+                    Haptics.play(.light)
+                    calendarAlertMessage = "Permesso per accedere al Calendario negato. Abilitalo nelle Impostazioni dell'iPhone per aggiungere gli scioperi."
+                    showCalendarAlert = true
+                }
+            }
+        }
+        
+        if #available(iOS 17.0, *) {
+            eventStore.requestFullAccessToEvents { granted, error in
+                handlePermission(granted, error)
+            }
+        } else {
+            eventStore.requestAccess(to: .event) { granted, error in
+                handlePermission(granted, error)
             }
         }
     }

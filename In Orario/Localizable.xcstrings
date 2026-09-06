@@ -345,6 +345,9 @@
         }
       }
     },
+    "Aggiungi al Calendario" : {
+
+    },
     "Aggiungi i tuoi treni abituali ai preferiti per abilitare e configurare le notifiche personalizzate." : {
       "localizations" : {
         "en" : {
@@ -419,6 +422,12 @@
         }
       }
     },
+    "Aggiunto" : {
+
+    },
+    "Aiuta un singolo sviluppatore a mantenere l'app sempre attiva." : {
+
+    },
     "alle %@" : {
       "localizations" : {
         "en" : {
@@ -489,6 +498,9 @@
         }
       }
     },
+    "Apple Intelligence richiede un dispositivo Apple compatibile ed una versione di iOS supportata." : {
+
+    },
     "Apri Impostazioni" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -542,6 +554,7 @@
       }
     },
     "ATTENZIONE: Qwen è un modello sperimentale eseguito in-app. Potrebbe causare crash per esaurimento memoria (RAM) o consumi elevati su alcuni dispositivi." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -560,6 +573,9 @@
           }
         }
       }
+    },
+    "Attivo" : {
+
     },
     "Avanti" : {
       "localizations" : {
@@ -613,6 +629,7 @@
       }
     },
     "Beta" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -621,6 +638,9 @@
           }
         }
       }
+    },
+    "BETA" : {
+
     },
     "Bin. %@" : {
       "localizations" : {
@@ -652,6 +672,9 @@
           }
         }
       }
+    },
+    "Calendario" : {
+
     },
     "Cambio a %@" : {
       "localizations" : {
@@ -702,12 +725,6 @@
           }
         }
       }
-    },
-    "Cantieri & Deviazioni con LavoraMi" : {
-
-    },
-    "Cantieri, Deviazioni & Linee" : {
-
     },
     "Capolinea" : {
       "localizations" : {
@@ -903,6 +920,9 @@
         }
       }
     },
+    "Cloud InOrario" : {
+
+    },
     "Coincidenza al limite." : {
       "localizations" : {
         "en" : {
@@ -985,7 +1005,11 @@
         }
       }
     },
+    "Consigliata" : {
+
+    },
     "Consigliato" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1206,6 +1230,7 @@
       }
     },
     "Download in corso per un altro modello..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1215,7 +1240,11 @@
         }
       }
     },
+    "Download in corso..." : {
+
+    },
     "Download in corso... %d%%" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1225,7 +1254,11 @@
         }
       }
     },
+    "Elaborazione istantanea ed avanzata sui server dedicati di In Orario." : {
+
+    },
     "Elaborazione istantanea sui server di In Orario." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1246,6 +1279,7 @@
       }
     },
     "Elimina Modello" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1264,6 +1298,9 @@
           }
         }
       }
+    },
+    "Errore Acquisto" : {
+
     },
     "Errore di Invio" : {
       "localizations" : {
@@ -1532,6 +1569,7 @@
       }
     },
     "IA Locale (Offline - Beta)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1573,6 +1611,7 @@
       }
     },
     "Il tuo dispositivo non supporta l'IA locale (richiesti ≥ 3 GB RAM, iPhone 11 / SE 2 o successivi)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1632,7 +1671,7 @@
         }
       }
     },
-    "In Orario mostra ritardi e partenze in tempo reale. Per approfondimenti su cantieri, deviazioni e fermate sospese (Metro, Bus e Treni), scopri LavoraMi." : {
+    "In Orario monitora ritardi e tabelloni dei treni. Per approfondire scioperi del trasporto pubblico, cantieri stradali e deviazioni a Milano, scopri l'app LavoraMi." : {
 
     },
     "In Orario v%@ (%@)" : {
@@ -1660,6 +1699,9 @@
           }
         }
       }
+    },
+    "In Orario? Metro" : {
+
     },
     "In Orario? No!" : {
       "localizations" : {
@@ -1734,6 +1776,7 @@
       }
     },
     "Installato" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1784,7 +1827,14 @@
         }
       }
     },
+    "L'app è e rimarrà sempre senza alcun banner o tracciamento." : {
+
+    },
+    "L'elaborazione Cloud è riservata a chi sostiene il progetto In Orario per coprire i costi dei server di calcolo." : {
+
+    },
     "L'elaborazione Cloud è riservata a chi sostiene il progetto per coprire i costi dei server." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1793,6 +1843,9 @@
           }
         }
       }
+    },
+    "La modalità Cloud InOrario è stata attivata con successo." : {
+
     },
     "La Tua Regione" : {
       "extractionState" : "stale",
@@ -1814,6 +1867,9 @@
           }
         }
       }
+    },
+    "LavoraMi" : {
+
     },
     "Le donazioni non sono al momento disponibili." : {
       "localizations" : {
@@ -1875,6 +1931,9 @@
           }
         }
       }
+    },
+    "Le offerte donazione non sono al momento disponibili." : {
+
     },
     "Limite gratuito raggiunto" : {
       "localizations" : {
@@ -1957,7 +2016,11 @@
         }
       }
     },
+    "Mappa Metropolitana Interattiva" : {
+
+    },
     "Mappa non disponibile" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2244,7 +2307,11 @@
         }
       }
     },
+    "Nessuna elaborazione automatica degli scioperi." : {
+
+    },
     "Nessuna elaborazione automatica degli scioperi. Puoi attivarla in seguito." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2528,6 +2595,9 @@
           }
         }
       }
+    },
+    "Offri una Colazione Pendolare 🥐" : {
+
     },
     "Offrimi un Caffè" : {
       "localizations" : {
@@ -3017,6 +3087,9 @@
         }
       }
     },
+    "Risposte Istantanee & Chiare" : {
+
+    },
     "rit." : {
       "localizations" : {
         "en" : {
@@ -3156,6 +3229,7 @@
       }
     },
     "Scarica ed Attiva (%@)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3165,7 +3239,14 @@
         }
       }
     },
+    "Scarica la mappa HD per consultarla ed esplorare le stazioni." : {
+
+    },
+    "Scarica Mappa Metro (~1.4 MB)" : {
+
+    },
     "Scarica un modello compatto per riassunti offline sul tuo dispositivo." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3205,6 +3286,12 @@
           }
         }
       }
+    },
+    "Scioperi e deviazioni Milano su LavoraMi" : {
+
+    },
+    "Scioperi, cantieri e deviazioni a Milano" : {
+
     },
     "Sciopero in corso" : {
       "extractionState" : "stale",
@@ -3366,6 +3453,9 @@
         }
       }
     },
+    "Senza Pubblicità" : {
+
+    },
     "Servizio non attivo o dati non disponibili" : {
       "localizations" : {
         "en" : {
@@ -3387,6 +3477,7 @@
       }
     },
     "Sfrutta l'IA integrata nel tuo dispositivo senza consumare spazio aggiuntivo." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3395,6 +3486,12 @@
           }
         }
       }
+    },
+    "Sfrutta l'IA integrata nel tuo dispositivo senza inviare dati all'esterno." : {
+
+    },
+    "Sintesi automatica degli scioperi elaborata in tempo reale." : {
+
     },
     "Smart Routes" : {
       "localizations" : {
@@ -3436,7 +3533,14 @@
         }
       }
     },
+    "Sostieni & Attiva Cloud" : {
+
+    },
+    "Sostieni il Progetto" : {
+
+    },
     "Spazio insufficiente (richiesti %@ GB liberi)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3447,6 +3551,7 @@
       }
     },
     "Spazio libero: %@ GB" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3457,6 +3562,7 @@
       }
     },
     "Spazio richiesto: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

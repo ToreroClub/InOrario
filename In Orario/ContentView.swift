@@ -84,6 +84,9 @@ struct ContentView: View {
     let passanteTimer = Timer.publish(every: 45, on: .main, in: .common).autoconnect()
     
     var appTitle: LocalizedStringKey {
+        if showingMetroView {
+            return "In Orario? Metro"
+        }
         if hasUrgentNews {
             return "In Orario? No!"
         }
@@ -471,8 +474,8 @@ struct ContentView: View {
                         requestNotificationPermissions()
                         
                         let aiManager = AIFeatureManager.shared
-                        if aiManager.aiModeChoice == .local && !aiManager.isLocalModelInstalled {
-                            aiManager.downloadModel(aiManager.selectedModel)
+                        if aiManager.aiModeChoice == .local && !aiManager.isAppleIntelligenceAvailable {
+                            aiManager.aiModeChoice = .none
                         }
                     }
             }
@@ -571,20 +574,6 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     func mainToolbarContent() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                Haptics.play(.medium)
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    showingMetroView.toggle()
-                }
-            } label: {
-                Image(systemName: showingMetroView ? "tram.fill" : "m.square.fill")
-                    .font(.title3.bold())
-                    .foregroundColor(showingMetroView ? .orange : .red)
-                    .contentTransition(.symbolEffect(.replace))
-            }
-        }
-        
         // ─── BOLLA NEWS (più a sinistra) ───
         if !showingMetroView {
             ToolbarItem(placement: .topBarTrailing) {
@@ -1001,7 +990,7 @@ struct NearbySectionView: View {
     var body: some View {
         let hasLiveActivities = !manager.activeLiveActivities.isEmpty
         
-        if !smartSuggestions.isEmpty || hasLiveActivities || nearby != nil {
+        if !smartSuggestions.isEmpty || hasLiveActivities || nearby != nil || guessingEngine.activeGuess != nil {
             Section(header: HStack {
                 Label("Per te", systemImage: "sparkles")
                     .font(.subheadline.bold())
@@ -1160,8 +1149,6 @@ struct NearbySectionView: View {
                     .listRowInsets(EdgeInsets(top: 6, leading: 4, bottom: 6, trailing: 4))
                     .listRowBackground(Color.clear)
                 }
-                
-
             }
         }
     }

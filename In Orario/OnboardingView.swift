@@ -713,7 +713,7 @@ struct OnboardingAIChoiceView: View {
                 .padding(.bottom, 4)
             
             ScrollView(showsIndicators: false) {
-                AIModelSelectorView(isOnboarding: false)
+                AIModelSelectorView(isOnboarding: true)
                     .padding(.bottom, 20)
             }
         }
