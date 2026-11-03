@@ -1,0 +1,28 @@
+# OS X
+.DS_Store
+*/.DS_Store
+**/.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.xcworkspace/contents.xcworkspacedata
+
+# Swift Package Manager
+.build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output
+
+# Logs and patches
+*.log
+*.patch
+build_log.txt
+

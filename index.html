@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Orario — Orari treni in tempo reale</title>
+    <meta name="description" content="In Orario è un'app gratuita e senza pubblicità per chi prende il treno ogni giorno in Italia. Orari in tempo reale, Passante Ferroviario, Metropolitana, notifiche scioperi.">
+    <meta name="theme-color" content="#0b0b0c">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050507;
+            --bg-card: #111116;
+            --bg-card-hover: #16161c;
+            --surface: #1a1a22;
+            --orange: #ff9f0a;
+            --orange-dim: rgba(255,159,10,0.10);
+            --green: #30d158;
+            --green-dim: rgba(48,209,88,0.10);
+            --blue: #0a84ff;
+            --blue-dim: rgba(10,132,255,0.10);
+            --red: #ff453a;
+            --purple: #bf5af2;
+            --text: #f5f5f7;
+            --text-2: #86868b;
+            --text-3: #56565a;
+            --border: rgba(255,255,255,0.07);
+            --border-hover: rgba(255,255,255,0.14);
+            --r-sm: 10px;
+            --r-md: 16px;
+            --r-lg: 24px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            z-index: 100; padding: 0 24px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        nav.scrolled {
+            background: rgba(5,5,7,0.88);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner {
+            max-width: 1100px; margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: center;
+            height: 60px;
+        }
+        .nav-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 16px;
+        }
+        .nav-logo-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: var(--orange); display: flex; align-items: center;
+            justify-content: center; font-size: 17px;
+        }
+        .nav-links {
+            display: flex; align-items: center; gap: 28px; list-style: none;
+        }
+        .nav-links a {
+            font-size: 14px; font-weight: 500; color: var(--text-2);
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-download {
+            font-size: 13px; font-weight: 700;
+            padding: 7px 18px; border-radius: 100px;
+            background: var(--orange); color: #000;
+            transition: opacity 0.2s;
+        }
+        .nav-download:hover { opacity: 0.85; }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center;
+            justify-content: center; padding: 120px 24px 80px;
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: -10%; left: 50%;
+            transform: translateX(-50%);
+            width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(255,159,10,0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-content { position: relative; z-index: 2; max-width: 820px; }
+
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--green-dim); border: 1px solid rgba(48,209,88,0.2);
+            color: var(--green); padding: 7px 18px; border-radius: 100px;
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 28px;
+        }
+        .hero-badge-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green);
+            animation: blink 2s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+        .hero h1 {
+            font-size: clamp(38px, 6vw, 68px);
+            font-weight: 800; letter-spacing: -2.5px;
+            line-height: 1.08; margin-bottom: 20px;
+        }
+        .orange { color: var(--orange); }
+
+        .hero-sub {
+            font-size: clamp(16px, 2vw, 18px);
+            color: var(--text-2); max-width: 580px;
+            margin: 0 auto 40px; line-height: 1.7;
+        }
+
+        /* personal note */
+        .hero-note {
+            display: inline-block;
+            font-size: 14px; color: var(--text-3);
+            font-style: italic; margin-bottom: 40px;
+            border-left: 2px solid var(--orange);
+            padding-left: 14px; text-align: left;
+        }
+
+        .hero-actions {
+            display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 9px;
+            padding: 14px 24px; border-radius: 13px;
+            font-size: 14px; font-weight: 700; font-family: inherit;
+            border: none; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-ios {
+            background: linear-gradient(135deg, var(--blue), #0066cc);
+            color: #fff; box-shadow: 0 4px 20px rgba(10,132,255,0.2);
+        }
+        .btn-ios:hover { box-shadow: 0 8px 28px rgba(10,132,255,0.35); }
+        .btn-android {
+            background: linear-gradient(135deg, #3ddc84, #008542);
+            color: #050507; box-shadow: 0 4px 20px rgba(61,220,132,0.2);
+        }
+        .btn-android:hover { box-shadow: 0 8px 28px rgba(61,220,132,0.35); }
+        .btn-ghost {
+            background: var(--bg-card);
+            color: var(--text); border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { background: var(--bg-card-hover); border-color: var(--border-hover); }
+
+        /* ── TICKER STATIC ── */
+        .ticker-static {
+            padding: 16px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            background: rgba(17,17,22,0.5);
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-2);
+        }
+        .ticker-static-item { display: inline-flex; align-items: center; gap: 6px; }
+        .ticker-static-sep { color: var(--text-3); margin: 0 16px; font-weight: 400; }
+
+        /* ── SECTIONS ── */
+        section { padding: 96px 0; }
+
+        .eyebrow {
+            font-size: 12px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--orange); margin-bottom: 14px;
+        }
+        .section-title {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800; letter-spacing: -1.2px;
+            line-height: 1.15; margin-bottom: 16px;
+        }
+        .section-sub {
+            font-size: 16px; color: var(--text-2);
+            max-width: 560px; line-height: 1.65;
+        }
+
+        /* ── FEATURES GRID ── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-top: 52px;
+        }
+        @media (max-width: 900px) {
+            .features-grid { grid-template-columns: repeat(2,1fr); }
+        }
+        @media (max-width: 580px) {
+            .features-grid { grid-template-columns: 1fr; }
+        }
+
+        .feat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            padding: 28px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .feat-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-3px);
+        }
+        .feat-card.wide { grid-column: span 2; }
+        @media (max-width: 900px) { .feat-card.wide { grid-column: span 1; } }
+
+        .feat-icon {
+            width: 44px; height: 44px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; margin-bottom: 18px;
+        }
+        .feat-card h3 {
+            font-size: 17px; font-weight: 700;
+            letter-spacing: -0.3px; margin-bottom: 8px;
+        }
+        .feat-card p {
+            font-size: 14px; color: var(--text-2); line-height: 1.6;
+        }
+
+        /* Demo box inside wide card */
+        .di-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 380px;
+        }
+        .di-demo-train { font-size: 14px; font-weight: 800; color: var(--orange); }
+        .di-demo-dest { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+        .di-demo-status { font-size: 16px; font-weight: 800; color: var(--green); text-align: right; }
+        .di-demo-pos { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+        /* Demo box inside wide card for favorites */
+        .pref-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 380px;
+            width: 100%;
+        }
+        .pref-demo-header {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 8px;
+        }
+        .pref-star { color: var(--purple); font-size: 14px; }
+        .pref-title { font-size: 12px; font-weight: 700; color: var(--text); }
+        .pref-solutions { display: flex; flex-direction: column; gap: 8px; }
+        .pref-sol-item {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 12.5px;
+        }
+        .pref-time { font-weight: 800; color: var(--text); }
+        .pref-train { color: var(--text-2); font-weight: 600; }
+        .pref-delay { font-weight: 800; text-align: right; }
+        .pref-delay.green { color: var(--green); }
+        .pref-delay.orange { color: var(--orange); }
+
+        /* AI Demo */
+        .ai-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 450px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            text-align: left;
+        }
+        .ai-demo-before { color: var(--text-3); flex: 1; text-decoration: line-through; }
+        .ai-demo-arrow { color: var(--orange); font-size: 18px; font-weight: bold; }
+        .ai-demo-after { color: var(--text); flex: 1.2; border-left: 2px solid var(--orange); padding-left: 8px; }
+
+        /* Live Activity Demo */
+        .la-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 420px;
+            width: 100%;
+            text-align: left;
+        }
+        .la-demo-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
+        .la-train { font-weight: 800; color: #fff; }
+        .la-delay.green { color: var(--green); font-weight: 700; }
+        .la-route-container { display: flex; align-items: center; gap: 8px; margin: 16px 0; }
+        .la-station-label { font-size: 11px; color: var(--text-2); font-weight: 600; width: 80px; }
+        .la-station-label:last-child { text-align: right; }
+        .la-route-bar-wrapper {
+            flex: 1; height: 6px; background: #2c2c2e; border-radius: 3px; position: relative;
+        }
+        .la-route-bar { height: 100%; border-radius: 3px; }
+        .la-route-bar.green { background: var(--green); }
+        .la-route-train-icon {
+            position: absolute; top: -7px; transform: translateX(-50%); font-size: 14px;
+        }
+        .la-footer { font-size: 11px; color: var(--text-3); text-align: center; }
+
+        /* Compact Metro Demo */
+        .metro-demo.compact {
+            margin-top: 16px;
+            background: #000; border-radius: 16px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .metro-demo.compact .metro-demo-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .metro-demo.compact .metro-badge {
+            width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 900; color: #fff;
+            flex-shrink: 0;
+        }
+        .metro-demo.compact .metro-badge.m2 { background: var(--green); }
+        .metro-demo.compact .metro-badge.m5 { background: var(--purple); }
+        .metro-demo.compact .metro-dest {
+            font-size: 11px; font-weight: 700; color: var(--text-2);
+            flex: 1; text-align: left; margin-left: 4px;
+        }
+        .metro-demo.compact .metro-chip {
+            padding: 3px 6px; border-radius: 6px;
+            font-size: 11.5px; font-weight: 800;
+            display: inline-flex; align-items: center; gap: 3px;
+        }
+        .metro-demo.compact .metro-chip.ok { background: var(--green-dim); color: var(--green); }
+        .metro-demo.compact .metro-chip.hurry { background: var(--orange-dim); color: var(--orange); }
+
+        /* Geo Mini Demo */
+        .geo-mini-demo {
+            margin-top: 16px;
+            background: #000; border-radius: 14px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-align: left;
+        }
+        .geo-pin { font-size: 16px; }
+        .geo-details { display: flex; flex-direction: column; }
+        .geo-station { font-size: 12px; font-weight: 800; color: #fff; }
+        .geo-distance { font-size: 10px; color: var(--green); font-weight: 700; margin-top: 2px; }
+
+        /* Push Mini Demo */
+        .push-mini-demo {
+            margin-top: 16px;
+            background: rgba(26, 26, 34, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            text-align: left;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .push-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 10px; color: var(--text-2); }
+        .push-icon { font-size: 10px; }
+        .push-app-name { font-weight: 600; color: #fff; flex: 1; }
+        .push-time { color: var(--text-3); }
+        .push-body { font-size: 11px; color: var(--text); line-height: 1.4; font-weight: 500; }
+
+        /* News Mini Demo */
+        .news-mini-demo {
+            margin-top: 16px;
+            background: #000; border-radius: 14px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            text-align: left;
+        }
+        .news-tag {
+            display: inline-block;
+            background: rgba(255, 69, 58, 0.15);
+            color: var(--red);
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .news-title { font-size: 11px; font-weight: 700; color: var(--text-2); line-height: 1.35; }
+
+        /* Expanded Metro Demo */
+        .metro-demo {
+            margin-top: 20px;
+            background: #000; border-radius: 22px;
+            padding: 16px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            max-width: 450px;
+            width: 100%;
+            text-align: left;
+        }
+        .metro-demo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .metro-demo-station { font-size: 14px; font-weight: 800; color: #fff; }
+        .metro-demo-arrival { font-size: 11px; font-weight: 600; color: var(--text-2); }
+        .metro-demo-lines { display: flex; flex-direction: column; gap: 12px; }
+        .metro-demo-line { display: flex; align-items: center; gap: 12px; }
+        
+        .metro-badge {
+            width: 28px; height: 28px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 900; color: #fff;
+            flex-shrink: 0;
+        }
+        .metro-badge.m2 { background: var(--green); }
+        .metro-badge.m5 { background: var(--purple); }
+        
+        .metro-demo-line-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+        .metro-dest { font-size: 10px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metro-chips { display: flex; gap: 8px; }
+        .metro-chip {
+            padding: 4px 8px; border-radius: 8px;
+            font-size: 12px; font-weight: 800;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .metro-chip.ok { background: var(--green-dim); color: var(--green); }
+        .metro-chip.hurry { background: var(--orange-dim); color: var(--orange); }
+        .metro-chip.run { background: rgba(255,159,10,0.15); color: var(--orange); }
+        .metro-chip.miss { background: rgba(255,69,58,0.1); color: var(--red); }
+
+        /* Pref Mini Demo */
+        .pref-mini-demo {
+            margin-top: 16px;
+            background: #000; border-radius: 14px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            text-align: left;
+        }
+        .pref-mini-route { font-size: 11px; font-weight: 800; color: var(--purple); margin-bottom: 6px; }
+        .pref-mini-status { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        .pref-mini-time { font-weight: 700; color: #fff; }
+        .pref-mini-train { color: var(--text-2); font-weight: 500; }
+        .pref-mini-delay { font-weight: 800; }
+        .pref-mini-delay.orange { color: var(--orange); }
+        .pref-mini-delay.green { color: var(--green); }
+
+        /* Full Width Card */
+        .feat-card.full { grid-column: span 3; }
+        @media (max-width: 900px) { .feat-card.full { grid-column: span 1; } }
+
+        /* Report Popup Mockup */
+        .report-menu-demo {
+            margin-top: 10px;
+            text-align: left;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .report-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #ff9f0a;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 100px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255,159,10,0.25);
+        }
+        .report-popup {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 8px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 260px;
+            margin: 0 auto;
+        }
+        .report-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .report-option:last-child {
+            border-bottom: none;
+        }
+        .report-opt-icon-img {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .report-opt-text {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        /* ── PASSANTE ── */
+        .passante-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 56px; align-items: center;
+            margin-top: 52px;
+        }
+        @media (max-width: 760px) { .passante-layout { grid-template-columns:1fr; gap:32px; } }
+
+        .passante-desc { font-size: 15px; color: var(--text-2); line-height: 1.7; margin-bottom: 28px; }
+
+        .pf-list { display: flex; flex-direction: column; gap: 18px; }
+        .pf-item { display: flex; gap: 14px; align-items: flex-start; }
+        .pf-ico {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: var(--surface); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .pf-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+        .pf-item p { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+
+        /* Passante station visualizer (mockup of the app UI) */
+        .pf-visual {
+            background: #000000;
+            border: 1px solid var(--border);
+            border-radius: 36px;
+            padding: 16px 20px 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            max-width: 380px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            text-align: left;
+        }
+        
+        .pf-grabber {
+            width: 36px;
+            height: 5px;
+            background: #2c2c2e;
+            border-radius: 2.5px;
+            margin: 0 auto 16px;
+        }
+
+        .pf-sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .pf-sheet-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 auto;
+            transform: translateX(20px);
+        }
+        .pf-sheet-close {
+            font-size: 15px;
+            font-weight: 500;
+            color: #8e8e93;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .pf-sheet-close:hover {
+            color: #ffffff;
+        }
+
+        .pf-segment-control {
+            background: #1c1c1e;
+            border-radius: 8px;
+            padding: 2px;
+            display: flex;
+            margin-bottom: 18px;
+        }
+        .pf-segment-btn {
+            flex: 1;
+            text-align: center;
+            padding: 6px 0;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .pf-segment-btn.active {
+            background: #48484a;
+            color: #ffffff;
+        }
+        .pf-segment-btn:not(.active) {
+            background: transparent;
+            color: #8e8e93;
+        }
+
+        .pf-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1c1c1e;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
+        }
+        .pf-toggle-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .pf-toggle-icon {
+            color: #ff9f0a;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        .pf-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 26px;
+        }
+        .pf-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .pf-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #3a3a3c;
+            transition: .3s;
+            border-radius: 26px;
+        }
+        .pf-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .pf-slider {
+            background-color: #ff9f0a;
+        }
+        input:checked + .pf-slider:before {
+            transform: translateX(18px);
+        }
+
+        .pf-panel-card {
+            background: #1c1c1e;
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .pf-status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .pf-status-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #30d158;
+        }
+        .pf-status-dot {
+            width: 7px;
+            height: 7px;
+            background-color: #30d158;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .pf-status-badge {
+            background: #2c2c2e;
+            color: #8e8e93;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .pf-train-badge-row {
+            margin-bottom: 20px;
+        }
+        .pf-train-badge-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #2c2c2e;
+            border-radius: 8px;
+            padding: 4px 10px 4px 4px;
+        }
+        .pf-train-number {
+            background: #ffd60a;
+            color: #000000;
+            font-size: 12px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 5px;
+        }
+        .pf-train-details {
+            font-size: 12px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.1px;
+        }
+
+        .pf-timeline {
+            position: relative;
+            padding-left: 32px;
+            margin-top: 10px;
+        }
+        .pf-timeline::before {
+            content: "";
+            position: absolute;
+            left: 10px;
+            top: 4px;
+            bottom: 24px;
+            width: 4px;
+            background: #30d158;
+            border-radius: 2px;
+        }
+        .pf-timeline::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            bottom: 4px;
+            height: 24px;
+            width: 4px;
+            border-left: 4px dashed #30d158;
+        }
+        
+        .pf-timeline-item {
+            position: relative;
+            padding-bottom: 24px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+        }
+        .pf-timeline-item:last-child {
+            padding-bottom: 12px;
+        }
+        
+        .pf-timeline-dot {
+            position: absolute;
+            left: -32px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #1c1c1e;
+            border: 4.5px solid #30d158;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        .pf-timeline-dot::after {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #121214;
+        }
+        
+        .pf-timeline-item.highlighted {
+            background: rgba(255, 159, 10, 0.08);
+            border-radius: 12px;
+            margin-left: -8px;
+            padding-left: 8px;
+            margin-right: -8px;
+            padding-right: 8px;
+            padding-top: 8px;
+            padding-bottom: 32px;
+            margin-top: -8px;
+        }
+        .pf-timeline-item.highlighted .pf-timeline-dot {
+            left: -24px;
+            border-color: #ff9f0a;
+            background: #ff9f0a;
+        }
+        .pf-timeline-item.highlighted .pf-timeline-dot::after {
+            content: "!";
+            color: #000000;
+            font-size: 13px;
+            font-weight: 900;
+            background: transparent;
+            border: none;
+            width: auto;
+            height: auto;
+            border-radius: 0;
+            margin-top: -1px;
+        }
+
+        /* ── DOWNLOAD ── */
+        .download-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 60px 48px;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .download-card::before {
+            content: '';
+            position: absolute; top:0; left:0; right:0; height:1px;
+            background: linear-gradient(90deg, transparent, var(--orange), transparent);
+        }
+        .download-card .section-sub { margin: 0 auto 36px; }
+        .download-btns { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+        .status-note {
+            margin-top: 24px;
+            font-size: 13px; color: var(--text-3);
+            font-style: italic;
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 44px 0;
+        }
+        .footer-inner {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            flex-wrap: wrap; gap: 28px;
+        }
+        .footer-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .footer-bull {
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .footer-brand-name { font-size: 15px; font-weight: 700; color: var(--text); }
+        .footer-meta { font-size: 13px; color: var(--text-3); line-height: 1.8; }
+        .footer-meta a { color: var(--text-3); transition: color 0.2s; }
+        .footer-meta a:hover { color: var(--text); }
+        .footer-links { display: flex; flex-direction: column; gap: 8px; text-align: right; }
+        .footer-links a {
+            font-size: 13px; color: var(--text-2);
+            transition: color 0.2s;
+        }
+        .footer-links a:hover { color: var(--text); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .download-card { padding: 40px 24px; }
+            .footer-inner { flex-direction: column; }
+            .footer-links { text-align: left; }
+        }
+        @media (max-width: 480px) {
+            .btn { width: 100%; justify-content: center; }
+            .hero-actions { flex-direction: column; align-items: center; }
+        }
+
+        /* Reveal */
+        .reveal {
+            opacity: 0; transform: translateY(32px);
+            transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        .delay-1 { transition-delay: 0.08s; }
+        .delay-2 { transition-delay: 0.16s; }
+        .delay-3 { transition-delay: 0.24s; }
+
+        /* ── ANDROID MODAL ── */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 5, 7, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--r-lg);
+            width: 90%;
+            max-width: 520px;
+            padding: 32px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            transform: translateY(20px);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: left;
+        }
+        .modal-backdrop.active .modal-card {
+            transform: translateY(0);
+        }
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-2);
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s, background-color 0.2s;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .modal-close:hover {
+            color: var(--text);
+            background: rgba(255,255,255,0.08);
+        }
+        .modal-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .modal-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        .modal-header p {
+            font-size: 13.5px;
+            color: var(--text-2);
+            line-height: 1.5;
+        }
+        .modal-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .modal-step {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .step-num {
+            background: var(--orange-dim);
+            color: var(--orange);
+            border: 1px solid rgba(255,159,10,0.2);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .step-content h4 {
+            font-size: 14.5px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .step-content p {
+            font-size: 12.5px;
+            color: var(--text-2);
+            line-height: 1.45;
+            margin-bottom: 10px;
+        }
+        .step-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 2px 0;
+        }
+        .btn-modal-primary {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, var(--orange), #d47a00);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 700;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(255,159,10,0.15);
+            cursor: pointer;
+        }
+        .btn-modal-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(255,159,10,0.25);
+        }
+        .btn-android-download {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #3ddc84, #008542);
+            color: #050507;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 700;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(61,220,132,0.15);
+            cursor: pointer;
+        }
+        .btn-android-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(61,220,132,0.25);
+        }
+        .modal-footer-note {
+            font-size: 11.5px;
+            color: var(--text-3);
+            line-height: 1.45;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+    <div class="nav-inner">
+        <a href="#" class="nav-logo">
+            <div class="nav-logo-icon">🚆</div>
+            <span>In Orario?</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#features">Funzionalità</a></li>
+            <li><a href="#passante">Passante</a></li>
+            <li><a href="#help">Supporto</a></li>
+            <li><a href="#download">Download</a></li>
+        </ul>
+        <a href="#download" class="nav-download">Scarica l'app</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+    <div class="hero-content">
+        <div class="hero-badge reveal">
+            <div class="hero-badge-dot"></div>
+            Disponibile su iOS e Android
+        </div>
+
+        <h1 class="reveal delay-1">In <span class="orange">Orario?</span></h1>
+
+        <p class="hero-sub reveal delay-2">
+            Visualizza i tabelloni delle partenze di tutte le stazioni italiane e segui lo stato del tuo treno. Gratuita, senza pubblicità, senza account.
+        </p>
+
+
+        <div class="hero-actions reveal delay-3">
+            <a href="https://apps.apple.com/app/in-orario/id6773419855" class="btn btn-ios" target="_blank" rel="noopener">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.23.67-2.95 1.51-.62.73-1.16 1.87-1.01 2.98 1.11.09 2.27-.58 2.97-1.43z"/></svg>
+                App Store (iOS)
+            </a>
+            <a href="https://play.google.com/apps/testing/com.carlo.inorario" class="btn btn-android" target="_blank" rel="noopener">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18a.48.48 0 00-.84-.48l-1.89 3.27C15.11 8.44 13.6 8 12 8s-3.11.44-4.71 1.1L5.4 5.82a.48.48 0 00-.84.48L6.4 9.48C3.78 11.23 2 13.9 2 17h20c0-3.1-1.78-5.77-4.4-7.52zM7 14.5a1 1 0 110-2 1 1 0 010 2zm10 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                Google Play (Beta)
+            </a>
+            <a href="https://github.com/ToreroClub/InOrario" class="btn btn-ghost" target="_blank" rel="noopener">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+                Sorgenti (GitHub)
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- PERCHÉ ESISTE -->
+<section id="why-it-exists" style="padding: 48px 0 40px 0; background: rgba(255,159,10,0.02); border-bottom: 1px solid var(--border);">
+    <div class="container" style="max-width: 800px; text-align: center;">
+        <div class="eyebrow" style="margin-bottom: 16px;">L'origine del progetto</div>
+        <h2 class="section-title" style="margin-bottom: 24px; font-size: clamp(24px, 4vw, 32px);">Fatta da un pendolare, per i pendolari</h2>
+        <p style="font-size: clamp(15px, 2vw, 17px); line-height: 1.8; color: var(--text-2); max-width: 680px; margin: 0 auto; font-weight: 400;">
+            Le app dei treni sono pensate per vendere biglietti. Non per chi vuole solo sapere al volo se il proprio treno c'è, se è in ritardo o se - proprio quando siamo noi in ritardo - è miracolosamente in perfetto orario.
+        </p>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+    <div class="container">
+        <div class="reveal">
+            <div class="eyebrow">Funzionalità</div>
+            <h2 class="section-title">Cosa sa fare?</h2>
+            <p class="section-sub">Non può far arrivare i treni in orario, ma può aiutarti a ridurre gli imprevisti.</p>
+        </div>
+
+        <div class="features-grid">
+            <!-- 1. Unificazione Trenitalia/Trenord (wide) -->
+            <div class="feat-card wide reveal">
+                <div class="feat-icon" style="background: var(--orange-dim);">🚉</div>
+                <h3>Un'unica app per Trenitalia e Trenord</h3>
+                <p><i>In Orario?</i> unisce i dati in tempo reale di ViaggiaTreno con quelli ufficiali dei tabelloni di stazione di RFI. Avendo due fonti indipendenti azzera il margine d'errore, mostrandoti sempre informazioni precise e verificate. E lo fa senza alcuna pubblicità o inviti a comprare biglietti.</p>
+                <div class="di-demo" style="max-width: 420px; width: 100%;">
+                    <div>
+                        <div class="di-demo-train" style="color: var(--orange);">S5 24866</div>
+                        <div class="di-demo-dest">Milano P. Garibaldi ➔ Saronno</div>
+                    </div>
+                    <div>
+                        <div class="di-demo-status">In orario</div>
+                        <div class="di-demo-pos">📍 Lancetti &middot; RFI/Trenord</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Geolocalizzazione (small) -->
+            <div class="feat-card reveal delay-1">
+                <div class="feat-icon" style="background: var(--green-dim);">📍</div>
+                <h3>Stazione più vicina</h3>
+                <p>Quando arrivi in stazione non devi cercare nulla. L'app capisce al volo dove ti trovi e ti mostra subito il tabellone delle partenze corretto.</p>
+                <div class="geo-mini-demo">
+                    <span class="geo-pin">📍</span>
+                    <div class="geo-details">
+                        <div class="geo-station">Milano Lambrate</div>
+                        <div class="geo-distance">Rilevata a 850m</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. AI per scioperi (wide) -->
+            <div class="feat-card wide reveal">
+                <div class="feat-icon" style="background: rgba(10,132,255,0.10);">🧠</div>
+                <h3>Scioperi e lavori spiegati dall'IA locale</h3>
+                <p><i>In Orario?</i> usa un modello IA locale (nulla esce dal tuo telefono) per riordinare in modo leggibile i dati di scioperi e lavori programmati — normalmente pubblicati in liste disordinate sul sito del Ministero. Gratis per tutti.</p>
+                <div class="ai-demo" style="max-width: 450px; width: 100%;">
+                    <div class="ai-demo-before">
+                        <strong>Ministero:</strong> "Sciopero nazionale del 12/07 indetto da OS RSU coinvolge personale viaggiante e uffici..."
+                    </div>
+                    <div class="ai-demo-arrow">➔</div>
+                    <div class="ai-demo-after">
+                        <strong>IA Locale:</strong> ⚠️ Sciopero Generale Domenica 12 Luglio (09:00 - 17:00). Fasce di garanzia non attive.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Notifiche push (small) -->
+            <div class="feat-card reveal delay-1">
+                <div class="feat-icon" style="background: rgba(255,69,58,0.10);">🔔</div>
+                <h3>Notifiche push</h3>
+                <p>Ti avvisa se il treno che prendi di solito è in ritardo o cambia binario prima ancora che tu arrivi in stazione. Senza dover controllare l'app continuamente.</p>
+                <div class="push-mini-demo">
+                    <div class="push-header">
+                        <span class="push-icon">🚄</span>
+                        <span class="push-app-name"><i>In Orario?</i></span>
+                        <span class="push-time">Adesso</span>
+                    </div>
+                    <div class="push-body">
+                        ⚠️ Il tuo treno S5 (24866) è previsto sul binario 3 (invece di 4).
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Dynamic Island & Live Activity (wide) -->
+            <div class="feat-card wide reveal">
+                <div class="feat-icon" style="background: var(--orange-dim);">⚡</div>
+                <h3>Dynamic Island &amp; Live Activity</h3>
+                <p>Su iPhone segui il tuo treno direttamente dall'isola dinamica e dalla schermata di blocco, senza aprire l'app. Un indicatore grafico si sposta in tempo reale lungo la tratta indicando la tua posizione attuale.</p>
+                <div class="la-demo" style="max-width: 420px; width: 100%;">
+                    <div class="la-demo-header">
+                        <span class="la-train">REG 10231</span>
+                        <span class="la-delay green"><i>In Orario?</i> (16:23)</span>
+                    </div>
+                    <div class="la-route-container">
+                        <span class="la-station-label">Arona</span>
+                        <div class="la-route-bar-wrapper">
+                            <div class="la-route-bar green" style="width: 65%;"></div>
+                            <div class="la-route-train-icon green" style="left: 65%;">🚄</div>
+                        </div>
+                        <span class="la-station-label">Milano P.G.</span>
+                    </div>
+                    <div class="la-footer">
+                        📍 Ultimo rilevamento: Gallarate
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Centro News (small) -->
+            <div class="feat-card reveal delay-1">
+                <div class="feat-icon" style="background: var(--orange-dim);">📰</div>
+                <h3>Centro News</h3>
+                <p>Tutti gli avvisi su scioperi, cambi di circolazione e lavori sulla linea. Tutto ordinato in un unico posto e diviso per regione, senza dover spulciare i PDF delle ferrovie.</p>
+                <div class="news-mini-demo">
+                    <div class="news-tag">Lombardia</div>
+                    <div class="news-title">Lavori di potenziamento sulla linea Milano-Chiasso dal 15 Luglio</div>
+                </div>
+            </div>
+
+            <!-- 7. Metro & Coincidenze (wide) -->
+            <div class="feat-card wide reveal">
+                <div class="feat-icon" style="background: var(--blue-dim);">🚇</div>
+                <h3>Metro e Coincidenze</h3>
+                <p><i>In Orario?</i> integra gli orari e le frequenze delle linee metropolitane di Milano, Torino, Roma, Napoli. Calcola se farai in tempo a prendere la coincidenza basandosi sull'arrivo effettivo del tuo treno. L'app conosce le distanze fisiche di interscambio di ogni stazione (es. Repubblica o Tiburtina) e ti mostra con icone colorate se hai tempo ✅, se devi camminare veloce 🚶 o correre ⚡.</p>
+                <div class="metro-demo" style="max-width: 450px; width: 100%;">
+                    <div class="metro-demo-header">
+                        <div class="metro-demo-station">Milano Porta Garibaldi</div>
+                        <div class="metro-demo-arrival">🚇 Arrivo treno: 16:23</div>
+                    </div>
+                    <div class="metro-demo-lines">
+                        <div class="metro-demo-line">
+                            <span class="metro-badge m2">M2</span>
+                            <div class="metro-demo-line-info">
+                                <span class="metro-dest">Cologno / Gessate</span>
+                                <div class="metro-chips">
+                                    <span class="metro-chip miss">16:25 ❌</span>
+                                    <span class="metro-chip hurry">16:29 🚶</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="metro-demo-line">
+                            <span class="metro-badge m2">M2</span>
+                            <div class="metro-demo-line-info">
+                                <span class="metro-dest">Abbiategrasso / Assago</span>
+                                <div class="metro-chips">
+                                    <span class="metro-chip run">16:26 ⚡</span>
+                                    <span class="metro-chip ok">16:31 ✅</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. Preferiti (small) -->
+            <div class="feat-card reveal delay-1">
+                <div class="feat-icon" style="background: rgba(191,90,242,0.10);">⭐</div>
+                <h3>Linee, rotte e preferiti</h3>
+                <p>Salva le tue tratte e stazioni preferite per vederne subito i ritardi e lo stato delle corse. Puoi anche salvare singoli viaggi per seguirne l'avanzamento passo passo.</p>
+                <div class="pref-mini-demo">
+                    <div class="pref-mini-route">Garibaldi ➔ Saronno</div>
+                    <div class="pref-mini-status">
+                        <span class="pref-mini-time">18:08</span>
+                        <span class="pref-mini-train">S1 24168</span>
+                        <span class="pref-mini-delay orange">+4 min</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. Segnalazioni Crowdsourcing (full) -->
+            <div class="feat-card full reveal">
+                <div style="display: flex; gap: 40px; align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1.3; min-width: 280px;">
+                        <div class="feat-icon" style="background: rgba(255,159,10,0.15);">📢</div>
+                        <h3>Segnalazioni in tempo reale</h3>
+                        <p style="margin-top: 12px;"><i>In Orario?</i> non si affida solo ai dati ufficiali. Grazie alla funzione di segnalazione collettiva, puoi contribuire con un solo tap a tenere informati gli altri viaggiatori. Senza scrivere testo o perdere tempo, segnali all'istante lo stato reale del treno: se è affollato, se fa troppo caldo o freddo, o se è fermo.</p>
+                    </div>
+                    <div style="flex: 0.7; min-width: 250px; display: flex; justify-content: center;">
+                        <div class="report-menu-demo">
+                            <!-- Segnala Button -->
+                            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px; width: 100%; max-width: 260px; margin: 0 auto 10px;">
+                                <span class="report-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    Segnala
+                                </span>
+                            </div>
+                            <!-- Popup Menu -->
+                            <div class="report-popup">
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">👥</span>
+                                    <span class="report-opt-text">Treno Affollato</span>
+                                </div>
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">🌡️</span>
+                                    <span class="report-opt-text">Fa troppo Caldo</span>
+                                </div>
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">❄️</span>
+                                    <span class="report-opt-text">Fa troppo Freddo</span>
+                                </div>
+                                <div class="report-option">
+                                    <span class="report-opt-icon-img">
+                                        <span style="width: 18px; height: 18px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; font-family: -apple-system, sans-serif;">!</span>
+                                    </span>
+                                    <span class="report-opt-text">Treno Fermo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PASSANTE -->
+<section id="passante" style="background: rgba(17,17,22,0.4); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+        <div class="reveal">
+            <div class="eyebrow">Passante Ferroviario</div>
+            <h2 class="section-title">Una sezione dedicata<br>alle linee S di Milano</h2>
+        </div>
+        <div class="passante-layout">
+            <div>
+                <p class="passante-desc">
+                    Nel Passante ciò che conta davvero è sapere tra quanto passa il prossimo treno, come in metropolitana. Questo è esattamente ciò che offre la sezione dedicata alle linee suburbane, mostrandoti subito quali sono le prossime corse includendo già il ritardo.
+                </p>
+                <div class="pf-list reveal">
+                    <div class="pf-item">
+                        <div class="pf-ico">🗺</div>
+                        <div>
+                            <h4>Mappa interattiva delle stazioni</h4>
+                            <p>Tutte le stazioni del Passante, con collegamento alle linee metro in corrispondenza.</p>
+                        </div>
+                    </div>
+                    <div class="pf-item">
+                        <div class="pf-ico">🔄</div>
+                        <div>
+                            <h4>Linee S personalizzabili</h4>
+                            <p>Scegli quali linee vuoi vedere nella tua home e nascondi quelle che non usi.</p>
+                        </div>
+                    </div>
+                    <div class="pf-item">
+                        <div class="pf-ico">🚨</div>
+                        <div>
+                            <h4>Stato del tunnel in tempo reale</h4>
+                            <p>Verifica all'istante se il passante è congestionato o ci sono ritardi, così sai subito se ti conviene prendere un treno di superficie o la metro.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pf-visual reveal delay-1">
+                <!-- iOS Sheet Grabber -->
+                <div class="pf-grabber"></div>
+
+                <!-- Header -->
+                <div class="pf-sheet-header">
+                    <span class="pf-sheet-title">Dettagli Tunnel</span>
+                    <span class="pf-sheet-close">Chiudi</span>
+                </div>
+
+                <!-- Segmented Control -->
+                <div class="pf-segment-control">
+                    <button class="pf-segment-btn active">Mappa Linea</button>
+                    <button class="pf-segment-btn">Treni in Arrivo</button>
+                </div>
+
+                <!-- Toggle Row -->
+                <div class="pf-toggle-row">
+                    <div class="pf-toggle-info">
+                        <span class="pf-toggle-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                                <line x1="9" y1="3" x2="9" y2="18"/>
+                                <line x1="15" y1="6" x2="15" y2="21"/>
+                            </svg>
+                        </span>
+                        <span>Mostra stazioni esterne</span>
+                    </div>
+                    <label class="pf-switch">
+                        <input type="checkbox" checked disabled>
+                        <span class="pf-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Main Status Card -->
+                <div class="pf-panel-card">
+                    <!-- Status Header -->
+                    <div class="pf-status-header">
+                        <div class="pf-status-title">
+                            <span class="pf-status-dot"></span>
+                            <span>Criticità su S12, S13</span>
+                        </div>
+                        <div class="pf-status-badge">Ritardo medio: 2'</div>
+                    </div>
+
+                    <!-- Train badge -->
+                    <div class="pf-train-badge-row">
+                        <div class="pf-train-badge-container">
+                            <span class="pf-train-number">S6</span>
+                            <span class="pf-train-details">NOV 14m &middot; RHO 23m</span>
+                        </div>
+                    </div>
+
+                    <!-- Vertical Timeline -->
+                    <div class="pf-timeline">
+                        <div class="pf-timeline-item">
+                            <div class="pf-timeline-dot"></div>
+                            <span>Novara</span>
+                        </div>
+                        <div class="pf-timeline-item highlighted">
+                            <div class="pf-timeline-dot"></div>
+                            <span>📍 Magenta</span>
+                        </div>
+                        <div class="pf-timeline-item">
+                            <div class="pf-timeline-dot"></div>
+                            <span>Rho Fiera</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+    <div class="container">
+        <div class="download-card reveal">
+            <div class="eyebrow" style="margin-bottom: 18px;">Download</div>
+            <h2 class="section-title">Scarica In Orario</h2>
+            <p class="section-sub">Disponibile su App Store (iOS 17+) e Google Play (Android 8+). Gratuita, senza pubblicità, senza registrazione.</p>
+            <div class="download-btns" style="margin-top: 32px;">
+                <a href="https://apps.apple.com/app/in-orario/id6773419855" class="btn btn-ios" target="_blank" rel="noopener">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.23.67-2.95 1.51-.62.73-1.16 1.87-1.01 2.98 1.11.09 2.27-.58 2.97-1.43z"/></svg>
+                    App Store (iOS)
+                </a>
+                <a href="https://play.google.com/apps/testing/com.carlo.inorario" class="btn btn-android" target="_blank" rel="noopener">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18a.48.48 0 00-.84-.48l-1.89 3.27C15.11 8.44 13.6 8 12 8s-3.11.44-4.71 1.1L5.4 5.82a.48.48 0 00-.84.48L6.4 9.48C3.78 11.23 2 13.9 2 17h20c0-3.1-1.78-5.77-4.4-7.52zM7 14.5a1 1 0 110-2 1 1 0 010 2zm10 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                    Google Play (Beta)
+                </a>
+                <a href="https://github.com/ToreroClub/InOrario" class="btn btn-ghost" target="_blank" rel="noopener">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+                    Sorgenti (GitHub)
+                </a>
+            </div>
+            <p class="status-note">La versione Android è attualmente in fase di test (Beta) — puoi iscriverti tramite il link per provarla e segnalarmi i bug.</p>
+        </div>
+    </div>
+</section>
+
+<!-- HELP / SUPPORTO -->
+<section id="help" style="background: var(--bg-card); border-top: 1px solid var(--border); padding: 80px 24px;">
+    <div class="container" style="max-width: 800px; margin: 0 auto;">
+        <div class="eyebrow" style="text-align: center;">Supporto</div>
+        <h2 class="section-title" style="font-size: 32px; text-align: center; margin-bottom: 16px;">Hai bisogno di aiuto?</h2>
+        <p class="section-sub" style="text-align: center; max-width: 580px; margin: 0 auto 48px; color: var(--text-2);">
+            Hai riscontrato un problema con l'applicazione o hai un suggerimento per migliorarla? Scrivici.
+        </p>
+
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 32px; margin-bottom: 40px;">
+            <h3 style="font-size: 18px; margin-bottom: 20px; color: var(--text);">Invia una richiesta di assistenza</h3>
+            <form action="mailto:help@toreroclub.com" method="post" enctype="text/plain" style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-2);">Indirizzo Email</label>
+                    <input type="email" name="email" required placeholder="La tua email..." style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--border)'">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-2);">Messaggio o Descrizione del problema</label>
+                    <textarea name="message" rows="5" required placeholder="Descrivi il problema o la tua richiesta..." style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; resize: vertical; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+                </div>
+                <button type="submit" class="btn" style="background: var(--orange); color: #000; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; width: fit-content; align-self: flex-start; margin-top: 8px;">
+                    Invia email di supporto
+                </button>
+            </form>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text);">Domande frequenti (FAQ)</h3>
+            
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--orange);">L'app è gratuita?</h4>
+                <p style="font-size: 14px; color: var(--text-2); line-height: 1.6;">
+                    <i>In Orario?</i> è completamente gratuita. Tutte le funzioni sono disponibili senza pagare nulla. Se vuoi supportare il progetto, puoi fare un'offerta di pochissimi euro: con quella sblocchi migliorie delle funzioni gratuite, utili se sei un viaggiatore assiduo: IA server e non locale (non usa risorse ed è più precisa), notifiche per scioperi, monitori contemporaneamente 10 treni, live activities con aggiornamento ogni secondo anziché ogni due minuti (precise più dei treni!) e accesso prioritario a funzionalità avanzate.
+                </p>
+                <p style="font-size: 14px; color: var(--text-2); line-height: 1.6; margin-top: 8px;">
+                    Ma tutto il resto — orari, binari, stato treni, info lavori, scioperi, metro, coincidenze... — è gratuito per chiunque.
+                </p>
+            </div>
+
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--orange);">I dati in tempo reale sono precisi?</h4>
+                <p style="font-size: 14px; color: var(--text-2);">I dati in tempo reale (ritardi, orari, stazioni) provengono direttamente dai sistemi informativi di Rete Ferroviaria Italiana (RFI). L'accuratezza dipende dallo stato di aggiornamento di tali sistemi.</p>
+            </div>
+
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--orange);">Come posso segnalare un errore sui passanti o stazioni?</h4>
+                <p style="font-size: 14px; color: var(--text-2);">Puoi usare il form qui sopra oppure inviare direttamente una segnalazione a <a href="mailto:help@toreroclub.com" style="color: var(--text); text-decoration: underline;">help@toreroclub.com</a> allegando eventuali dettagli.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PRIVACY POLICY -->
+<section id="privacy" style="background: var(--bg); border-top: 1px solid var(--border);">
+    <div class="container" style="max-width: 800px; margin: 0 auto; padding-top: 20px;">
+        <div class="eyebrow">Trasparenza</div>
+        <h2 class="section-title" style="font-size: 28px; margin-bottom: 32px;">Informativa sulla Privacy</h2>
+        
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 8px; padding: 16px 20px; font-size: 14px; color: var(--text-2); margin-bottom: 32px;">
+            In breve: <strong><i>In Orario?</i> non raccoglie dati personali</strong>, non crea profili utente, non vende dati a terzi e non contiene pubblicità. Leggi sotto per i dettagli.
+        </div>
+
+        <h3 style="font-size: 17px; margin-bottom: 8px;">Dati che l'app non raccoglie</h3>
+        <p style="color: var(--text-2); font-size: 15px; margin-bottom: 24px;">
+            <i>In Orario?</i> non raccoglie dati identificativi (nome, email), dati comportamentali, cronologia o dati di pagamento. Tutte le tue personalizzazioni (treni e stazioni preferite) sono salvate <strong>esclusivamente sul tuo dispositivo</strong>.
+        </p>
+
+        <h3 style="font-size: 17px; margin-bottom: 8px;">Dati che l'app utilizza</h3>
+        <ul style="color: var(--text-2); font-size: 15px; margin-bottom: 24px; padding-left: 20px;">
+            <li style="margin-bottom: 6px;"><strong>Notifiche (FCM):</strong> Se attivi le notifiche, Google Firebase usa un token anonimo per poterti recapitare gli avvisi. Non è legato alla tua identità.</li>
+            <li style="margin-bottom: 6px;"><strong>Feedback volontario:</strong> Se usi il modulo in-app per segnalare un bug, il messaggio e l'email (se la inserisci) vengono inviati per permetterci di risponderti.</li>
+            <li style="margin-bottom: 6px;"><strong>Localizzazione:</strong> La posizione per trovare la stazione più vicina viene elaborata solo dal tuo telefono e mai inviata a server esterni.</li>
+            <li style="margin-bottom: 6px;"><strong>Acquisti in-app:</strong> Le "mance" sono gestite interamente da Apple o Google. L'app non vede mai i dati della tua carta.</li>
+        </ul>
+
+        <h3 style="font-size: 17px; margin-bottom: 8px;">Servizi di terze parti</h3>
+        <p style="color: var(--text-2); font-size: 15px; margin-bottom: 24px;">
+            L'app si appoggia a Google Firebase per le notifiche, App Store/Google Play per la distribuzione e acquisti, e ai server di RFI per scaricare gli orari.
+        </p>
+
+        <p style="color: var(--text-3); font-size: 13px;">
+            Per qualsiasi domanda relativa alla privacy o per esercitare i tuoi diritti, puoi contattare lo sviluppatore all'indirizzo <a href="mailto:info@toreroclub.com" style="color: var(--orange);">info@toreroclub.com</a>.
+        </p>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <div class="container">
+        <div class="footer-inner">
+            <div>
+                <div class="footer-brand">
+                    <!-- Stylized bull SVG -->
+                    <div class="footer-bull">
+                        <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="50" cy="50" r="48" fill="#1a1a22" stroke="#ff9f0a" stroke-width="3"/>
+                            <!-- bull head simplified -->
+                            <ellipse cx="50" cy="56" rx="22" ry="18" fill="#ff9f0a"/>
+                            <!-- horns -->
+                            <path d="M28 44 Q18 28 26 22 Q32 18 36 34" fill="#ff9f0a"/>
+                            <path d="M72 44 Q82 28 74 22 Q68 18 64 34" fill="#ff9f0a"/>
+                            <!-- eyes -->
+                            <circle cx="42" cy="52" r="3.5" fill="#050507"/>
+                            <circle cx="58" cy="52" r="3.5" fill="#050507"/>
+                            <!-- nostrils -->
+                            <ellipse cx="45" cy="62" rx="3" ry="2" fill="#c97000"/>
+                            <ellipse cx="55" cy="62" rx="3" ry="2" fill="#c97000"/>
+                        </svg>
+                    </div>
+                    <span class="footer-brand-name">Torero</span>
+                </div>
+                <div class="footer-meta" style="max-width: 500px;">
+                    <p style="margin-bottom: 12px; line-height: 1.6; color: var(--text-2);">
+                        <strong><i>In Orario?</i></strong> è un progetto di <strong>Carlo Porta</strong>. La uso ogni giorno per andare al lavoro, e visto che non trovavo un'app che unisse bene Trenitalia e Trenord senza spingermi a comprare biglietti, me la sono fatta. Poi è piaciuta ad altri pendolari, quindi ho deciso di pubblicarla.
+                    </p>
+                    <p style="margin-bottom: 12px; line-height: 1.6; color: var(--text-2);">
+                        Se trovi un bug o hai un'idea, scrivimi — <a href="mailto:info@toreroclub.com" style="color: var(--orange);">info@toreroclub.com</a> / <a href="https://github.com/ToreroClub/InOrario" target="_blank" rel="noopener" style="color: var(--orange);">GitHub</a>.
+                    </p>
+                    <div style="margin-top: 16px; font-size: 11px; color: var(--text-3);">
+                        Progetto open-source indipendente. Non affiliato a Trenord, Trenitalia o Gruppo FS.
+                    </div>
+                    <div style="margin-top: 4px; font-size: 11px; color: var(--text-3);">© 2026 Torero</div>
+                </div>
+            </div>
+            <div class="footer-links">
+                <a href="#features">Funzionalità</a>
+                <a href="#passante">Passante Ferroviario</a>
+                <a href="#help">Supporto</a>
+                <a href="#download">Download</a>
+                <a href="https://github.com/ToreroClub/InOrario" target="_blank" rel="noopener">GitHub</a>
+                <a href="#privacy">Privacy Policy</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- ANDROID DOWNLOAD STEPS MODAL -->
+<div id="android-modal" class="modal-backdrop">
+    <div class="modal-card">
+        <button class="modal-close" onclick="closeAndroidModal()">&times;</button>
+        <div class="modal-header">
+            <div class="modal-icon">🤖</div>
+            <h3>Closed Beta per Android</h3>
+            <p>Google richiede l'iscrizione al gruppo dei tester per poter scaricare la versione Beta.</p>
+        </div>
+        <div class="modal-steps">
+            <div class="modal-step">
+                <span class="step-num">1</span>
+                <div class="step-content">
+                    <h4>Unisciti al Google Group</h4>
+                    <p>Usa lo stesso account Google (Gmail) con cui utilizzi lo smartphone Android.</p>
+                    <a href="https://groups.google.com/g/inorario-testing" class="btn-modal-primary" target="_blank" rel="noopener">
+                        Unisciti al Gruppo &rarr;
+                    </a>
+                </div>
+            </div>
+            
+            <div class="step-divider"></div>
+            
+            <div class="modal-step">
+                <span class="step-num">2</span>
+                <div class="step-content">
+                    <h4>Scarica da Google Play</h4>
+                    <p>Una volta iscritto, potrai accettare l'invito su Google Play e scaricare l'app.</p>
+                    <a href="https://play.google.com/apps/testing/com.carlo.inorario" class="btn-android-download" target="_blank" rel="noopener">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px; vertical-align: middle;"><path d="M17.6 9.48l1.84-3.18a.48.48 0 00-.84-.48l-1.89 3.27C15.11 8.44 13.6 8 12 8s-3.11.44-4.71 1.1L5.4 5.82a.48.48 0 00-.84.48L6.4 9.48C3.78 11.23 2 13.9 2 17h20c0-3.1-1.78-5.77-4.4-7.52zM7 14.5a1 1 0 110-2 1 1 0 010 2zm10 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                        Scarica da Google Play
+                    </a>
+                </div>
+            </div>
+        </div>
+        <p class="modal-footer-note">
+            ⚠️ <strong>Nota:</strong> Se Google Play mostra "Elemento non trovato", riprova dopo qualche minuto dall'iscrizione o assicurati che l'account attivo nel Play Store sia quello iscritto al gruppo.
+        </p>
+    </div>
+</div>
+
+<script>
+    // Reveal on scroll
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Sticky nav
+    const nav = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            const t = document.querySelector(a.getAttribute('href'));
+            if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Android Modal Management
+    const androidModal = document.getElementById('android-modal');
+    
+    function showAndroidModal() {
+        if (androidModal) {
+            androidModal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // prevent scrolling behind modal
+        }
+    }
+    
+    function closeAndroidModal() {
+        if (androidModal) {
+            androidModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // Close on background click
+    if (androidModal) {
+        androidModal.addEventListener('click', e => {
+            if (e.target === androidModal) {
+                closeAndroidModal();
+            }
+        });
+    }
+
+    // Close on Escape key
+    window.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeAndroidModal();
+        }
+    });
+
+    // Intercept all Android download clicks
+    document.querySelectorAll('.btn-android').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.preventDefault();
+            showAndroidModal();
+        });
+    });
+</script>
+</body>
+</html>

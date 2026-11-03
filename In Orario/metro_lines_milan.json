@@ -1,0 +1,1307 @@
+{
+  "M1": {
+    "color": "E2001A",
+    "directions": {
+      "0": {
+        "shapeId": "RHO FIERAMILANO___SESTO 1 MAGGIO FS",
+        "stops": [
+          {
+            "name": "RHO FIERAMILANO",
+            "lat": 45.5198398,
+            "lon": 9.0871073
+          },
+          {
+            "name": "AMENDOLA",
+            "lat": 45.4736789,
+            "lon": 9.1509693
+          },
+          {
+            "name": "BUONARROTI",
+            "lat": 45.470402,
+            "lon": 9.1552923
+          },
+          {
+            "name": "PAGANO",
+            "lat": 45.4682808,
+            "lon": 9.1610952
+          },
+          {
+            "name": "CONCILIAZIONE",
+            "lat": 45.4675341,
+            "lon": 9.166487
+          },
+          {
+            "name": "CADORNA FN M1",
+            "lat": 45.4681953,
+            "lon": 9.1764263
+          },
+          {
+            "name": "CAIROLI",
+            "lat": 45.4683672,
+            "lon": 9.182025
+          },
+          {
+            "name": "CORDUSIO",
+            "lat": 45.4655319,
+            "lon": 9.1862354
+          },
+          {
+            "name": "DUOMO M1",
+            "lat": 45.4646221,
+            "lon": 9.1895961
+          },
+          {
+            "name": "SAN BABILA",
+            "lat": 45.4665214,
+            "lon": 9.1975286
+          },
+          {
+            "name": "PALESTRO",
+            "lat": 45.471425,
+            "lon": 9.201949
+          },
+          {
+            "name": "PERO",
+            "lat": 45.5087997,
+            "lon": 9.0858067
+          },
+          {
+            "name": "P.TA VENEZIA",
+            "lat": 45.4744187,
+            "lon": 9.2050464
+          },
+          {
+            "name": "LIMA",
+            "lat": 45.4803459,
+            "lon": 9.2109827
+          },
+          {
+            "name": "LORETO M1",
+            "lat": 45.4862401,
+            "lon": 9.2169816
+          },
+          {
+            "name": "PASTEUR",
+            "lat": 45.4910692,
+            "lon": 9.2181801
+          },
+          {
+            "name": "ROVERETO",
+            "lat": 45.4955331,
+            "lon": 9.2195058
+          },
+          {
+            "name": "TURRO",
+            "lat": 45.5004455,
+            "lon": 9.2210047
+          },
+          {
+            "name": "GORLA",
+            "lat": 45.5067343,
+            "lon": 9.2227388
+          },
+          {
+            "name": "PRECOTTO",
+            "lat": 45.5120295,
+            "lon": 9.2244991
+          },
+          {
+            "name": "VILLA S.G.",
+            "lat": 45.5174545,
+            "lon": 9.2261302
+          },
+          {
+            "name": "SESTO MARELLI",
+            "lat": 45.5234771,
+            "lon": 9.2279615
+          },
+          {
+            "name": "MOLINO DORINO",
+            "lat": 45.5052116,
+            "lon": 9.0929661
+          },
+          {
+            "name": "SESTO RONDO",
+            "lat": 45.5341593,
+            "lon": 9.2312458
+          },
+          {
+            "name": "SESTO 1 MAGGIO FS",
+            "lat": 45.5416912,
+            "lon": 9.2383334
+          },
+          {
+            "name": "S.LEONARDO",
+            "lat": 45.5011555,
+            "lon": 9.1014812
+          },
+          {
+            "name": "BONOLA",
+            "lat": 45.4970026,
+            "lon": 9.1101478
+          },
+          {
+            "name": "URUGUAY",
+            "lat": 45.4937169,
+            "lon": 9.1205459
+          },
+          {
+            "name": "LAMPUGNANO",
+            "lat": 45.4894017,
+            "lon": 9.1273192
+          },
+          {
+            "name": "QT8",
+            "lat": 45.4859581,
+            "lon": 9.1371823
+          },
+          {
+            "name": "LOTTO FIERAMILANOCITY",
+            "lat": 45.4791454,
+            "lon": 9.1437488
+          }
+        ]
+      },
+      "1": {
+        "shapeId": "SESTO 1 MAGGIO FS___RHO FIERAMILANO",
+        "stops": [
+          {
+            "name": "SESTO 1 MAGGIO FS",
+            "lat": 45.5416912,
+            "lon": 9.2383334
+          },
+          {
+            "name": "LORETO M1",
+            "lat": 45.4862401,
+            "lon": 9.2169816
+          },
+          {
+            "name": "LIMA",
+            "lat": 45.4803459,
+            "lon": 9.2109827
+          },
+          {
+            "name": "P.TA VENEZIA",
+            "lat": 45.4744187,
+            "lon": 9.2050464
+          },
+          {
+            "name": "PALESTRO",
+            "lat": 45.471425,
+            "lon": 9.201949
+          },
+          {
+            "name": "SAN BABILA",
+            "lat": 45.4665214,
+            "lon": 9.1975286
+          },
+          {
+            "name": "DUOMO M1",
+            "lat": 45.4646221,
+            "lon": 9.1895961
+          },
+          {
+            "name": "CORDUSIO",
+            "lat": 45.4655319,
+            "lon": 9.1862354
+          },
+          {
+            "name": "CAIROLI",
+            "lat": 45.4683672,
+            "lon": 9.182025
+          },
+          {
+            "name": "CADORNA FN M1",
+            "lat": 45.4681953,
+            "lon": 9.1764263
+          },
+          {
+            "name": "CONCILIAZIONE",
+            "lat": 45.4675341,
+            "lon": 9.166487
+          },
+          {
+            "name": "SESTO RONDO",
+            "lat": 45.5341593,
+            "lon": 9.2312458
+          },
+          {
+            "name": "PAGANO",
+            "lat": 45.4682808,
+            "lon": 9.1610952
+          },
+          {
+            "name": "BUONARROTI",
+            "lat": 45.470402,
+            "lon": 9.1552923
+          },
+          {
+            "name": "AMENDOLA",
+            "lat": 45.4736789,
+            "lon": 9.1509693
+          },
+          {
+            "name": "LOTTO FIERAMILANOCITY",
+            "lat": 45.4791454,
+            "lon": 9.1437488
+          },
+          {
+            "name": "QT8",
+            "lat": 45.4859581,
+            "lon": 9.1371823
+          },
+          {
+            "name": "LAMPUGNANO",
+            "lat": 45.4894017,
+            "lon": 9.1273192
+          },
+          {
+            "name": "URUGUAY",
+            "lat": 45.4937169,
+            "lon": 9.1205459
+          },
+          {
+            "name": "BONOLA",
+            "lat": 45.4970026,
+            "lon": 9.1101478
+          },
+          {
+            "name": "S.LEONARDO",
+            "lat": 45.5011555,
+            "lon": 9.1014812
+          },
+          {
+            "name": "MOLINO DORINO",
+            "lat": 45.5052116,
+            "lon": 9.0929661
+          },
+          {
+            "name": "SESTO MARELLI",
+            "lat": 45.5234771,
+            "lon": 9.2279615
+          },
+          {
+            "name": "PERO",
+            "lat": 45.5087997,
+            "lon": 9.0858067
+          },
+          {
+            "name": "RHO FIERAMILANO",
+            "lat": 45.5198398,
+            "lon": 9.0871073
+          },
+          {
+            "name": "VILLA S.G.",
+            "lat": 45.5174545,
+            "lon": 9.2261302
+          },
+          {
+            "name": "PRECOTTO",
+            "lat": 45.5120295,
+            "lon": 9.2244991
+          },
+          {
+            "name": "GORLA",
+            "lat": 45.5067343,
+            "lon": 9.2227388
+          },
+          {
+            "name": "TURRO",
+            "lat": 45.5004455,
+            "lon": 9.2210047
+          },
+          {
+            "name": "ROVERETO",
+            "lat": 45.4955331,
+            "lon": 9.2195058
+          },
+          {
+            "name": "PASTEUR",
+            "lat": 45.4910692,
+            "lon": 9.2181801
+          }
+        ]
+      }
+    }
+  },
+  "M2": {
+    "color": "1D8348",
+    "directions": {
+      "0": {
+        "shapeId": "ASSAGO MILANOFIORI FORUM___GESSATE",
+        "stops": [
+          {
+            "name": "ASSAGO MILANOFIORI FORUM",
+            "lat": 45.4017485,
+            "lon": 9.1455388
+          },
+          {
+            "name": "MOSCOVA",
+            "lat": 45.4774395,
+            "lon": 9.1844757
+          },
+          {
+            "name": "GARIBALDI FS",
+            "lat": 45.4836397,
+            "lon": 9.1867424
+          },
+          {
+            "name": "GIOIA",
+            "lat": 45.4848999,
+            "lon": 9.1948574
+          },
+          {
+            "name": "CENTRALE FS",
+            "lat": 45.4844397,
+            "lon": 9.2026128
+          },
+          {
+            "name": "CAIAZZO",
+            "lat": 45.4853182,
+            "lon": 9.2094094
+          },
+          {
+            "name": "LORETO M2",
+            "lat": 45.4845943,
+            "lon": 9.215166
+          },
+          {
+            "name": "PIOLA",
+            "lat": 45.481145,
+            "lon": 9.2259168
+          },
+          {
+            "name": "LAMBRATE FS",
+            "lat": 45.4842475,
+            "lon": 9.2348298
+          },
+          {
+            "name": "UDINE",
+            "lat": 45.4912044,
+            "lon": 9.2369964
+          },
+          {
+            "name": "CIMIANO",
+            "lat": 45.5000415,
+            "lon": 9.2414257
+          },
+          {
+            "name": "ASSAGO MILANOFIORI NORD",
+            "lat": 45.4094545,
+            "lon": 9.1500463
+          },
+          {
+            "name": "CRESCENZAGO",
+            "lat": 45.5052544,
+            "lon": 9.2481933
+          },
+          {
+            "name": "CASCINA GOBBA",
+            "lat": 45.5114424,
+            "lon": 9.2605102
+          },
+          {
+            "name": "VIMODRONE",
+            "lat": 45.5157833,
+            "lon": 9.2859891
+          },
+          {
+            "name": "CASCINA BURRONA",
+            "lat": 45.5173644,
+            "lon": 9.2978354
+          },
+          {
+            "name": "CERNUSCO SUL NAVIGLIO",
+            "lat": 45.521069,
+            "lon": 9.3313777
+          },
+          {
+            "name": "VILLA FIORITA",
+            "lat": 45.5207398,
+            "lon": 9.3459714
+          },
+          {
+            "name": "CASSINA DE PECCHI",
+            "lat": 45.521864,
+            "lon": 9.3631216
+          },
+          {
+            "name": "BUSSERO",
+            "lat": 45.5253017,
+            "lon": 9.3758969
+          },
+          {
+            "name": "VILLA POMPEA",
+            "lat": 45.5278485,
+            "lon": 9.3849744
+          },
+          {
+            "name": "GORGONZOLA",
+            "lat": 45.536741,
+            "lon": 9.4034541
+          },
+          {
+            "name": "FAMAGOSTA",
+            "lat": 45.436895,
+            "lon": 9.1680126
+          },
+          {
+            "name": "CASCINA ANTONIETTA",
+            "lat": 45.5420795,
+            "lon": 9.4235002
+          },
+          {
+            "name": "GESSATE",
+            "lat": 45.5452872,
+            "lon": 9.4366251
+          },
+          {
+            "name": "ROMOLO",
+            "lat": 45.4437333,
+            "lon": 9.1676768
+          },
+          {
+            "name": "P.TA GENOVA F.S.",
+            "lat": 45.4523782,
+            "lon": 9.1696061
+          },
+          {
+            "name": "S.AGOSTINO",
+            "lat": 45.4586201,
+            "lon": 9.1698144
+          },
+          {
+            "name": "S.AMBROGIO",
+            "lat": 45.4616239,
+            "lon": 9.173168
+          },
+          {
+            "name": "CADORNA FN M2",
+            "lat": 45.4681551,
+            "lon": 9.1771024
+          },
+          {
+            "name": "LANZA",
+            "lat": 45.4722295,
+            "lon": 9.1825481
+          }
+        ]
+      },
+      "1": {
+        "shapeId": "GESSATE___ASSAGO MILANOFIORI FORUM",
+        "stops": [
+          {
+            "name": "GESSATE",
+            "lat": 45.5452872,
+            "lon": 9.4366251
+          },
+          {
+            "name": "VIMODRONE",
+            "lat": 45.5157833,
+            "lon": 9.2859891
+          },
+          {
+            "name": "CASCINA GOBBA",
+            "lat": 45.5114424,
+            "lon": 9.2605102
+          },
+          {
+            "name": "CRESCENZAGO",
+            "lat": 45.5052544,
+            "lon": 9.2481933
+          },
+          {
+            "name": "CIMIANO",
+            "lat": 45.5000415,
+            "lon": 9.2414257
+          },
+          {
+            "name": "UDINE",
+            "lat": 45.4912044,
+            "lon": 9.2369964
+          },
+          {
+            "name": "LAMBRATE FS",
+            "lat": 45.4842475,
+            "lon": 9.2348298
+          },
+          {
+            "name": "PIOLA",
+            "lat": 45.481145,
+            "lon": 9.2259168
+          },
+          {
+            "name": "LORETO M2",
+            "lat": 45.4845943,
+            "lon": 9.215166
+          },
+          {
+            "name": "CAIAZZO",
+            "lat": 45.4853182,
+            "lon": 9.2094094
+          },
+          {
+            "name": "CENTRALE FS",
+            "lat": 45.4844397,
+            "lon": 9.2026128
+          },
+          {
+            "name": "CASCINA ANTONIETTA",
+            "lat": 45.5420795,
+            "lon": 9.4235002
+          },
+          {
+            "name": "GIOIA",
+            "lat": 45.4848999,
+            "lon": 9.1948574
+          },
+          {
+            "name": "GARIBALDI FS",
+            "lat": 45.4836397,
+            "lon": 9.1867424
+          },
+          {
+            "name": "MOSCOVA",
+            "lat": 45.4774395,
+            "lon": 9.1844757
+          },
+          {
+            "name": "LANZA",
+            "lat": 45.4722295,
+            "lon": 9.1825481
+          },
+          {
+            "name": "CADORNA FN M2",
+            "lat": 45.4681551,
+            "lon": 9.1771024
+          },
+          {
+            "name": "S.AMBROGIO",
+            "lat": 45.4616239,
+            "lon": 9.173168
+          },
+          {
+            "name": "S.AGOSTINO",
+            "lat": 45.4586201,
+            "lon": 9.1698144
+          },
+          {
+            "name": "P.TA GENOVA F.S.",
+            "lat": 45.4523782,
+            "lon": 9.1696061
+          },
+          {
+            "name": "ROMOLO",
+            "lat": 45.4437333,
+            "lon": 9.1676768
+          },
+          {
+            "name": "FAMAGOSTA",
+            "lat": 45.436895,
+            "lon": 9.1680126
+          },
+          {
+            "name": "GORGONZOLA",
+            "lat": 45.536741,
+            "lon": 9.4034541
+          },
+          {
+            "name": "ASSAGO MILANOFIORI NORD",
+            "lat": 45.4094545,
+            "lon": 9.1500463
+          },
+          {
+            "name": "ASSAGO MILANOFIORI FORUM",
+            "lat": 45.4017485,
+            "lon": 9.1455388
+          },
+          {
+            "name": "VILLA POMPEA",
+            "lat": 45.5278485,
+            "lon": 9.3849744
+          },
+          {
+            "name": "BUSSERO",
+            "lat": 45.5253017,
+            "lon": 9.3758969
+          },
+          {
+            "name": "CASSINA DE PECCHI",
+            "lat": 45.521864,
+            "lon": 9.3631216
+          },
+          {
+            "name": "VILLA FIORITA",
+            "lat": 45.5207398,
+            "lon": 9.3459714
+          },
+          {
+            "name": "CERNUSCO SUL NAVIGLIO",
+            "lat": 45.521069,
+            "lon": 9.3313777
+          },
+          {
+            "name": "CASCINA BURRONA",
+            "lat": 45.5173644,
+            "lon": 9.2978354
+          }
+        ]
+      }
+    }
+  },
+  "M3": {
+    "color": "F5A623",
+    "directions": {
+      "0": {
+        "shapeId": "COMASINA___SAN DONATO",
+        "stops": [
+          {
+            "name": "COMASINA",
+            "lat": 45.5281326,
+            "lon": 9.1637291
+          },
+          {
+            "name": "TURATI",
+            "lat": 45.4750407,
+            "lon": 9.1947067
+          },
+          {
+            "name": "MONTENAPOLEONE",
+            "lat": 45.4700055,
+            "lon": 9.1928479
+          },
+          {
+            "name": "DUOMO M3",
+            "lat": 45.4639037,
+            "lon": 9.188611
+          },
+          {
+            "name": "MISSORI",
+            "lat": 45.4601086,
+            "lon": 9.1890271
+          },
+          {
+            "name": "CROCETTA",
+            "lat": 45.4565508,
+            "lon": 9.1951034
+          },
+          {
+            "name": "PORTA ROMANA",
+            "lat": 45.4514341,
+            "lon": 9.2034002
+          },
+          {
+            "name": "LODI T.I.B.B.",
+            "lat": 45.4467636,
+            "lon": 9.2108164
+          },
+          {
+            "name": "BRENTA",
+            "lat": 45.4428107,
+            "lon": 9.2184814
+          },
+          {
+            "name": "CORVETTO",
+            "lat": 45.4404109,
+            "lon": 9.2234695
+          },
+          {
+            "name": "PORTO DI MARE",
+            "lat": 45.4371279,
+            "lon": 9.2303111
+          },
+          {
+            "name": "AFFORI FN",
+            "lat": 45.5216818,
+            "lon": 9.1682516
+          },
+          {
+            "name": "ROGOREDO FS",
+            "lat": 45.4335862,
+            "lon": 9.2380891
+          },
+          {
+            "name": "SAN DONATO",
+            "lat": 45.4292064,
+            "lon": 9.2562339
+          },
+          {
+            "name": "AFFORI CENTRO",
+            "lat": 45.5135543,
+            "lon": 9.1739799
+          },
+          {
+            "name": "DERGANO",
+            "lat": 45.505537,
+            "lon": 9.1796031
+          },
+          {
+            "name": "MACIACHINI",
+            "lat": 45.4977017,
+            "lon": 9.1850425
+          },
+          {
+            "name": "ZARA",
+            "lat": 45.4926644,
+            "lon": 9.1926011
+          },
+          {
+            "name": "SONDRIO",
+            "lat": 45.4899902,
+            "lon": 9.2005584
+          },
+          {
+            "name": "CENTRALE FS",
+            "lat": 45.4844397,
+            "lon": 9.2026128
+          },
+          {
+            "name": "REPUBBLICA",
+            "lat": 45.4800896,
+            "lon": 9.1988564
+          }
+        ]
+      },
+      "1": {
+        "shapeId": "SAN DONATO___COMASINA",
+        "stops": [
+          {
+            "name": "SAN DONATO",
+            "lat": 45.4292064,
+            "lon": 9.2562339
+          },
+          {
+            "name": "DUOMO M3",
+            "lat": 45.4639037,
+            "lon": 9.188611
+          },
+          {
+            "name": "MONTENAPOLEONE",
+            "lat": 45.4700055,
+            "lon": 9.1928479
+          },
+          {
+            "name": "TURATI",
+            "lat": 45.4750407,
+            "lon": 9.1947067
+          },
+          {
+            "name": "REPUBBLICA",
+            "lat": 45.4800896,
+            "lon": 9.1988564
+          },
+          {
+            "name": "CENTRALE FS",
+            "lat": 45.4844397,
+            "lon": 9.2026128
+          },
+          {
+            "name": "SONDRIO",
+            "lat": 45.4899902,
+            "lon": 9.2005584
+          },
+          {
+            "name": "ZARA",
+            "lat": 45.4926644,
+            "lon": 9.1926011
+          },
+          {
+            "name": "MACIACHINI",
+            "lat": 45.4977017,
+            "lon": 9.1850425
+          },
+          {
+            "name": "DERGANO",
+            "lat": 45.505537,
+            "lon": 9.1796031
+          },
+          {
+            "name": "AFFORI CENTRO",
+            "lat": 45.5135543,
+            "lon": 9.1739799
+          },
+          {
+            "name": "ROGOREDO FS",
+            "lat": 45.4335862,
+            "lon": 9.2380891
+          },
+          {
+            "name": "AFFORI FN",
+            "lat": 45.5216818,
+            "lon": 9.1682516
+          },
+          {
+            "name": "COMASINA",
+            "lat": 45.5281326,
+            "lon": 9.1637291
+          },
+          {
+            "name": "PORTO DI MARE",
+            "lat": 45.4371279,
+            "lon": 9.2303111
+          },
+          {
+            "name": "CORVETTO",
+            "lat": 45.4404109,
+            "lon": 9.2234695
+          },
+          {
+            "name": "BRENTA",
+            "lat": 45.4428107,
+            "lon": 9.2184814
+          },
+          {
+            "name": "LODI T.I.B.B.",
+            "lat": 45.4467636,
+            "lon": 9.2108164
+          },
+          {
+            "name": "PORTA ROMANA",
+            "lat": 45.4514341,
+            "lon": 9.2034002
+          },
+          {
+            "name": "CROCETTA",
+            "lat": 45.4565508,
+            "lon": 9.1951034
+          },
+          {
+            "name": "MISSORI",
+            "lat": 45.4601086,
+            "lon": 9.1890271
+          }
+        ]
+      }
+    }
+  },
+  "M4": {
+    "color": "0072BB",
+    "directions": {
+      "0": {
+        "shapeId": "LINATE AEROPORTO___SAN CRISTOFORO",
+        "stops": [
+          {
+            "name": "LINATE AEROPORTO",
+            "lat": 45.4628501,
+            "lon": 9.2779015
+          },
+          {
+            "name": "SANTA SOFIA",
+            "lat": 45.456267,
+            "lon": 9.18818
+          },
+          {
+            "name": "VETRA",
+            "lat": 45.457128,
+            "lon": 9.18232
+          },
+          {
+            "name": "DE AMICIS",
+            "lat": 45.4587564,
+            "lon": 9.1780045
+          },
+          {
+            "name": "SAN AMBROGIO",
+            "lat": 45.461817,
+            "lon": 9.17322
+          },
+          {
+            "name": "CONI ZUGNA",
+            "lat": 45.459088,
+            "lon": 9.164912
+          },
+          {
+            "name": "CALIFORNIA",
+            "lat": 45.457548,
+            "lon": 9.160062
+          },
+          {
+            "name": "BOLIVAR",
+            "lat": 45.455319,
+            "lon": 9.153149
+          },
+          {
+            "name": "TOLSTOJ",
+            "lat": 45.453597,
+            "lon": 9.148017
+          },
+          {
+            "name": "FRATTINI",
+            "lat": 45.451821,
+            "lon": 9.142448
+          },
+          {
+            "name": "GELSOMINI",
+            "lat": 45.449616,
+            "lon": 9.135715
+          },
+          {
+            "name": "REPETTI",
+            "lat": 45.4620092,
+            "lon": 9.2403933
+          },
+          {
+            "name": "SEGNERI",
+            "lat": 45.446535,
+            "lon": 9.130565
+          },
+          {
+            "name": "SAN CRISTOFORO",
+            "lat": 45.442357,
+            "lon": 9.129774
+          },
+          {
+            "name": "STAZIONE FORLANINI",
+            "lat": 45.4643131,
+            "lon": 9.2363498
+          },
+          {
+            "name": "ARGONNE",
+            "lat": 45.468131,
+            "lon": 9.231956
+          },
+          {
+            "name": "SUSA",
+            "lat": 45.4680691,
+            "lon": 9.2248844
+          },
+          {
+            "name": "DATEO",
+            "lat": 45.4679905,
+            "lon": 9.218453
+          },
+          {
+            "name": "TRICOLORE",
+            "lat": 45.4679042,
+            "lon": 9.2077709
+          },
+          {
+            "name": "SAN BABILA",
+            "lat": 45.4665214,
+            "lon": 9.1975286
+          },
+          {
+            "name": "SFORZA-POLICLINICO",
+            "lat": 45.45972,
+            "lon": 9.195465
+          }
+        ]
+      },
+      "1": {
+        "shapeId": "SAN CRISTOFORO___LINATE AEROPORTO",
+        "stops": [
+          {
+            "name": "SAN CRISTOFORO",
+            "lat": 45.442357,
+            "lon": 9.129774
+          },
+          {
+            "name": "DE AMICIS",
+            "lat": 45.4587564,
+            "lon": 9.1780045
+          },
+          {
+            "name": "VETRA",
+            "lat": 45.457128,
+            "lon": 9.18232
+          },
+          {
+            "name": "SANTA SOFIA",
+            "lat": 45.456267,
+            "lon": 9.18818
+          },
+          {
+            "name": "SFORZA-POLICLINICO",
+            "lat": 45.45972,
+            "lon": 9.195465
+          },
+          {
+            "name": "SAN BABILA",
+            "lat": 45.4665214,
+            "lon": 9.1975286
+          },
+          {
+            "name": "TRICOLORE",
+            "lat": 45.4679042,
+            "lon": 9.2077709
+          },
+          {
+            "name": "DATEO",
+            "lat": 45.4679905,
+            "lon": 9.218453
+          },
+          {
+            "name": "SUSA",
+            "lat": 45.4680691,
+            "lon": 9.2248844
+          },
+          {
+            "name": "ARGONNE",
+            "lat": 45.468131,
+            "lon": 9.231956
+          },
+          {
+            "name": "STAZIONE FORLANINI",
+            "lat": 45.4643131,
+            "lon": 9.2363498
+          },
+          {
+            "name": "SEGNERI",
+            "lat": 45.446535,
+            "lon": 9.130565
+          },
+          {
+            "name": "REPETTI",
+            "lat": 45.4620092,
+            "lon": 9.2403933
+          },
+          {
+            "name": "LINATE AEROPORTO",
+            "lat": 45.4628501,
+            "lon": 9.2779015
+          },
+          {
+            "name": "GELSOMINI",
+            "lat": 45.449616,
+            "lon": 9.135715
+          },
+          {
+            "name": "FRATTINI",
+            "lat": 45.451821,
+            "lon": 9.142448
+          },
+          {
+            "name": "TOLSTOJ",
+            "lat": 45.453597,
+            "lon": 9.148017
+          },
+          {
+            "name": "BOLIVAR",
+            "lat": 45.455319,
+            "lon": 9.153149
+          },
+          {
+            "name": "CALIFORNIA",
+            "lat": 45.457548,
+            "lon": 9.160062
+          },
+          {
+            "name": "CONI ZUGNA",
+            "lat": 45.459088,
+            "lon": 9.164912
+          },
+          {
+            "name": "SAN AMBROGIO",
+            "lat": 45.461817,
+            "lon": 9.17322
+          }
+        ]
+      }
+    }
+  },
+  "M5": {
+    "color": "8E44AD",
+    "directions": {
+      "0": {
+        "shapeId": "BIGNAMI___SAN SIRO STADIO",
+        "stops": [
+          {
+            "name": "BIGNAMI",
+            "lat": 45.5267842,
+            "lon": 9.2121805
+          },
+          {
+            "name": "MONUMENTALE",
+            "lat": 45.4848148,
+            "lon": 9.1797931
+          },
+          {
+            "name": "CENISIO",
+            "lat": 45.48749,
+            "lon": 9.1719468
+          },
+          {
+            "name": "GERUSALEMME",
+            "lat": 45.4845218,
+            "lon": 9.1667778
+          },
+          {
+            "name": "DOMODOSSOLA",
+            "lat": 45.481619,
+            "lon": 9.1622604
+          },
+          {
+            "name": "TRE TORRI",
+            "lat": 45.4781402,
+            "lon": 9.1566753
+          },
+          {
+            "name": "PORTELLO",
+            "lat": 45.4807995,
+            "lon": 9.1514994
+          },
+          {
+            "name": "LOTTO M5",
+            "lat": 45.4797819,
+            "lon": 9.1436687
+          },
+          {
+            "name": "SEGESTA",
+            "lat": 45.4763587,
+            "lon": 9.137894
+          },
+          {
+            "name": "SAN SIRO IPPODROMO",
+            "lat": 45.476209,
+            "lon": 9.1290124
+          },
+          {
+            "name": "SAN SIRO STADIO",
+            "lat": 45.4762589,
+            "lon": 9.1183154
+          },
+          {
+            "name": "PONALE",
+            "lat": 45.5219945,
+            "lon": 9.2094736
+          },
+          {
+            "name": "BICOCCA",
+            "lat": 45.5147339,
+            "lon": 9.2053699
+          },
+          {
+            "name": "CA GRANDA",
+            "lat": 45.5072425,
+            "lon": 9.2011103
+          },
+          {
+            "name": "ISTRIA",
+            "lat": 45.5016262,
+            "lon": 9.19792
+          },
+          {
+            "name": "MARCHE",
+            "lat": 45.4961456,
+            "lon": 9.1948236
+          },
+          {
+            "name": "ZARA",
+            "lat": 45.4926644,
+            "lon": 9.1926011
+          },
+          {
+            "name": "ISOLA",
+            "lat": 45.4876083,
+            "lon": 9.1912634
+          },
+          {
+            "name": "GARIBALDI FS",
+            "lat": 45.4836397,
+            "lon": 9.1867424
+          }
+        ]
+      },
+      "1": {
+        "shapeId": "SAN SIRO STADIO___BIGNAMI",
+        "stops": [
+          {
+            "name": "SAN SIRO STADIO",
+            "lat": 45.4762589,
+            "lon": 9.1183154
+          },
+          {
+            "name": "MONUMENTALE",
+            "lat": 45.4848148,
+            "lon": 9.1797931
+          },
+          {
+            "name": "GARIBALDI FS",
+            "lat": 45.4836397,
+            "lon": 9.1867424
+          },
+          {
+            "name": "ISOLA",
+            "lat": 45.4876083,
+            "lon": 9.1912634
+          },
+          {
+            "name": "ZARA",
+            "lat": 45.4926644,
+            "lon": 9.1926011
+          },
+          {
+            "name": "MARCHE",
+            "lat": 45.4961456,
+            "lon": 9.1948236
+          },
+          {
+            "name": "ISTRIA",
+            "lat": 45.5016262,
+            "lon": 9.19792
+          },
+          {
+            "name": "CA GRANDA",
+            "lat": 45.5072425,
+            "lon": 9.2011103
+          },
+          {
+            "name": "BICOCCA",
+            "lat": 45.5147339,
+            "lon": 9.2053699
+          },
+          {
+            "name": "PONALE",
+            "lat": 45.5219945,
+            "lon": 9.2094736
+          },
+          {
+            "name": "BIGNAMI",
+            "lat": 45.5267842,
+            "lon": 9.2121805
+          },
+          {
+            "name": "SAN SIRO IPPODROMO",
+            "lat": 45.476209,
+            "lon": 9.1290124
+          },
+          {
+            "name": "SEGESTA",
+            "lat": 45.4763587,
+            "lon": 9.137894
+          },
+          {
+            "name": "LOTTO M5",
+            "lat": 45.4797819,
+            "lon": 9.1436687
+          },
+          {
+            "name": "PORTELLO",
+            "lat": 45.4807995,
+            "lon": 9.1514994
+          },
+          {
+            "name": "TRE TORRI",
+            "lat": 45.4781402,
+            "lon": 9.1566753
+          },
+          {
+            "name": "DOMODOSSOLA",
+            "lat": 45.481619,
+            "lon": 9.1622604
+          },
+          {
+            "name": "GERUSALEMME",
+            "lat": 45.4845218,
+            "lon": 9.1667778
+          },
+          {
+            "name": "CENISIO",
+            "lat": 45.48749,
+            "lon": 9.1719468
+          }
+        ]
+      }
+    }
+  }
+}

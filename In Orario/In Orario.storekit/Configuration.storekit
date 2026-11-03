@@ -1,0 +1,57 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "it",
+        "policyText" : "",
+        "policyURL" : "https://inorario.toreroclub.com/#privacy"
+      }
+    ]
+  },
+  "identifier" : "0A66494A",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "E4DD0933",
+      "localizations" : [
+
+      ],
+      "productID" : "tip.colazionee",
+      "promotionalImageID" : "6571899E",
+      "referenceName" : "Sostenitore",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "it",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "ITA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionBundleGroups" : [
+
+  ],
+  "subscriptionGroups" : [
+
+  ],
+  "subscriptionSuiteGroups" : [
+
+  ],
+  "version" : {
+    "major" : 6,
+    "minor" : 3
+  }
+}
