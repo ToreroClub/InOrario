@@ -7,10 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		234C32662FF5474000937D01 /* LlamaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 234C32652FF5473F00937D01 /* LlamaSwift */; };
 		2390EF5D2FAA8B59007DFB3C /* TrainWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2390EF492FAA8B58007DFB3C /* TrainWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		23A637B02FE4690F00020D3F /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23A637AF2FE4690F00020D3F /* StoreKit.framework */; };
-		23E100092FAA9501007DFB3C /* InOrarioClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 23E100062FAA9501007DFB3C /* InOrarioClip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		23E100092FAA9501007DFB3C /* InOrarioClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 23E100062FAA9501007DFB3C /* InOrarioClip.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,7 +51,7 @@
 		23E1000A2FAA9501007DFB3C /* Embed App Clips */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "";
+			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
 			dstSubfolderSpec = 16;
 			files = (
 				23E100092FAA9501007DFB3C /* InOrarioClip.app in Embed App Clips */,
@@ -138,7 +137,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				234C32662FF5474000937D01 /* LlamaSwift in Frameworks */,
 				23A637B02FE4690F00020D3F /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -239,7 +237,6 @@
 			);
 			name = "In Orario?";
 			packageProductDependencies = (
-				234C32652FF5473F00937D01 /* LlamaSwift */,
 			);
 			productName = "Tabelloni FS";
 			productReference = 23C4E8C22F992D4200CF3B22 /* In Orario?.app */;
@@ -326,8 +323,7 @@
 			mainGroup = 23C4E8B92F992D4200CF3B22;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				234C32642FF5473F00937D01 /* XCRemoteSwiftPackageReference "llama" */,
-			);
+		);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 23C4E8C32F992D4200CF3B22 /* Products */;
 			projectDirPath = "";
@@ -547,7 +543,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -607,7 +603,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -796,7 +792,11 @@
 				INFOPLIST_FILE = InOrarioClip/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "In Orario";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -804,6 +804,7 @@
 				MARKETING_VERSION = 3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario.Clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -814,7 +815,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -832,7 +833,11 @@
 				INFOPLIST_FILE = InOrarioClip/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "In Orario";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -840,6 +845,7 @@
 				MARKETING_VERSION = 3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario.Clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -849,7 +855,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -905,22 +911,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		234C32642FF5473F00937D01 /* XCRemoteSwiftPackageReference "llama" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mattt/llama.swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.9852.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		234C32652FF5473F00937D01 /* LlamaSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 234C32642FF5473F00937D01 /* XCRemoteSwiftPackageReference "llama" */;
-			productName = LlamaSwift;
-		};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 23C4E8BA2F992D4200CF3B22 /* Project object */;

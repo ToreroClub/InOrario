@@ -17,5 +17,9 @@
 		<string>appclips:inorario.toreroclub.com</string>
 		<string>appclips:inorario.it</string>
 	</array>
+	<key>com.apple.developer.associated-appclip-app-identifiers</key>
+	<array>
+		<string>$(AppIdentifierPrefix)carlo.InOrario.Clip</string>
+	</array>
 </dict>
 </plist>
