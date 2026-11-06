@@ -421,7 +421,13 @@ struct FavoriteRouteSolutionView: View {
     }
     
     private func loadSolutions() async {
-        await manager.searchTravelSolutions(originID: currentOriginID, destID: currentDestID, date: Date())
+        await manager.searchTravelSolutions(
+            originID: currentOriginID,
+            destID: currentDestID,
+            date: Date(),
+            originName: currentOriginName,
+            destName: currentDestName
+        )
         usageTracker.recordRouteSearch(originID: currentOriginID, originName: currentOriginName, destID: currentDestID, destName: currentDestName, location: locationManager.userLocation?.coordinate)
     }
 }

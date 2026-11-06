@@ -1,6 +1,23 @@
 import SwiftUI
 import Combine
 
+// MARK: - Remote In-App Alert Model
+
+struct RemoteAlertInfo: Codable, Equatable {
+    let id: String
+    let enabled: Bool?
+    let title: String
+    let message: String
+    let target: String? // "all", "supporters", "free"
+    let primary_button_title: String?
+    let primary_button_action: String? // "open_store", "open_url", "commute_setup", "support", "dismiss"
+    let primary_button_url: String?
+    let secondary_button_title: String?
+    let is_critical: Bool?
+    let min_version: String?
+    let max_version: String?
+}
+
 @MainActor
 class AppUpdateManager: ObservableObject {
     static let shared = AppUpdateManager()
@@ -15,11 +32,16 @@ class AppUpdateManager: ObservableObject {
     @Published var showUpdatePrompt: Bool = false
     @Published var showSupporterCommuteAlert: Bool = false
     
+    // Avviso remoto personalizzabile da server
+    @Published var activeRemoteAlert: RemoteAlertInfo? = nil
+    @Published var showRemoteAlert: Bool = false
+    
     private let lastCheckKey = "last_app_update_check_timestamp"
     private let snoozedVersionKey = "snoozed_update_version"
     private let snoozedTimeKey = "snoozed_update_timestamp"
     private let supporterLastSeenVersionKey = "supporter_last_seen_version"
     private let hasLaunchedBeforeKey = "has_launched_before_key"
+    private let lastSeenRemoteAlertIdKey = "last_seen_remote_alert_id"
     
     var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -79,25 +101,25 @@ class AppUpdateManager: ObservableObject {
     
     // MARK: - App Store & Backend Update Check
     
-    func checkForAvailableUpdates(force: Bool = false) async {
+    func checkForAvailableUpdates(hasSupport: Bool = false, force: Bool = false) async {
         let now = Date().timeIntervalSince1970
         let lastCheck = UserDefaults.standard.double(forKey: lastCheckKey)
         
-        // Verifica al massimo ogni 4 ore a meno che non sia forzata
-        if !force && (now - lastCheck < 14400) {
+        // Verifica al massimo ogni 30 minuti a meno che non sia forzata
+        if !force && (now - lastCheck < 1800) {
             return
         }
         UserDefaults.standard.set(now, forKey: lastCheckKey)
         
         // 1. Prova prima il backend rapido di In Orario (immediato, bypassa i ritardi di cache App Store)
-        let backendFound = await checkBackendUpdate()
+        let backendFound = await checkBackendUpdate(hasSupport: hasSupport)
         if backendFound { return }
         
         // 2. Controllo ufficiale App Store via iTunes Lookup
         await checkAppStoreUpdate()
     }
     
-    private func checkBackendUpdate() async -> Bool {
+    private func checkBackendUpdate(hasSupport: Bool) async -> Bool {
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/app/version") else { return false }
         var request = URLRequest(url: url)
         request.timeoutInterval = 3.5
@@ -112,9 +134,16 @@ class AppUpdateManager: ObservableObject {
                 let title: String?
                 let message: String?
                 let is_critical: Bool?
+                let remote_alert: RemoteAlertInfo?
             }
             
             let decoded = try JSONDecoder().decode(BackendVersionInfo.self, from: data)
+            
+            // Gestione avviso personalizzato da server (se presente ed abilitato)
+            if let alert = decoded.remote_alert, (alert.enabled ?? true), !alert.id.isEmpty {
+                self.evaluateAndShowRemoteAlert(alert, hasSupport: hasSupport)
+            }
+            
             if let latest = decoded.latest_version, Self.isVersion(latest, greaterThan: currentVersion) {
                 self.isUpdateAvailable = true
                 self.storeVersion = latest
@@ -132,6 +161,66 @@ class AppUpdateManager: ObservableObject {
             // Backend non raggiungibile o offline, continua con iTunes Lookup
         }
         return false
+    }
+    
+    // MARK: - Remote In-App Alert Handling
+    
+    func evaluateAndShowRemoteAlert(_ alert: RemoteAlertInfo, hasSupport: Bool) {
+        let lastSeenId = UserDefaults.standard.string(forKey: lastSeenRemoteAlertIdKey)
+        let isCritical = alert.is_critical ?? false
+        let alreadySeen = (lastSeenId == alert.id)
+        
+        // Se già visualizzato e non è critico, non disturbare di nuovo l'utente
+        if alreadySeen && !isCritical {
+            return
+        }
+        
+        // Filtro destinatari: all, supporters, free
+        if let target = alert.target?.lowercased(), !target.isEmpty && target != "all" {
+            if (target == "supporters" || target == "premium") && !hasSupport {
+                return
+            }
+            if target == "free" && hasSupport {
+                return
+            }
+        }
+        
+        // Filtro versione min / max se specificate
+        if let minV = alert.min_version, !minV.isEmpty, Self.isVersion(minV, greaterThan: currentVersion) {
+            return
+        }
+        if let maxV = alert.max_version, !maxV.isEmpty, Self.isVersion(currentVersion, greaterThan: maxV) {
+            return
+        }
+        
+        self.activeRemoteAlert = alert
+        self.showRemoteAlert = true
+    }
+    
+    func dismissRemoteAlert(alertId: String?) {
+        if let id = alertId {
+            UserDefaults.standard.set(id, forKey: lastSeenRemoteAlertIdKey)
+        }
+        self.showRemoteAlert = false
+        self.activeRemoteAlert = nil
+    }
+    
+    func handleRemoteAlertPrimaryAction(alert: RemoteAlertInfo, onCustomAction: (String) -> Void) {
+        dismissRemoteAlert(alertId: alert.id)
+        
+        guard let action = alert.primary_button_action?.lowercased() else { return }
+        switch action {
+        case "open_store":
+            openAppStore()
+        case "open_url":
+            if let urlStr = alert.primary_button_url, let url = URL(string: urlStr) {
+                UIApplication.shared.open(url)
+            }
+        case "commute_setup", "support":
+            onCustomAction(action)
+        default:
+            break
+        }
     }
     
     private func checkAppStoreUpdate() async {

@@ -1006,7 +1006,6 @@ struct CustomizePassanteView: View {
 struct NotificationsSettingsView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
-    @Environment(\.dismiss) var dismiss
     @State private var selectedTrainForConfig: SavedTrain? = nil
     
     var body: some View {
@@ -1108,14 +1107,6 @@ struct NotificationsSettingsView: View {
         }
         .navigationTitle("Notifiche")
         .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Chiudi") {
-                    dismiss()
-                }
-                .fontWeight(.bold)
-            }
-        }
         .sheet(item: $selectedTrainForConfig) { train in
             if let index = manager.favoriteTrains.firstIndex(where: { $0.id == train.id }) {
                 TrainNotificationConfigSheet(train: Binding(
@@ -1419,6 +1410,9 @@ struct TrainNotificationConfigSheet: View {
             .sheet(isPresented: $showPaywallSheet) {
                 SupportPaywallSheet()
                     .environmentObject(manager)
+            }
+            .onDisappear {
+                saveAndSync()
             }
         }
     }

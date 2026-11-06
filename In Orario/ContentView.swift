@@ -545,6 +545,34 @@ struct ContentView: View {
             .sheet(isPresented: $updateManager.showUpdatePrompt) {
                 AppUpdatePromptSheet()
             }
+            .alert(
+                updateManager.activeRemoteAlert?.title ?? "Avviso",
+                isPresented: $updateManager.showRemoteAlert,
+                presenting: updateManager.activeRemoteAlert
+            ) { alert in
+                if !(alert.is_critical ?? false) {
+                    Button(alert.secondary_button_title ?? "Chiudi", role: .cancel) {
+                        updateManager.dismissRemoteAlert(alertId: alert.id)
+                    }
+                }
+                
+                if let primaryTitle = alert.primary_button_title, !primaryTitle.isEmpty {
+                    Button(primaryTitle) {
+                        updateManager.handleRemoteAlertPrimaryAction(alert: alert) { action in
+                            switch action {
+                            case "commute_setup":
+                                showCommuteSetupSheet = true
+                            case "support":
+                                manager.showPaywallSheet = true
+                            default:
+                                break
+                            }
+                        }
+                    }
+                }
+            } message: { alert in
+                Text(alert.message)
+            }
     }
 
     @ViewBuilder
@@ -596,7 +624,7 @@ struct ContentView: View {
                 if hasCompletedOnboarding {
                     updateManager.checkSupporterUpdatePopup(hasSupport: manager.hasSupport())
                     Task {
-                        await updateManager.checkForAvailableUpdates()
+                        await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
                     }
                 }
                 
@@ -611,7 +639,7 @@ struct ContentView: View {
                 } else {
                     updateManager.checkSupporterUpdatePopup(hasSupport: manager.hasSupport())
                     Task {
-                        await updateManager.checkForAvailableUpdates()
+                        await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
                     }
                 }
             }
@@ -641,6 +669,11 @@ struct ContentView: View {
                     syncPassanteStation(gpsStation)
                 }
             }
+            .onChange(of: manager.strikeRegion) { _, newRegion in
+                if newRegion != "Lombardia" && showingMetroView {
+                    showingMetroView = false
+                }
+            }
     }
 
     @ToolbarContentBuilder
@@ -648,18 +681,37 @@ struct ContentView: View {
         // ─── MENU (tre puntini, a sinistra) ───
         ToolbarItem(placement: .topBarLeading) {
             Menu {
+                if manager.strikeRegion == "Lombardia" {
+                    Button {
+                        Haptics.play(.medium)
+                        withAnimation {
+                            showingMetroView.toggle()
+                        }
+                    } label: {
+                        if showingMetroView {
+                            Label("Sezione treni", systemImage: "train.side.front.car")
+                        } else {
+                            Label("Sezione metro", systemImage: "tram.fill")
+                        }
+                    }
+                }
+
+                Button {
+                    Haptics.play(.medium)
+                    if showingMetroView {
+                        showMetroHistorySheet = true
+                    } else {
+                        showHistorySheet = true
+                    }
+                } label: {
+                    Label("Cronologia", systemImage: "clock.arrow.circlepath")
+                }
+
                 Button {
                     Haptics.play(.medium)
                     showProfile = true
                 } label: {
                     Label("Impostazioni", systemImage: "gearshape")
-                }
-
-                Button {
-                    Haptics.play(.medium)
-                    showHistorySheet = true
-                } label: {
-                    Label("Cronologia", systemImage: "clock.arrow.circlepath")
                 }
 
                 Button {
@@ -777,6 +829,9 @@ struct ContentView: View {
                     if hasCompletedOnboarding {
                         print("App tornata attiva, aggiorno posizione e passante...")
                         locationManager.requestLocation()
+                        Task {
+                            await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
+                        }
                     }
                     if isPassanteExpanded {
                         Task {
@@ -798,6 +853,9 @@ struct ContentView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenCommutePlanB"))) { _ in
                 showPlanBDetailSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TriggerOpenMetroHistorySheet"))) { _ in
+                showMetroHistorySheet = true
             }
     }
 }

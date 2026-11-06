@@ -8,6 +8,28 @@ struct TrainLiveActivityAttributes: ActivityAttributes {
         var statusMessage: String
         var lastStation: String
         var progress: Double // Range 0.0 - 1.0 representing train route completion
+        var lastDetectionTime: String?
+        
+        public init(delay: String, statusMessage: String, lastStation: String, progress: Double, lastDetectionTime: String? = nil) {
+            self.delay = delay
+            self.statusMessage = statusMessage
+            self.lastStation = lastStation
+            self.progress = progress
+            self.lastDetectionTime = lastDetectionTime
+        }
+        
+        enum CodingKeys: String, CodingKey {
+            case delay, statusMessage, lastStation, progress, lastDetectionTime
+        }
+        
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.delay = try container.decode(String.self, forKey: .delay)
+            self.statusMessage = try container.decode(String.self, forKey: .statusMessage)
+            self.lastStation = try container.decode(String.self, forKey: .lastStation)
+            self.progress = try container.decode(Double.self, forKey: .progress)
+            self.lastDetectionTime = try container.decodeIfPresent(String.self, forKey: .lastDetectionTime)
+        }
     }
 
     var trainNumber: String

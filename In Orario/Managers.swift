@@ -63,6 +63,7 @@ struct Haptics {
     private var lastSyncedSignature: String = ""
     private var inFlightSyncSignature: String? = nil
     private var syncDebounceTask: Task<Void, Never>? = nil
+    private var registeredLiveActivityTokens: [String: String] = [:]
 
     @Published var trains: [Train] = []
     @Published var selectedTrainStops: [Stop] = []
@@ -1585,8 +1586,8 @@ struct Haptics {
         ]
         
         syncDebounceTask = Task { @MainActor in
-            // Debounce di 500ms per raggruppare chiamate multiple ed evitare flood del server
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            // Debounce di 1.2 secondi per raggruppare modifiche multiple (es. attivazione rapida di più opzioni di notifica)
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
             guard !Task.isCancelled else { return }
             
             print("[syncRemoteNotifications] Avvio sincronizzazione. Token: \(token), remoteNotificationsEnabled: \(remoteNotificationsEnabled), preferiti: \(favoriteTrains.map { "\($0.number): \($0.notifyDelay ?? false)" })")
@@ -1897,8 +1898,15 @@ struct Haptics {
 
     func registerLiveActivityToken(pushToken: Data, trainNumber: String, deviceToken: String) {
         guard hasSupport() else { return }
-        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/liveactivity/register") else { return }
         let tokenString = pushToken.map { String(format: "%02x", $0) }.joined()
+        
+        // Evita chiamate duplicate per lo stesso token sullo stesso treno
+        if registeredLiveActivityTokens[trainNumber] == tokenString {
+            return
+        }
+        registeredLiveActivityTokens[trainNumber] = tokenString
+        
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/liveactivity/register") else { return }
         let payload: [String: Any] = [
             "token": deviceToken,
             "push_token": tokenString,
@@ -1918,6 +1926,7 @@ struct Haptics {
     }
     
     func unregisterLiveActivityToken(trainNumber: String, deviceToken: String) {
+        registeredLiveActivityTokens.removeValue(forKey: trainNumber)
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/liveactivity/unregister") else { return }
         let payload: [String: Any] = [
             "token": deviceToken,
@@ -2526,13 +2535,71 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     Self.collapseUrbanSegments(rawSegments)
 }
 
-    func searchTravelSolutions(originID: String, destID: String, date: Date) async {
+    private func resolveLocationId(id: String, stationName: String?) async -> Int? {
+        // Se è già un ID numerico valido Trenitalia (>= 800000000, es. 830001402)
+        if let num = Int(id), num >= 800000000 {
+            return num
+        }
+        
+        var query = stationName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if query.isEmpty {
+            if let st = allRFIStations.first(where: { $0.rfiID == id || $0.vtID == id }) {
+                query = st.name
+            }
+        }
+        
+        guard !query.isEmpty else { return Int(id) }
+        
+        // Risoluzione rapida alias noti per Trenitalia
+        let uName = query.uppercased()
+        if uName.contains("GARIBALDI") {
+            if uName.contains("PASSANTE") || uName.contains("SOTTERRANEA") {
+                return 830001662 // Milano Porta Garibaldi Passante
+            }
+            return 830001645 // Milano Porta Garibaldi Superficie
+        }
+        
+        // Cerchiamo le location tramite API LeFrecce
+        let safeQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let urlString = "https://www.lefrecce.it/Channels.Website.BFF.WEB/website/locations/search?name=\(safeQuery)"
+        guard let url = URL(string: urlString) else { return Int(id) }
+        
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148", forHTTPHeaderField: "User-Agent")
+        
+        do {
+            let (data, _) = try await NetworkService.shared.get(request: request)
+            let decoded = (try? JSONDecoder().decode([TrenitaliaLocation].self, from: data)) ?? []
+            if let first = decoded.first {
+                return first.id
+            }
+        } catch {
+            AppLogger.error("Errore risoluzione location ID per \(query): \(error)")
+        }
+        
+        return Int(id)
+    }
+
+    func searchTravelSolutions(
+        originID: String,
+        destID: String,
+        date: Date,
+        originName: String? = nil,
+        destName: String? = nil,
+        onResolvedIDs: (@Sendable (String, String) -> Void)? = nil
+    ) async {
         self.isSearchingSolutions = true
         self.travelSolutions = []
         
-        guard let depId = Int(originID), let arrId = Int(destID) else {
+        guard let depId = await resolveLocationId(id: originID, stationName: originName),
+              let arrId = await resolveLocationId(id: destID, stationName: destName) else {
             self.isSearchingSolutions = false
             return
+        }
+        
+        if String(depId) != originID || String(arrId) != destID {
+            onResolvedIDs?(String(depId), String(arrId))
         }
         
         let f = DateFormatter()
@@ -2567,7 +2634,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148", forHTTPHeaderField: "User-Agent")
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -2900,7 +2967,8 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
                 delay: delayStr,
                 statusMessage: result.status.statusMessage,
                 lastStation: lastStation,
-                progress: progressVal
+                progress: progressVal,
+                lastDetectionTime: result.status.lastTime
             )
             
             for activity in Activity<TrainLiveActivityAttributes>.activities {

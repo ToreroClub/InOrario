@@ -420,7 +420,7 @@ struct StationSelectionSheet: View {
                                     Button {
                                         let resolved = manager.resolveStation(name: result.name)
                                         selectedName = resolved.name.formattedStationName
-                                        selectedID = resolved.rfiID ?? resolved.vtID ?? String(result.id)
+                                        selectedID = String(result.id)
                                         let vt = resolved.vtID ?? manager.getVtID(for: resolved.name) ?? ""
                                         manager.addToRecentStations(VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: vt))
                                         manager.addToViewedRecentStations(name: resolved.name, vtID: vt)
@@ -690,7 +690,7 @@ struct StationSelectionSheet: View {
                 if let match = match {
                     let resolved = manager.resolveStation(name: match.name)
                     selectedName = resolved.name.formattedStationName
-                    selectedID = resolved.rfiID ?? resolved.vtID ?? String(match.id)
+                    selectedID = String(match.id)
                     let vt = resolved.vtID ?? manager.getVtID(for: resolved.name) ?? ""
                     manager.addToRecentStations(VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: vt))
                     manager.addToViewedRecentStations(name: resolved.name, vtID: vt)
@@ -1050,7 +1050,17 @@ struct SearchView: View {
                                 if !originID.isEmpty && !destID.isEmpty {
                                     hasSearchedSolutions = true
                                     Task {
-                                        await manager.searchTravelSolutions(originID: originID, destID: destID, date: searchDate)
+                                        await manager.searchTravelSolutions(
+                                            originID: originID,
+                                            destID: destID,
+                                            date: searchDate,
+                                            originName: originName,
+                                            destName: destName,
+                                            onResolvedIDs: { newOrig, newDest in
+                                                originID = newOrig
+                                                destID = newDest
+                                            }
+                                        )
                                     }
                                 } else {
                                     manager.travelSolutions = []
@@ -1102,7 +1112,17 @@ struct SearchView: View {
                             hasSearchedSolutions = true
                             Haptics.play(.medium)
                             Task {
-                                await manager.searchTravelSolutions(originID: originID, destID: destID, date: searchDate)
+                                await manager.searchTravelSolutions(
+                                    originID: originID,
+                                    destID: destID,
+                                    date: searchDate,
+                                    originName: originName,
+                                    destName: destName,
+                                    onResolvedIDs: { newOrig, newDest in
+                                        originID = newOrig
+                                        destID = newDest
+                                    }
+                                )
                             }
                         } label: {
                             ZStack {
@@ -1195,7 +1215,17 @@ struct SearchView: View {
                             destID = route.destinationID
                             hasSearchedSolutions = true
                             Task {
-                                await manager.searchTravelSolutions(originID: route.originID, destID: route.destinationID, date: searchDate)
+                                await manager.searchTravelSolutions(
+                                    originID: route.originID,
+                                    destID: route.destinationID,
+                                    date: searchDate,
+                                    originName: route.originName,
+                                    destName: route.destinationName,
+                                    onResolvedIDs: { newOrig, newDest in
+                                        originID = newOrig
+                                        destID = newDest
+                                    }
+                                )
                             }
                         } label: {
                             HStack(spacing: 10) {

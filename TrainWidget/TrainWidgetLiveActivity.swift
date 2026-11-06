@@ -130,6 +130,19 @@ struct LiveActivityFetcher {
 
         let lastStation = (json["stazioneUltimoRilevamento"] as? String) ?? ""
 
+        var detectionTime: String? = nil
+        if let compOra = json["compOraUltimoRilevamento"] as? String, !compOra.isEmpty {
+            detectionTime = String(compOra.prefix(5))
+        } else if let ms = json["oraUltimoRilevamento"] as? Int, ms > 0 {
+            let date = Date(timeIntervalSince1970: TimeInterval(ms) / 1000.0)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            formatter.timeZone = TimeZone(identifier: "Europe/Rome")
+            detectionTime = formatter.string(from: date)
+        } else if let oraStr = json["oraUltimoRilevamento"] as? String, !oraStr.isEmpty {
+            detectionTime = String(oraStr.prefix(5))
+        }
+
         var statusMsg = (json["subTitle"] as? String) ?? ""
         if statusMsg.isEmpty {
             if isCancelled {
@@ -167,7 +180,8 @@ struct LiveActivityFetcher {
             delay: delayStr,
             statusMessage: statusMsg,
             lastStation: lastStation,
-            progress: progressVal
+            progress: progressVal,
+            lastDetectionTime: detectionTime
         )
     }
 }
@@ -263,35 +277,44 @@ struct TrainWidgetLiveActivity: Widget {
                     .background(Color.white.opacity(0.1))
                 
                 // Footer Status Message and Last Detection Info
-                HStack(spacing: 4) {
-                    Image(systemName: "location.fill")
-                        .foregroundColor(
-                            context.state.delay.contains("In orario") ? .green :
-                            context.state.delay.contains("anticipo") ? .green : .orange
-                        )
-                        .font(.system(size: 11))
-                    Text(context.state.lastStation.isEmpty ? "--" : context.state.lastStation.abbreviatedStationName())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(
-                            context.state.delay.contains("In orario") ? .green :
-                            context.state.delay.contains("anticipo") ? .green : .orange
-                        )
-                        .lineLimit(1)
+                HStack(alignment: .center, spacing: 6) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "location.fill")
+                            .foregroundColor(
+                                context.state.delay.contains("In orario") ? .green :
+                                context.state.delay.contains("anticipo") ? .green : .orange
+                            )
+                            .font(.system(size: 11))
+                        
+                        Text(context.state.lastStation.isEmpty ? "--" : context.state.lastStation.abbreviatedStationName())
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(
+                                context.state.delay.contains("In orario") ? .green :
+                                context.state.delay.contains("anticipo") ? .green : .orange
+                            )
+                        
+                        if let time = context.state.lastDetectionTime, !time.isEmpty, time != "--:--" {
+                            Text(time)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.65))
+                        }
+                    }
+                    .lineLimit(1)
                     
                     Spacer()
                     
-                    Text(context.state.statusMessage)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
-                    
                     Button(intent: RefreshLiveActivityIntent(trainNumber: context.attributes.trainNumber)) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white.opacity(0.85))
-                            .padding(5)
-                            .background(Color.white.opacity(0.15))
-                            .clipShape(Circle())
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Aggiorna")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(.white.opacity(0.9))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Color.white.opacity(0.18))
+                        .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }
@@ -381,35 +404,44 @@ struct TrainWidgetLiveActivity: Widget {
                             }
                         }
                         
-                        HStack(spacing: 4) {
-                            Image(systemName: "location.fill")
-                                .foregroundColor(
-                                    context.state.delay.contains("In orario") ? .green :
-                                    context.state.delay.contains("anticipo") ? .green : .orange
-                                )
-                                .font(.system(size: 9))
-                            Text(context.state.lastStation.isEmpty ? "--" : context.state.lastStation.abbreviatedStationName())
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(
-                                    context.state.delay.contains("In orario") ? .green :
-                                    context.state.delay.contains("anticipo") ? .green : .orange
-                                )
-                                .lineLimit(1)
+                        HStack(alignment: .center, spacing: 5) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.fill")
+                                    .foregroundColor(
+                                        context.state.delay.contains("In orario") ? .green :
+                                        context.state.delay.contains("anticipo") ? .green : .orange
+                                    )
+                                    .font(.system(size: 9))
+                                
+                                Text(context.state.lastStation.isEmpty ? "--" : context.state.lastStation.abbreviatedStationName())
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(
+                                        context.state.delay.contains("In orario") ? .green :
+                                        context.state.delay.contains("anticipo") ? .green : .orange
+                                    )
+                                
+                                if let time = context.state.lastDetectionTime, !time.isEmpty, time != "--:--" {
+                                    Text(time)
+                                        .font(.system(size: 8, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.65))
+                                }
+                            }
+                            .lineLimit(1)
                             
                             Spacer()
-                            
-                            Text(context.state.statusMessage)
-                                .font(.system(size: 9))
-                                .foregroundColor(.gray)
-                                .lineLimit(1)
                                 
                             Button(intent: RefreshLiveActivityIntent(trainNumber: context.attributes.trainNumber)) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.white.opacity(0.85))
-                                    .padding(4)
-                                    .background(Color.white.opacity(0.15))
-                                    .clipShape(Circle())
+                                HStack(spacing: 3) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 8, weight: .bold))
+                                    Text("Aggiorna")
+                                        .font(.system(size: 9, weight: .semibold))
+                                }
+                                .foregroundColor(.white.opacity(0.9))
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Color.white.opacity(0.18))
+                                .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
                         }

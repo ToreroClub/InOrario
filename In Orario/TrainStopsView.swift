@@ -595,7 +595,8 @@ struct TrainStopsView: View {
             delay: train.delay,
             statusMessage: manager.currentTrainStatus.statusMessage,
             lastStation: lastStation,
-            progress: progressVal
+            progress: progressVal,
+            lastDetectionTime: manager.currentTrainStatus.lastTime
         )
         
         do {
@@ -768,7 +769,7 @@ enum FeasibilityStatus {
         case .run:
             return ("bolt.fill", "Corri!", .orange, Color.orange.opacity(0.12))
         case .miss:
-            return ("multiply.circle.fill", "Non ce la fai", .red, Color.red.opacity(0.1))
+            return ("multiply", "Non ce la fai", .red, Color.red.opacity(0.1))
         }
     }
 }
@@ -1132,7 +1133,7 @@ struct DepartureChip: View {
                 .foregroundColor(style.color == .secondary ? .primary : style.color)
             
             Image(systemName: style.icon)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: style.icon == "multiply" ? 13 : 10, weight: style.icon == "multiply" ? .heavy : .bold))
                 .foregroundColor(style.color)
         }
         .padding(.horizontal, 8)

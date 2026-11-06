@@ -4015,6 +4015,26 @@
     "Sezione" : {
 
     },
+    "Sezione metro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metro Section"
+          }
+        }
+      }
+    },
+    "Sezione treni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trains Section"
+          }
+        }
+      }
+    },
     "Sfrutta l'IA integrata nel tuo dispositivo senza consumare spazio aggiuntivo." : {
       "extractionState" : "stale",
       "localizations" : {
