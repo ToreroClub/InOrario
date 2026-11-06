@@ -34,6 +34,7 @@ actor TrainRepository {
     
     func getLiveStops(
         for trainNumber: String,
+        category: String? = nil,
         destination: String? = nil,
         origin: String? = nil,
         scheduledTime: String? = nil,
@@ -42,6 +43,11 @@ actor TrainRepository {
         let cleanNumber = trainNumber.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanNumber.isEmpty else {
             return StopsResult(stops: [], status: TrainStatus(), errorMessage: "Numero treno non valido.")
+        }
+        
+        // Se il treno è identificato come Italo, interroga ESCLUSIVAMENTE ItaloTrackingProvider
+        if isItaloTrain(category: category, number: cleanNumber) {
+            return await ItaloTrackingProvider.shared.getLiveStops(for: cleanNumber, force: force)
         }
         
         let key = cacheKey(trainNumber: cleanNumber, destination: destination, origin: origin, scheduledTime: scheduledTime)

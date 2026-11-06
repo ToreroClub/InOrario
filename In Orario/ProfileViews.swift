@@ -352,6 +352,86 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             List {
+                if !manager.hasSupport() {
+                    Section(header: Text("Sostieni In Orario")) {
+                        if tipManager.isLoadingProducts {
+                            HStack {
+                                Spacer()
+                                ProgressView("Caricamento offerte...")
+                                    .padding()
+                                Spacer()
+                            }
+                        } else if tipManager.products.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Le offerte non sono al momento disponibili.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        } else {
+                            ForEach(tipManager.products, id: \.id) { product in
+                                let isYearly = product.id == TipManager.yearlySubscriptionID
+                                Button(action: {
+                                    Task {
+                                        await tipManager.purchase(product)
+                                    }
+                                }) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(defaultName(for: product.id))
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+                                            Text(defaultDescription(for: product.id))
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.leading)
+                                        }
+                                        Spacer()
+                                        if tipManager.purchaseState == .purchasing {
+                                            ProgressView()
+                                        } else {
+                                            VStack(alignment: .trailing, spacing: 1) {
+                                                Text(product.displayPrice)
+                                                    .font(.subheadline.bold())
+                                                    .foregroundColor(.white)
+                                                Text(isYearly ? "all'anno" : "una tantum")
+                                                    .font(.system(size: 9))
+                                                    .foregroundColor(.white.opacity(0.9))
+                                            }
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(isYearly ? Color.green : Color.orange)
+                                            .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                                .disabled(tipManager.purchaseState == .purchasing)
+                            }
+                            
+                            Button(action: {
+                                Haptics.play(.medium)
+                                Task {
+                                    do {
+                                        try await AppStore.sync()
+                                        await tipManager.updatePurchases()
+                                    } catch {
+                                        print("Errore ripristino acquisti: \(error)")
+                                    }
+                                }
+                            }) {
+                                HStack {
+                                    Spacer()
+                                    Text("Ripristina Acquisti")
+                                        .font(.subheadline)
+                                        .foregroundColor(.blue)
+                                    Spacer()
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+
                 Section(header: Text("Generali e notifiche")) {
                     HStack {
                         Label("Regione", systemImage: "globe")
@@ -416,6 +496,12 @@ struct ProfileView: View {
                             .font(.headline)
                     }
                     
+                    NavigationLink(destination: AboutProjectView()) {
+                        Label("Il Progetto In Orario", systemImage: "heart.fill")
+                            .foregroundColor(.pink)
+                            .font(.headline)
+                    }
+                    
                     Link(destination: URL(string: "https://inorario.toreroclub.com")!) {
                         Label("Informativa sulla Privacy", systemImage: "lock.shield.fill")
                             .foregroundColor(.green)
@@ -423,87 +509,26 @@ struct ProfileView: View {
                     }
                 }
                 
-                Section(header: Text("Il Progetto In Orario")) {
-                    Text("Ho creato In Orario per rendere un po’ più semplice la vita di chi prende il treno ogni giorno. L’app mostra le stesse informazioni presenti sui tabelloni in stazione, aggiornate in tempo reale.\n\nLa sviluppo e la mantengo da solo, nel mio tempo libero. Ho scelto di offrirla gratuitamente e senza pubblicità, ma mantenerla attiva comporta alcuni costi.\n\nSe In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, una piccola donazione è un aiuto concreto per continuare a farla crescere.\n\nGrazie davvero ❤️")
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.leading)
-                        .lineSpacing(4)
-                        .padding(.vertical, 4)
-                        
-                    if tipManager.isLoadingProducts {
-                        HStack {
-                            Spacer()
-                            ProgressView("Caricamento offerte...")
-                                .padding()
-                            Spacer()
-                        }
-                    } else {
-                        if tipManager.products.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Le donazioni non sono al momento disponibili.")
+                if manager.hasSupport() {
+                    Section {
+                        HStack(spacing: 12) {
+                            Image(systemName: "crown.fill")
+                                .font(.title2)
+                                .foregroundColor(.yellow)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(supporterRoleTitle)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Grazie ❤️")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 4)
-                        } else {
-                            ForEach(tipManager.products, id: \.id) { product in
-                                Button(action: {
-                                    Task {
-                                        await tipManager.purchase(product)
-                                    }
-                                }) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 3) {
-                                            Text(defaultName(for: product.id))
-                                                .font(.headline)
-                                                .foregroundColor(.primary)
-                                            Text(defaultDescription(for: product.id))
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                                .multilineTextAlignment(.leading)
-                                        }
-                                        Spacer()
-                                        if tipManager.purchaseState == .purchasing {
-                                            ProgressView()
-                                        } else {
-                                            Text(product.displayPrice)
-                                                .font(.subheadline.bold())
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 6)
-                                                .background(Color.orange)
-                                                .cornerRadius(8)
-                                        }
-                                    }
-                                }
-                                .disabled(tipManager.purchaseState == .purchasing)
-                            }
-                        }
-                        
-                        Button(action: {
-                            Haptics.play(.medium)
-                            Task {
-                                do {
-                                    try await AppStore.sync()
-                                    await tipManager.updatePurchases()
-                                } catch {
-                                    print("Errore ripristino acquisti: \(error)")
-                                }
-                            }
-                        }) {
-                            HStack {
-                                Spacer()
-                                Text("Ripristina Acquisti")
-                                    .font(.subheadline)
-                                    .foregroundColor(.blue)
-                                Spacer()
-                            }
+                            Spacer()
                         }
                         .padding(.vertical, 4)
                     }
                 }
-                
+
                 if updateManager.isUpdateAvailable {
                     Section {
                         Button {
@@ -585,18 +610,64 @@ struct ProfileView: View {
         }
     }
     
+    private var supporterRoleTitle: String {
+        switch tipManager.activeProductType {
+        case .yearly:
+            return "Sostenitore annuale"
+        case .lifetime, .legacy, .none:
+            return "Sostenitore a vita"
+        }
+    }
+    
     private func defaultName(for id: String) -> String {
         switch id {
-        case "tip.colazionee": return "Sostenitore"
+        case TipManager.yearlySubscriptionID: return "Sostenitore Annuale"
+        case TipManager.lifetimeProductID: return "Sostenitore per Sempre"
+        case TipManager.legacyProductID: return "Sostenitore a vita"
         default: return "Supporto al progetto"
         }
     }
     
     private func defaultDescription(for id: String) -> String {
         switch id {
-        case "tip.colazionee": return "Sostieni lo sviluppo e sblocca tutte le funzioni avanzate."
+        case TipManager.yearlySubscriptionID: return "Accesso completo per 1 anno con rinnovo annuale."
+        case TipManager.lifetimeProductID: return "Accesso completo per sempre con un unico pagamento."
+        case TipManager.legacyProductID: return "Grazie per aver supportato In Orario!"
         default: return "Sostieni lo sviluppo dell'app."
         }
+    }
+}
+
+// MARK: - AboutProjectView
+
+struct AboutProjectView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Ho creato In Orario per rendere un po’ più semplice la vita di chi prende il treno ogni giorno. L’app mostra le stesse informazioni presenti sui tabelloni in stazione, aggiornate in tempo reale.")
+                    .font(.body)
+                    .foregroundColor(.primary)
+                    .lineSpacing(4)
+                
+                Text("La sviluppo e la mantengo da solo, nel mio tempo libero. Ho scelto di offrirla gratuitamente e senza pubblicità, ma mantenerla attiva comporta alcuni costi.")
+                    .font(.body)
+                    .foregroundColor(.primary)
+                    .lineSpacing(4)
+                
+                Text("Se In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, puoi sostenere il progetto con un abbonamento annuale o un acquisto a vita.")
+                    .font(.body)
+                    .foregroundColor(.primary)
+                    .lineSpacing(4)
+                
+                Text("Grazie davvero ❤️")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .padding(.top, 8)
+            }
+            .padding(20)
+        }
+        .navigationTitle("Il Progetto In Orario")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -1076,6 +1147,14 @@ struct TrainNotificationConfigSheet: View {
     @State private var showPaywallSheet = false
     @State private var notificationNoticeMessage: String? = nil
     
+    private var dummy: Train {
+        manager.createDummyTrain(from: train)
+    }
+    
+    private var isItalo: Bool {
+        dummy.isItalo || train.description.localizedCaseInsensitiveContains("Italo") || isItaloTrain(category: dummy.category, number: train.number)
+    }
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -1093,6 +1172,19 @@ struct TrainNotificationConfigSheet: View {
                     }
                 }
 
+                if isItalo {
+                    Section {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text("Le notifiche e le Live Activity non sono disponibili per i treni Italo: In Orario supporta il monitoraggio in background solo per Trenitalia e Trenord.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+
                 Section(header: Text("Treno")) {
                     HStack(spacing: 12) {
                         Image(systemName: "train.side.front.car")
@@ -1100,7 +1192,6 @@ struct TrainNotificationConfigSheet: View {
                             .font(.title2)
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            let dummy = manager.createDummyTrain(from: train)
                             Text("\(dummy.category) \(train.number)")
                                 .font(.headline)
                             
@@ -1173,16 +1264,6 @@ struct TrainNotificationConfigSheet: View {
                                         return
                                     }
                                 }
-                            }
-                            
-                            if newValue && !manager.hasSupport() && !manager.activeLiveActivities.isEmpty {
-                                // Disattiva Live Activity localmente senza impostare notificationLimitError
-                                // (che causerebbe il dismiss dello sheet tramite l'alert a livello root)
-                                for act in Activity<TrainLiveActivityAttributes>.activities {
-                                    Task { await act.end(nil, dismissalPolicy: .immediate) }
-                                }
-                                manager.activeLiveActivities.removeAll()
-                                notificationNoticeMessage = "La Live Activity è stata disattivata per attivare le Notifiche Treni. L'account gratuito consente 1 funzione alla volta."
                             }
                             
                             train.notifyDelay = newValue
@@ -1325,6 +1406,7 @@ struct TrainNotificationConfigSheet: View {
                     }
                 }
             }
+            .disabled(isItalo)
             .navigationTitle("Impostazioni Notifiche")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

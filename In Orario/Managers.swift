@@ -61,6 +61,8 @@ struct Haptics {
     private let strikeNotificationsEnabledKey = "strikeNotificationsEnabled_v1"
     private let apnsTokenKey = "apnsTokenKey_v1"
     private var lastSyncedSignature: String = ""
+    private var inFlightSyncSignature: String? = nil
+    private var syncDebounceTask: Task<Void, Never>? = nil
 
     @Published var trains: [Train] = []
     @Published var selectedTrainStops: [Stop] = []
@@ -284,6 +286,8 @@ struct Haptics {
         )
         
         isInitializing = false
+        
+        checkAndAutoEnableNotifications()
         
         if self.remoteNotificationsEnabled {
             DispatchQueue.main.async {
@@ -1556,14 +1560,17 @@ struct Haptics {
         let aiEngine = support ? (AIFeatureManager.shared.preferLocalAI ? "local" : "cloud") : (AIFeatureManager.shared.isLocalModelInstalled ? "local" : "none")
         let currentSignature = "\(token)|\(remoteNotificationsEnabled)|\(strikeRegion)|\(strikeEnabled)|\(support)|\(aiEngine)|\(trainsPayload.description)"
         
-        if currentSignature == lastSyncedSignature {
-            print("[syncRemoteNotifications] Nessuna modifica rispetto all'ultima sincronizzazione. Salto invio server.")
+        if currentSignature == lastSyncedSignature || currentSignature == inFlightSyncSignature {
             return
         }
         
-        print("[syncRemoteNotifications] Avvio sincronizzazione. Token: \(token), remoteNotificationsEnabled: \(remoteNotificationsEnabled), preferiti: \(favoriteTrains.map { "\($0.number): \($0.notifyDelay ?? false)" })")
+        self.inFlightSyncSignature = currentSignature
+        syncDebounceTask?.cancel()
         
-        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/sync") else { return }
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/sync") else {
+            self.inFlightSyncSignature = nil
+            return
+        }
         
         let payload: [String: Any] = [
             "token": token,
@@ -1577,7 +1584,13 @@ struct Haptics {
             "has_support": support
         ]
         
-        Task {
+        syncDebounceTask = Task { @MainActor in
+            // Debounce di 500ms per raggruppare chiamate multiple ed evitare flood del server
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            
+            print("[syncRemoteNotifications] Avvio sincronizzazione. Token: \(token), remoteNotificationsEnabled: \(remoteNotificationsEnabled), preferiti: \(favoriteTrains.map { "\($0.number): \($0.notifyDelay ?? false)" })")
+            
             do {
                 let (_, response) = try await NetworkService.shared.post(url: url, payload: payload)
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
@@ -1589,6 +1602,7 @@ struct Haptics {
             } catch {
                 print("[syncRemoteNotifications] Errore nell'invio della sincronizzazione: \(error.localizedDescription)")
             }
+            self.inFlightSyncSignature = nil
         }
     }
     
@@ -1921,11 +1935,38 @@ struct Haptics {
         }
     }
     
+    func checkAndAutoEnableNotifications() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                let isAuthorized = (settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional)
+                if isAuthorized {
+                    var changed = false
+                    if !self.remoteNotificationsEnabled {
+                        print("[checkAndAutoEnableNotifications] Permessi push autorizzati. Attivazione automatica notifiche.")
+                        self.remoteNotificationsEnabled = true
+                        changed = true
+                    }
+                    if !self.strikeNotificationsEnabled {
+                        print("[checkAndAutoEnableNotifications] Attivazione automatica notifiche scioperi.")
+                        self.strikeNotificationsEnabled = true
+                        changed = true
+                    }
+                    if changed {
+                        self.saveFavorites()
+                    }
+                    UIApplication.shared.registerForRemoteNotifications()
+                    self.syncRemoteNotifications()
+                }
+            }
+        }
+    }
+    
     func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             DispatchQueue.main.async {
                 if granted {
                     self.remoteNotificationsEnabled = true
+                    self.strikeNotificationsEnabled = true
                     UIApplication.shared.registerForRemoteNotifications()
                     self.syncRemoteNotifications()
                 } else {
@@ -2040,7 +2081,7 @@ struct Haptics {
             let (data, _) = try await NetworkService.shared.get(url: url)
             guard !Task.isCancelled else { self.isSearching = false; return }
             
-            let parsed = await Task.detached(priority: .userInitiated) { () -> [SavedTrain] in
+            var parsed = await Task.detached(priority: .userInitiated) { () -> [SavedTrain] in
                 guard let result = String(data: data, encoding: .utf8) else { return [] }
                 let lines = result.components(separatedBy: .newlines).filter { !$0.isEmpty }
                 return lines.compactMap { line -> SavedTrain? in
@@ -2052,9 +2093,30 @@ struct Haptics {
             }.value
             
             guard !Task.isCancelled else { self.isSearching = false; return }
+            
+            // Se ViaggiaTreno non ha restituito risultati ed è un numero treno di almeno 4 cifre, tenta su Italo
+            if parsed.isEmpty && query.count >= 4 && query.allSatisfy({ $0.isNumber }) {
+                let italoRes = await ItaloService.shared.getLiveStops(for: query)
+                if italoRes.errorMessage == nil && !italoRes.stops.isEmpty {
+                    let orig = italoRes.stops.first?.stationName ?? "Origine"
+                    let dest = italoRes.stops.last?.stationName ?? "Destinazione"
+                    parsed = [SavedTrain(number: query, description: "Italo - \(orig) → \(dest)")]
+                }
+            }
+            
             self.searchResults = parsed
             self.isSearching = false
-        } catch { self.isSearching = false }
+        } catch {
+            if query.count >= 4 && query.allSatisfy({ $0.isNumber }) {
+                let italoRes = await ItaloService.shared.getLiveStops(for: query)
+                if italoRes.errorMessage == nil && !italoRes.stops.isEmpty {
+                    let orig = italoRes.stops.first?.stationName ?? "Origine"
+                    let dest = italoRes.stops.last?.stationName ?? "Destinazione"
+                    self.searchResults = [SavedTrain(number: query, description: "Italo - \(orig) → \(dest)")]
+                }
+            }
+            self.isSearching = false
+        }
     }
     
     nonisolated static func isValidStationName(_ name: String) -> Bool {
@@ -2761,6 +2823,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     
     nonisolated func fetchLiveStops(
         for trainNumber: String,
+        category: String? = nil,
         destination: String? = nil,
         origin: String? = nil,
         scheduledTime: String? = nil,
@@ -2768,6 +2831,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     ) async -> StopsResult {
         await TrainRepository.shared.getLiveStops(
             for: trainNumber,
+            category: category,
             destination: destination,
             origin: origin,
             scheduledTime: scheduledTime,
@@ -2786,6 +2850,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         let cleanNumber = train.number.trimmingCharacters(in: .whitespacesAndNewlines)
         let result = await fetchLiveStops(
             for: cleanNumber,
+            category: train.category,
             destination: train.destination,
             origin: train.origin,
             scheduledTime: train.time,
@@ -3042,7 +3107,8 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     
     func createDummyTrain(from saved: SavedTrain) -> Train {
         var cat = "REG"
-        if saved.number.hasPrefix("20") || saved.number.hasPrefix("21") { cat = "RV" }
+        if isItaloTrain(category: nil, number: saved.number) || saved.description.localizedCaseInsensitiveContains("Italo") { cat = "Italo" }
+        else if saved.number.hasPrefix("20") || saved.number.hasPrefix("21") { cat = "RV" }
         else if saved.number.hasPrefix("24") || saved.number.hasPrefix("10") { cat = "S" }
         else if saved.number.hasPrefix("9") { cat = "FR" }
         return Train(category: cat, number: saved.number, destination: saved.description.capitalized, time: "--:--", delay: "In orario", platform: "--")
@@ -3216,8 +3282,20 @@ class TipManager: ObservableObject {
     @Published var products: [Product] = []
     @Published var isLoadingProducts: Bool = true
     @Published var purchaseState: PurchaseState = .idle
+    @Published var activeProductType: SupporterTierType? = nil
     
-    private let productIDs = ["tip.colazionee"]
+    enum SupporterTierType: String {
+        case legacy = "legacy"
+        case yearly = "yearly"
+        case lifetime = "lifetime"
+    }
+
+    static let legacyProductID = "tip.colazionee"
+    static let yearlySubscriptionID = "sub.supporter.yearly"
+    static let lifetimeProductID = "tip.supporter.lifetime"
+    
+    // In vendita per i nuovi utenti: abbonamento annuale e acquisto una tantum
+    private let productIDs = [yearlySubscriptionID, lifetimeProductID]
     private var transactionListener: Task<Void, Error>?
     
     init() {
@@ -3239,24 +3317,37 @@ class TipManager: ObservableObject {
     }
     
     func updatePurchases() async {
-        var hasColazionee = false
+        var isSupporter = false
         var originalID: UInt64? = nil
+        var detectedTier: SupporterTierType? = nil
+        
         for await result in StoreKit.Transaction.currentEntitlements {
             if case .verified(let transaction) = result {
-                if transaction.productID == "tip.colazionee" {
-                    hasColazionee = true
+                if transaction.productID == Self.legacyProductID {
+                    isSupporter = true
                     originalID = transaction.originalID
+                    detectedTier = .legacy
+                } else if transaction.productID == Self.lifetimeProductID {
+                    isSupporter = true
+                    originalID = transaction.originalID
+                    detectedTier = .lifetime
+                } else if transaction.productID == Self.yearlySubscriptionID {
+                    isSupporter = true
+                    originalID = transaction.originalID
+                    detectedTier = .yearly
                 }
             }
         }
-        UserDefaults.standard.set(hasColazionee, forKey: "tip.colazionee")
+        
+        self.activeProductType = detectedTier
+        UserDefaults.standard.set(isSupporter, forKey: "tip.colazionee")
         if let origID = originalID {
             let supporterKey = "sup_\(origID)"
             UserDefaults.standard.set(supporterKey, forKey: "supporter_eternal_id")
             NSUbiquitousKeyValueStore.default.set(supporterKey, forKey: "supporter_eternal_id")
         }
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
-            groupDefaults.set(hasColazionee, forKey: "tip.colazionee")
+            groupDefaults.set(isSupporter, forKey: "tip.colazionee")
         }
         NotificationCenter.default.post(name: NSNotification.Name("PurchasesUpdated"), object: nil)
     }
@@ -3266,6 +3357,7 @@ class TipManager: ObservableObject {
         await updatePurchases()
         do {
             let storeProducts = try await Product.products(for: productIDs)
+            // Mostra prima l'annuale a 3,99 € e poi il lifetime a 9,99 €
             self.products = storeProducts.sorted(by: { $0.price < $1.price })
             self.isLoadingProducts = false
         } catch {
@@ -3316,9 +3408,11 @@ class TipManager: ObservableObject {
     }
     
     private func deliver(_ transaction: StoreKit.Transaction) async {
-        let isColazionee = transaction.productID == "tip.colazionee"
+        let isSupporter = transaction.productID == Self.legacyProductID ||
+                          transaction.productID == Self.lifetimeProductID ||
+                          transaction.productID == Self.yearlySubscriptionID
         
-        if isColazionee {
+        if isSupporter {
             UserDefaults.standard.set(true, forKey: "tip.colazionee")
             let supporterKey = "sup_\(transaction.originalID)"
             UserDefaults.standard.set(supporterKey, forKey: "supporter_eternal_id")
@@ -3326,10 +3420,11 @@ class TipManager: ObservableObject {
         }
         
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
-            if isColazionee {
+            if isSupporter {
                 groupDefaults.set(true, forKey: "tip.colazionee")
             }
         }
+        await updatePurchases()
         NotificationCenter.default.post(name: NSNotification.Name("PurchasesUpdated"), object: nil)
     }
     

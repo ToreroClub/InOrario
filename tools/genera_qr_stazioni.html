@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Orario — Generatore QR Code Stazioni</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="app_icon_base64.js"></script>
+    <style>
+        :root {
+            --bg: #09090b;
+            --surface: #141417;
+            --surface-hover: #1c1c22;
+            --border: #27272a;
+            --orange: #ff9f0a;
+            --orange-hover: #f59300;
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 940px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        header h1 span.badge {
+            background: var(--orange);
+            color: #000;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-top: 8px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .panel-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .preset-btn {
+            background: #1e1e24;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preset-btn:hover {
+            background: var(--surface-hover);
+            border-color: var(--orange);
+        }
+
+        .preset-btn.active {
+            background: rgba(255, 159, 10, 0.15);
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+
+        .input-group {
+            margin-bottom: 14px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--orange);
+        }
+
+        .info-card {
+            background: rgba(255, 159, 10, 0.08);
+            border: 1px solid rgba(255, 159, 10, 0.25);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #fde68a;
+            margin-top: 18px;
+        }
+
+        /* Live Preview Card (Sticker per stampa) */
+        .preview-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .qr-sticker {
+            background: #ffffff;
+            color: #000000;
+            border-radius: 32px;
+            padding: 30px 24px 26px 24px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Intestazione Brand compatta e centrata */
+        .sticker-brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .sticker-app-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .sticker-brand-name {
+            font-size: 24px;
+            font-weight: 900;
+            color: #ff9f0a;
+            letter-spacing: -0.4px;
+            line-height: 1.15;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sticker-brand-name .station-sub {
+            font-size: 22px;
+            font-weight: 900;
+            color: #000000;
+            letter-spacing: -0.3px;
+            word-break: break-word;
+        }
+
+        .qr-wrapper {
+            background: #fff;
+            padding: 12px;
+            border-radius: 22px;
+            border: 2px solid #f4f4f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 6px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+        }
+
+        .sticker-caption-line-red {
+            font-size: 19px;
+            font-weight: 900;
+            color: #ef4444;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .sticker-caption-line1 {
+            font-size: 15px;
+            font-weight: 900;
+            color: #09090b;
+            margin-bottom: 3px;
+            line-height: 1.3;
+        }
+
+        .sticker-caption-line2 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #52525b;
+            line-height: 1.3;
+        }
+
+        /* Pill Badge "App Clip iOS" */
+        .sticker-clip-badge {
+            margin-top: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f4f4f6;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #18181b;
+        }
+
+        .sticker-clip-badge svg {
+            fill: #18181b;
+        }
+
+        .actions-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--orange);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: var(--orange-hover);
+        }
+
+        .btn-secondary {
+            background: #27272a;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #3f3f46;
+        }
+
+        /* Stampa adesivo */
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .container, header, .card-panel:first-child, .actions-bar, .panel-title {
+                display: none !important;
+            }
+            .card-panel.preview-box {
+                background: transparent;
+                border: none;
+                padding: 0;
+            }
+            .qr-sticker {
+                box-shadow: none;
+                margin: 40px auto;
+                max-width: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🚄 In Orario <span class="badge">App Clip QR</span></h1>
+        <p>Genera adesivi con QR code nativo per aprire all'istante l'App Clip sul tabellone della stazione.</p>
+    </header>
+
+    <div class="main-layout">
+        <!-- Pannello Sinistro: Selezione e Personalizzazione -->
+        <div class="card-panel">
+            <div class="panel-title">📍 Seleziona Stazione</div>
+            <div class="preset-grid" id="presetContainer"></div>
+
+            <div class="panel-title" style="margin-top: 24px;">⚙️ Personalizza Dati</div>
+            <div class="input-group">
+                <label>Nome Stazione</label>
+                <input type="text" id="stationNameInput" value="Milano Centrale" oninput="updateSticker()">
+            </div>
+            <div class="input-group">
+                <label>Codice Stazione (vtID)</label>
+                <input type="text" id="stationCodeInput" value="S01700" oninput="updateSticker()">
+            </div>
+            <div class="input-group">
+                <label>Target URL App Clip</label>
+                <input type="text" id="fullUrlInput" readonly style="color: var(--text-secondary); background: #111;">
+            </div>
+
+            <div class="info-card">
+                📲 <strong>Come funziona la scansione su iPhone:</strong><br>
+                Quando un pendolare inquadra questo QR code con la fotocamera del suo iPhone, iOS riconosce l'URL registrato e <strong>non apre Safari né un sito web</strong>: fa apparire dal basso il banner nativo dell'App Clip <strong>In Orario</strong> (che pesa solo ~2 MB) aprendo direttamente il tabellone di quella stazione in un secondo.
+            </div>
+        </div>
+
+        <!-- Pannello Destro: Anteprima Adesivo / Stampa -->
+        <div class="card-panel preview-box">
+            <div class="panel-title">🖨️ Anteprima Adesivo / Cartello</div>
+
+            <div class="qr-sticker" id="stickerElement">
+                <!-- Header in alto: "In orario? Milano Centrale" con icona -->
+                <div class="sticker-brand-row">
+                    <img id="stickerAppIconImg" class="sticker-app-icon" alt="In Orario">
+                    <div class="sticker-brand-name">
+                        <span>In orario?</span>
+                        <span class="station-sub" id="stickerStationName">Milano Centrale</span>
+                    </div>
+                </div>
+                
+                <!-- Codice QR -->
+                <div class="qr-wrapper">
+                    <div id="qrcode"></div>
+                </div>
+
+                <!-- Testi di Invito all'Azione in basso -->
+                <div class="sticker-caption-line-red">Treno in ritardo?</div>
+                <div class="sticker-caption-line1">Inquadra con il tuo iPhone</div>
+                <div class="sticker-caption-line2">scopri in 10 secondi lo stato del tuo treno</div>
+
+                <!-- Badge Pill pulito:  App Clip iOS -->
+                <div class="sticker-clip-badge">
+                    <svg width="13" height="13" viewBox="0 0 24 24">
+                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.87-.9.04-1.99.6-2.64 1.35-.58.65-1.09 1.71-.97 2.74 1.01.08 2.03-.51 2.6-1.22z"/>
+                    </svg>
+                    <span>App Clip iOS</span>
+                </div>
+            </div>
+
+            <div class="actions-bar">
+                <button class="btn btn-primary" onclick="downloadStickerPNG()">⬇️ Scarica Immagine HD</button>
+                <button class="btn btn-secondary" onclick="window.print()">🖨️ Stampa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const STATIONS = [
+        { name: "Milano Centrale", code: "S01700" },
+        { name: "Milano Porta Garibaldi", code: "S01645" },
+        { name: "Milano P.ta Garibaldi (Passante)", code: "S01647" },
+        { name: "Milano Repubblica", code: "S01648" },
+        { name: "Milano Rogoredo", code: "S01701" },
+        { name: "Milano Lambrate", code: "S01643" },
+        { name: "Magenta", code: "S01040" },
+        { name: "Torino Lingotto", code: "S00452" },
+        { name: "Roma Termini", code: "S08409" },
+        { name: "Bologna Centrale", code: "S05043" }
+    ];
+
+    let currentQRCode = null;
+
+    function initPresets() {
+        const container = document.getElementById('presetContainer');
+        STATIONS.forEach((s, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'preset-btn' + (idx === 0 ? ' active' : '');
+            btn.innerText = s.name;
+            btn.onclick = () => selectPreset(s, btn);
+            container.appendChild(btn);
+        });
+
+        // Imposta icona dell'app
+        if (typeof APP_ICON_B64 !== 'undefined') {
+            document.getElementById('stickerAppIconImg').src = APP_ICON_B64;
+        }
+    }
+
+    function selectPreset(station, btnElement) {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+
+        document.getElementById('stationNameInput').value = station.name;
+        document.getElementById('stationCodeInput').value = station.code;
+        updateSticker();
+    }
+
+    function updateSticker() {
+        const name = document.getElementById('stationNameInput').value || "Stazione";
+        const code = document.getElementById('stationCodeInput').value.trim() || "S01700";
+        const url = `https://inorario.toreroclub.com/s/${code}`;
+
+        document.getElementById('fullUrlInput').value = url;
+        document.getElementById('stickerStationName').innerText = name;
+
+        // Rigenera QR code (livello H per massima leggibilità con adesivi)
+        const qrContainer = document.getElementById('qrcode');
+        qrContainer.innerHTML = "";
+        
+        currentQRCode = new QRCode(qrContainer, {
+            text: url,
+            width: 195,
+            height: 195,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    function downloadStickerPNG() {
+        const stationName = document.getElementById('stationNameInput').value || "Stazione";
+        const cleanName = stationName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        
+        // Disegna su un canvas ad alta risoluzione (800 x 1050 px)
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 1050;
+        const ctx = canvas.getContext('2d');
+
+        // Sfondo bianco
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Icona dell'App
+        const iconImg = document.getElementById('stickerAppIconImg');
+        const iconLoaded = iconImg && iconImg.complete && iconImg.naturalHeight !== 0;
+
+        const drawRest = () => {
+            // Header in alto: Icona + "In orario?" + Stazione
+            ctx.fillStyle = "#ff9f0a";
+            ctx.font = "900 38px Inter, sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText("In orario?", 280, 85);
+
+            ctx.fillStyle = "#000000";
+            ctx.font = "900 44px Inter, sans-serif";
+            ctx.fillText(stationName, 280, 135);
+
+            // QR Code
+            const qrImg = document.querySelector('#qrcode img') || document.querySelector('#qrcode canvas');
+            if (qrImg) {
+                // Cornice bianca arrotondata per QR
+                ctx.fillStyle = "#ffffff";
+                ctx.strokeStyle = "#e4e4e7";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.roundRect(160, 200, 480, 480, [28]);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.drawImage(qrImg, 185, 225, 430, 430);
+            }
+
+            // Testi in basso
+            // 1. "Treno in ritardo?" in rosso evidente
+            ctx.fillStyle = "#ef4444";
+            ctx.font = "900 38px Inter, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("Treno in ritardo?", 400, 760);
+
+            // 2. "Inquadra con il tuo iPhone"
+            ctx.fillStyle = "#09090b";
+            ctx.font = "900 32px Inter, sans-serif";
+            ctx.fillText("Inquadra con il tuo iPhone,", 400, 820);
+
+            // 3. "scopri in 10 secondi lo stato del tuo treno" (SENZA PUNTO FINALE)
+            ctx.fillStyle = "#52525b";
+            ctx.font = "600 27px Inter, sans-serif";
+            ctx.fillText("scopri in 10 secondi lo stato del tuo treno", 400, 870);
+
+            // Badge Pill " App Clip iOS"
+            ctx.fillStyle = "#f4f4f6";
+            ctx.beginPath();
+            ctx.roundRect(260, 930, 280, 54, [27]);
+            ctx.fill();
+
+            ctx.fillStyle = "#18181b";
+            ctx.font = "bold 23px Inter, sans-serif";
+            ctx.fillText(" App Clip iOS", 400, 966);
+
+            // Download
+            const link = document.createElement('a');
+            link.download = `Adesivo_InOrario_${cleanName}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        };
+
+        if (iconLoaded) {
+            // Disegna icona arrotondata a sinistra dell'header
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(170, 50, 90, 90, [22]);
+            ctx.clip();
+            ctx.drawImage(iconImg, 170, 50, 90, 90);
+            ctx.restore();
+            drawRest();
+        } else {
+            drawRest();
+        }
+    }
+
+    // Inizializza
+    window.onload = () => {
+        initPresets();
+        updateSticker();
+    };
+</script>
+
+</body>
+</html>

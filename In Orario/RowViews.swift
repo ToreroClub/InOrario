@@ -337,19 +337,22 @@ struct TrainRowView: View {
     
     func fullCategoryName(_ c: String, dest: String) -> String {
         let cat = c.uppercased()
+        if cat.contains("ITALO") || cat.contains("NTV") || cat == "ITA" { return "Italo" }
         if cat.contains("FR") { return "Frecciarossa" }
         if cat.contains("RV") { return "Regionale Veloce" }
         if cat.contains("AV") || cat.contains("ALTA VELOCIT") { return "Alta Velocità" }
         if cat.contains("IC") { return "Intercity" }
         if cat.contains("EC") { return "Eurocity" }
         if cat.contains("S6") || (cat == "S" && (dest.lowercased().contains("novara") || dest.lowercased().contains("treviglio"))) { return "Suburbano" }
-        if cat.contains("NTV") || cat.contains("ITA") { return "Italo" }
+        if cat.hasPrefix("S") && cat.count <= 3 { return "Suburbano" }
+        if cat == "REG" { return "Regionale" }
         return "Treno"
     }
     
     func categoryColor(_ cat: String) -> Color {
         let c = cat.uppercased()
-        if c.contains("FR") || c.contains("ITA") || c == "AV" { return .red }
+        if c.contains("ITALO") || c.contains("NTV") { return Color(red: 0.65, green: 0.05, blue: 0.12) }
+        if c.contains("FR") || c == "AV" { return .red }
         if c == "IC" || c == "EC" { return .gray }
         if c.contains("S") { return Color(red: 0.0, green: 0.6, blue: 0.2) }
         if c.contains("RV") || c.contains("RE") { return .blue }

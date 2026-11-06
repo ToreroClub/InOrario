@@ -7,7 +7,7 @@ class AppUpdateManager: ObservableObject {
     
     @Published var isUpdateAvailable: Bool = false
     @Published var storeVersion: String = ""
-    @Published var storeURL: URL = URL(string: "https://apps.apple.com/app/in-orario/id6760344298")!
+    @Published var storeURL: URL = URL(string: "https://apps.apple.com/it/app/in-orario/id6773419855")!
     @Published var updateTitle: String = "Nuova versione disponibile! 🚀"
     @Published var updateMessage: String = "È disponibile un nuovo aggiornamento di In Orario su App Store. Aggiorna ora per avere tutte le ultime novità, percorsi e miglioramenti!"
     @Published var isCriticalUpdate: Bool = false

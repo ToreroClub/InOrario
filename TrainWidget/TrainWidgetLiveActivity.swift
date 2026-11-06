@@ -1,6 +1,176 @@
 import ActivityKit
 import WidgetKit
 import SwiftUI
+import AppIntents
+
+// MARK: - AppIntent per aggiornamento manuale Live Activity (Device-Only, 0 chiamate server)
+
+@available(iOS 17.0, *)
+struct RefreshLiveActivityIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Aggiorna Treno"
+    static let description = IntentDescription("Aggiorna manualmente lo stato del treno nella Live Activity interrogando Viaggiatreno direttamente dal dispositivo.")
+    
+    @Parameter(title: "Numero Treno")
+    var trainNumber: String
+
+    init() {
+        self.trainNumber = ""
+    }
+
+    init(trainNumber: String) {
+        self.trainNumber = trainNumber
+    }
+
+    func perform() async throws -> some IntentResult {
+        let clean = trainNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return .result() }
+
+        let matched = Activity<TrainLiveActivityAttributes>.activities.filter {
+            $0.attributes.trainNumber == clean
+        }
+        guard !matched.isEmpty else { return .result() }
+
+        if let newState = await LiveActivityFetcher.fetchState(for: clean) {
+            for act in matched {
+                await act.update(ActivityContent(state: newState, staleDate: nil))
+            }
+        }
+
+        return .result()
+    }
+}
+
+// MARK: - Fetcher locale Viaggiatreno per Live Activity (senza passare dal bridge)
+
+struct LiveActivityFetcher {
+    static func fetchState(for trainNumber: String) async -> TrainLiveActivityAttributes.ContentState? {
+        let cleanNumber = trainNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanNumber.isEmpty else { return nil }
+
+        let sessionConfig = URLSessionConfiguration.default
+        sessionConfig.timeoutIntervalForRequest = 8.0
+        sessionConfig.timeoutIntervalForResource = 10.0
+        let session = URLSession(configuration: sessionConfig)
+        let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 InOrario/1.0"
+
+        let urlStrings = [
+            "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/cercaNumeroTrenoTrenoAutocomplete/\(cleanNumber)",
+            "http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/cercaNumeroTrenoTrenoAutocomplete/\(cleanNumber)"
+        ]
+
+        var responseStr: String? = nil
+        for urlStr in urlStrings {
+            guard let url = URL(string: urlStr) else { continue }
+            var req = URLRequest(url: url)
+            req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+            req.setValue("*/*", forHTTPHeaderField: "Accept")
+            if let (data, resp) = try? await session.data(for: req),
+               let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode),
+               let s = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !s.isEmpty {
+                responseStr = s
+                break
+            }
+        }
+
+        guard let responseStr = responseStr else { return nil }
+        let lines = responseStr.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        var targets = lines.filter { $0.contains("|\(cleanNumber)-") }
+        if targets.isEmpty, let firstLine = lines.first { targets = [firstLine] }
+        guard let targetLine = targets.first else { return nil }
+
+        let pipes = targetLine.components(separatedBy: "|")
+        let subParts = pipes.count > 1 ? pipes[1].components(separatedBy: "-") : []
+        guard subParts.count >= 2 else { return nil }
+
+        let originID = subParts[1].trimmingCharacters(in: .whitespaces)
+        let timestamp = subParts.count >= 3 ? subParts[2].trimmingCharacters(in: .whitespaces) : ""
+        let dateStr = String(timestamp.prefix(13))
+
+        var candidateUrls: [String] = []
+        if !dateStr.isEmpty {
+            candidateUrls.append("https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(originID)/\(cleanNumber)/\(dateStr)")
+            candidateUrls.append("http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(originID)/\(cleanNumber)/\(dateStr)")
+        }
+        candidateUrls.append("https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(originID)/\(cleanNumber)")
+
+        var trainJson: [String: Any]? = nil
+        for cUrlStr in candidateUrls {
+            guard let sUrl = URL(string: cUrlStr) else { continue }
+            var req = URLRequest(url: sUrl)
+            req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+            req.setValue("application/json", forHTTPHeaderField: "Accept")
+            if let (sData, resp) = try? await session.data(for: req),
+               let http = resp as? HTTPURLResponse, http.statusCode == 200,
+               let json = try? JSONSerialization.jsonObject(with: sData) as? [String: Any] {
+                trainJson = json
+                break
+            }
+        }
+
+        guard let json = trainJson else { return nil }
+
+        let isCancelled = (json["provvedimento"] as? Int != 0) || (json["cancellato"] as? Bool ?? false)
+        let rawDelay = json["ritardo"] as? Int ?? 0
+        let isArrived = (json["arrivato"] as? Bool) ?? false
+        let isNonPartito = (json["nonPartito"] as? Bool) ?? false
+
+        let delayStr: String
+        if isCancelled {
+            delayStr = "Soppresso"
+        } else if isArrived {
+            delayStr = "Arrivato"
+        } else if rawDelay > 0 {
+            delayStr = "Ritardo \(rawDelay) min"
+        } else if rawDelay < 0 {
+            delayStr = "Anticipo \(abs(rawDelay)) min"
+        } else {
+            delayStr = "In orario"
+        }
+
+        let lastStation = (json["stazioneUltimoRilevamento"] as? String) ?? ""
+
+        var statusMsg = (json["subTitle"] as? String) ?? ""
+        if statusMsg.isEmpty {
+            if isCancelled {
+                statusMsg = "Corsa soppressa"
+            } else if isArrived {
+                statusMsg = "Treno arrivato"
+            } else if isNonPartito {
+                statusMsg = "Non ancora partito"
+            } else if !lastStation.isEmpty {
+                statusMsg = "Rilevato a \(lastStation)"
+            } else {
+                statusMsg = "In viaggio"
+            }
+        }
+
+        var progressVal: Double = 0.0
+        if isArrived {
+            progressVal = 1.0
+        } else if let fermate = json["fermate"] as? [[String: Any]], fermate.count > 1 {
+            var passedCount = 0
+            for f in fermate {
+                if let pReale = f["partenzaReale"] as? Int, pReale > 0 {
+                    passedCount += 1
+                } else if let aReale = f["arrivoReale"] as? Int, aReale > 0 {
+                    passedCount += 1
+                } else if let staz = f["stazione"] as? String, !lastStation.isEmpty, staz.localizedCaseInsensitiveContains(lastStation) {
+                    passedCount += 1
+                    break
+                }
+            }
+            progressVal = min(1.0, max(0.0, Double(passedCount) / Double(fermate.count - 1)))
+        }
+
+        return TrainLiveActivityAttributes.ContentState(
+            delay: delayStr,
+            statusMessage: statusMsg,
+            lastStation: lastStation,
+            progress: progressVal
+        )
+    }
+}
 
 struct TrainWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
@@ -114,6 +284,16 @@ struct TrainWidgetLiveActivity: Widget {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.gray)
                         .lineLimit(1)
+                    
+                    Button(intent: RefreshLiveActivityIntent(trainNumber: context.attributes.trainNumber)) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white.opacity(0.85))
+                            .padding(5)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding()
@@ -222,6 +402,16 @@ struct TrainWidgetLiveActivity: Widget {
                                 .font(.system(size: 9))
                                 .foregroundColor(.gray)
                                 .lineLimit(1)
+                                
+                            Button(intent: RefreshLiveActivityIntent(trainNumber: context.attributes.trainNumber)) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .padding(4)
+                                    .background(Color.white.opacity(0.15))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.top, 4)

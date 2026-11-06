@@ -186,9 +186,13 @@ struct ContentView: View {
     
     func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-            if granted {
-                DispatchQueue.main.async {
+            DispatchQueue.main.async {
+                if granted {
+                    self.manager.remoteNotificationsEnabled = true
+                    self.manager.strikeNotificationsEnabled = true
+                    self.manager.saveFavorites()
                     UIApplication.shared.registerForRemoteNotifications()
+                    self.manager.syncRemoteNotifications()
                 }
             }
         }

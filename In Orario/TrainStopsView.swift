@@ -19,6 +19,7 @@ struct TrainStopsView: View {
     @State private var selectedTrainForConfig: SavedTrain? = nil
     @State private var showFreeLiveActivityAlert = false
     @State private var showPaywallSheet = false
+    @State private var showItaloUnsupportedAlert = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -357,7 +358,7 @@ struct TrainStopsView: View {
             }
             
             ToolbarItem(placement: .principal) {
-                let cat = cleanTrainCategory(train.category)
+                let cat = train.isItalo ? "Italo" : cleanTrainCategory(train.category)
                 let titleText = cat.isEmpty ? train.number : "\(cat) \(train.number)"
                 Text(titleText)
                     .font(.headline)
@@ -367,9 +368,13 @@ struct TrainStopsView: View {
             
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 14) {
+                    let isItalo = train.isItalo
                     let isActive = manager.activeLiveActivities.contains(train.number)
                     Button {
-                        if isActive {
+                        if isItalo {
+                            Haptics.notify(.warning)
+                            showItaloUnsupportedAlert = true
+                        } else if isActive {
                             startLiveActivity(train: train)
                         } else {
                             let limit = manager.getLimit()
@@ -381,7 +386,6 @@ struct TrainStopsView: View {
                                     manager.notificationLimitError = "Hai raggiunto il limite di monitoraggio per la versione gratuita. Sostieni il progetto per sbloccare fino a 10 treni in tempo reale, Live Activity senza limiti e avvisi scioperi dedicati."
                                 }
                             } else {
-                                manager.disableTrainNotificationsForNonPremium()
                                 startLiveActivity(train: train)
                                 if !manager.hasSupport() {
                                     showFreeLiveActivityAlert = true
@@ -390,32 +394,37 @@ struct TrainStopsView: View {
                         }
                     } label: {
                         Image(systemName: isActive ? "livephoto.slash" : "livephoto.play")
-                            .foregroundColor(isActive ? .red : .green)
+                            .foregroundColor(isItalo ? .secondary.opacity(0.6) : (isActive ? .red : .green))
                     }
                     
                     let favTrain = manager.favoriteTrains.first(where: { $0.number == train.number })
                     let hasNotifications = favTrain?.notifyDelay == true || favTrain?.notifyDeparture == true || favTrain?.notifyStationPass == true || favTrain?.notifyPlatformChange == true
                     
                     Button {
-                        Haptics.play(.medium)
-                        if let existing = favTrain {
-                            selectedTrainForConfig = existing
+                        if isItalo {
+                            Haptics.notify(.warning)
+                            showItaloUnsupportedAlert = true
                         } else {
-                            let origin = manager.selectedTrainStops.first?.stationName ?? ""
-                            let dest = manager.selectedTrainStops.last?.stationName ?? train.destination
-                            let desc = origin.isEmpty ? dest : "\(origin) - \(dest)"
-                            
-                            if !manager.isFavorite(trainNumber: train.number) {
-                                manager.toggleFavorite(trainNumber: train.number, description: desc, departureTime: train.time)
-                            }
-                            
-                            if let newlyAdded = manager.favoriteTrains.first(where: { $0.number == train.number }) {
-                                selectedTrainForConfig = newlyAdded
+                            Haptics.play(.medium)
+                            if let existing = favTrain {
+                                selectedTrainForConfig = existing
+                            } else {
+                                let origin = manager.selectedTrainStops.first?.stationName ?? ""
+                                let dest = manager.selectedTrainStops.last?.stationName ?? train.destination
+                                let desc = origin.isEmpty ? dest : "\(origin) - \(dest)"
+                                
+                                if !manager.isFavorite(trainNumber: train.number) {
+                                    manager.toggleFavorite(trainNumber: train.number, description: desc, departureTime: train.time)
+                                }
+                                
+                                if let newlyAdded = manager.favoriteTrains.first(where: { $0.number == train.number }) {
+                                    selectedTrainForConfig = newlyAdded
+                                }
                             }
                         }
                     } label: {
                         Image(systemName: hasNotifications ? "bell.badge.fill" : "bell")
-                            .foregroundColor(hasNotifications ? .orange : .primary)
+                            .foregroundColor(isItalo ? .secondary.opacity(0.6) : (hasNotifications ? .orange : .primary))
                     }
                              
                     Button {
@@ -450,17 +459,22 @@ struct TrainStopsView: View {
                 .environmentObject(passanteManager)
             }
         }
-        .alert("Live Activity Attivata", isPresented: $showFreeLiveActivityAlert) {
+        .alert("Live Activity Attiva! 🚆", isPresented: $showFreeLiveActivityAlert) {
             Button("Diventa Sostenitore") {
                 showPaywallSheet = true
             }
-            Button("Continua Gratis", role: .cancel) { }
+            Button("Ho capito", role: .cancel) { }
         } message: {
-            Text("La Live Activity è attiva sul tuo dispositivo!\n\nNella versione gratuita i dati si aggiornano quando apri l'app. L'aggiornamento automatico e continuo in background anche a schermo spento richiede server dedicati: puoi attivarlo sostenendo lo sviluppo di InOrario.")
+            Text("Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ogni minuto anche a telefono bloccato? Sostieni il progetto per sbloccarli!")
         }
         .sheet(isPresented: $showPaywallSheet) {
             SupportPaywallSheet()
                 .environmentObject(manager)
+        }
+        .alert("Non disponibile per Italo", isPresented: $showItaloUnsupportedAlert) {
+            Button("Ho capito", role: .cancel) { }
+        } message: {
+            Text("In Orario supporta il monitoraggio continuo, le notifiche e le Live Activity solo per i treni Trenitalia e Trenord.\n\nPer i treni Italo puoi consultare orari, fermate e binari in tempo reale direttamente nell'app.")
         }
     }
 
@@ -528,6 +542,11 @@ struct TrainStopsView: View {
     }
 
     func startLiveActivity(train: Train) {
+        if train.isItalo {
+            Haptics.notify(.warning)
+            showItaloUnsupportedAlert = true
+            return
+        }
         
         let existingActivity = Activity<TrainLiveActivityAttributes>.activities.first { activity in
             activity.attributes.trainNumber == train.number
@@ -583,7 +602,7 @@ struct TrainStopsView: View {
             let activity = try Activity.request(
                 attributes: attributes,
                 content: .init(state: contentState, staleDate: nil),
-                pushType: .token
+                pushType: manager.hasSupport() ? .token : nil
             )
             if manager.hasSupport() {
                 Task {
@@ -610,19 +629,29 @@ struct TrainStopsView: View {
 ///   2. Match parziale su `allRFIStations.name` → idem
 ///   3. Fallback su `passanteOuterStationLookup` (vtID ViaggiaTreno) per stazioni non coperte dal DB RFI
 @MainActor private func stationFromStopName(_ name: String, manager: TrainManager, passanteManager: PassanteManager) -> Station {
-    let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    var clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    let lower = clean.lowercased()
+    if lower.contains("porta di susa") || lower.contains("porta susa") {
+        clean = "Torino Porta Susa"
+    } else if lower.contains("expo rho") || lower.contains("rho fiera") || lower.contains("rho-fiera") {
+        clean = "Rho Fiera"
+    } else if lower.contains("mediopadana") {
+        clean = "Reggio Emilia AV Mediopadana"
+    }
 
     // 1. Corrispondenza esatta (case-insensitive)
     if let rfi = manager.allRFIStations.first(where: { $0.name.lowercased() == clean.lowercased() }) {
         return Station(name: rfi.name, rfiID: rfi.rfiID, vtID: rfi.vtID, lat: nil, lon: nil)
     }
 
-    // 2. Corrispondenza parziale (il nome della fermata contiene o è contenuto nel DB)
-    if let rfi = manager.allRFIStations.first(where: {
+    // 2. Corrispondenza parziale: preferisce il match più specifico (nome più lungo) per evitare che "Susa" batta "Torino Porta Susa" o "Rho" batta "Rho Fiera"
+    let matches = manager.allRFIStations.filter {
         $0.name.lowercased().contains(clean.lowercased()) ||
         clean.lowercased().contains($0.name.lowercased())
-    }) {
-        return Station(name: rfi.name, rfiID: rfi.rfiID, vtID: rfi.vtID, lat: nil, lon: nil)
+    }
+    if let best = matches.max(by: { $0.name.count < $1.name.count }) {
+        return Station(name: best.name, rfiID: best.rfiID, vtID: best.vtID, lat: nil, lon: nil)
     }
 
     // 3. Fallback: lookup del Passante (vtID ViaggiaTreno)

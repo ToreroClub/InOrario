@@ -19,11 +19,30 @@
       "familyShareable" : false,
       "internalID" : "E4DD0933",
       "localizations" : [
-
+        {
+          "description" : "Grazie per aver supportato In Orario fin dall'inizio!",
+          "displayName" : "Sostenitore Storico",
+          "locale" : "it"
+        }
       ],
       "productID" : "tip.colazionee",
       "promotionalImageID" : "6571899E",
-      "referenceName" : "Sostenitore",
+      "referenceName" : "Sostenitore Legacy",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "F5EE1044",
+      "localizations" : [
+        {
+          "description" : "Accesso completo a vita con un unico acquisto, senza scadenze.",
+          "displayName" : "Sostenitore per Sempre",
+          "locale" : "it"
+        }
+      ],
+      "productID" : "tip.supporter.lifetime",
+      "referenceName" : "Sostenitore per Sempre",
       "type" : "NonConsumable"
     }
   ],
@@ -45,7 +64,71 @@
 
   ],
   "subscriptionGroups" : [
+    {
+      "id" : "2147483647",
+      "localizations" : [
+        {
+          "description" : "Supporto continuativo a In Orario",
+          "displayName" : "In Orario Sostenitore",
+          "locale" : "it"
+        }
+      ],
+      "name" : "In Orario Sostenitore",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
 
+          ],
+          "billingPlans" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "commitmentDisplayPrice" : "3.99",
+              "displayPrice" : "3.99",
+              "internalID" : "756917DE",
+              "isEnabled" : true
+            }
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "3.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "A1B2C3D4",
+          "introductoryOffer" : {
+            "billingPlanType" : "BILLED_UPFRONT",
+            "internalID" : "B2C3D4E5",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "introductoryOffers" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "internalID" : "B2C3D4E5",
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "subscriptionPeriod" : "P3D"
+            }
+          ],
+          "localizations" : [
+            {
+              "description" : "3 giorni di prova gratuita, poi tutte le funzioni per 1 anno con supporto continuativo.",
+              "displayName" : "Sostenitore Annuale",
+              "locale" : "it"
+            }
+          ],
+          "productID" : "sub.supporter.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Sostenitore Annuale",
+          "subscriptionGroupID" : "2147483647",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
   ],
   "subscriptionSuiteGroups" : [
 

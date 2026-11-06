@@ -71,9 +71,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         UserDefaults.standard.set(token, forKey: "apnsTokenKey_v1")
         
         DispatchQueue.main.async {
+            let isNewToken = self.manager?.apnsToken != token
             self.manager?.apnsToken = token
-            self.manager?.syncRemoteNotifications()
-            self.manager?.syncLiveActivities()
+            if let mgr = self.manager, !mgr.remoteNotificationsEnabled {
+                mgr.remoteNotificationsEnabled = true
+                mgr.strikeNotificationsEnabled = true
+                mgr.saveFavorites()
+            }
+            if isNewToken {
+                self.manager?.syncLiveActivities()
+            }
         }
     }
     
@@ -155,11 +162,10 @@ struct InOrario: App {
                 .onAppear {
                     appDelegate.manager = manager
                     if let savedToken = UserDefaults.standard.string(forKey: "apnsTokenKey_v1"), !savedToken.isEmpty {
-                        manager.apnsToken = savedToken
-                        manager.syncRemoteNotifications()
-                        manager.syncLiveActivities()
+                        if manager.apnsToken != savedToken {
+                            manager.apnsToken = savedToken
+                        }
                     }
-                    guessingEngine.appEnteredActive(locationManager: locationManager, passanteManager: passanteManager, manager: manager)
                 }
                 .onContinueUserActivity(CSSearchableItemActionType) { activity in
                     if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {

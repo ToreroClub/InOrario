@@ -135,6 +135,7 @@ actor StationRepository {
             
             return jsonArray.compactMap { item in
                 let num = String(item["numeroTreno"] as? Int ?? 0)
+                let rawCatCode = ((item["categoria"] as? String) ?? "").trimmingCharacters(in: .whitespaces).uppercased()
                 var cat = (item["categoriaDescrizione"] as? String)?.trimmingCharacters(in: .whitespaces) ?? ""
                 let dest = ((isDepartures ? item["destinazione"] : item["origine"]) as? String)?.capitalized ?? ""
                 let timeVal = (isDepartures ? item["orarioPartenza"] : item["orarioArrivo"]) as? Int ?? 0
@@ -145,12 +146,23 @@ actor StationRepository {
                 let platform = binEff ?? binProg ?? "--"
                 
                 let catUpper = cat.uppercased()
-                if catUpper.contains("ALTA VELOCIT") { cat = "AV" }
-                else if catUpper.contains("INTERCITY") { cat = "IC" }
-                else if catUpper.contains("EUROCITY") { cat = "EC" }
-                else if catUpper == "REGIONALE VELOCE" { cat = "RV" }
-                else if catUpper == "REGIONALE" { cat = "REG" }
-                else if catUpper == "SUBURBANO" { cat = "S" }
+                let isItalo = isItaloTrain(category: rawCatCode.isEmpty ? cat : rawCatCode, number: num) || catUpper.contains("ITALO") || catUpper.contains("NTV") || rawCatCode.contains("NTV") || rawCatCode.contains("ITA")
+                
+                if isItalo {
+                    cat = "Italo"
+                } else if catUpper.contains("ALTA VELOCIT") {
+                    cat = "AV"
+                } else if catUpper.contains("INTERCITY") {
+                    cat = "IC"
+                } else if catUpper.contains("EUROCITY") {
+                    cat = "EC"
+                } else if catUpper == "REGIONALE VELOCE" {
+                    cat = "RV"
+                } else if catUpper == "REGIONALE" {
+                    cat = "REG"
+                } else if catUpper == "SUBURBANO" {
+                    cat = "S"
+                }
                 
                 if cat.uppercased() == "S" || cat.uppercased() == "REG" {
                     if num.hasPrefix("240") || num.hasPrefix("230") || num.hasPrefix("241") || num.hasPrefix("231") { cat = "S1" }
@@ -248,11 +260,22 @@ actor StationRepository {
                     let plat = stripHTML(cols[7])
                     
                     let catUpper = cat.uppercased()
-                    if catUpper.contains("ALTA VELOCIT") { cat = "AV" }
-                    else if catUpper.contains("INTERCITY") { cat = "IC" }
-                    else if catUpper.contains("EUROCITY") { cat = "EC" }
-                    else if catUpper == "REGIONALE VELOCE" { cat = "RV" }
-                    else if catUpper == "REGIONALE" { cat = "REG" }
+                    let col2Upper = cols[2].uppercased()
+                    let isItalo = isItaloTrain(category: cat, number: num) || catUpper.contains("ITALO") || catUpper.contains("NTV") || col2Upper.contains("ITALO") || col2Upper.contains("NTV")
+                    
+                    if isItalo {
+                        cat = "Italo"
+                    } else if catUpper.contains("ALTA VELOCIT") {
+                        cat = "AV"
+                    } else if catUpper.contains("INTERCITY") {
+                        cat = "IC"
+                    } else if catUpper.contains("EUROCITY") {
+                        cat = "EC"
+                    } else if catUpper == "REGIONALE VELOCE" {
+                        cat = "RV"
+                    } else if catUpper == "REGIONALE" {
+                        cat = "REG"
+                    }
                     
                     if cat.isEmpty {
                         if num.hasPrefix("20") || num.hasPrefix("21") { cat = "RV" }

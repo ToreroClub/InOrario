@@ -1,0 +1,32 @@
+{
+  "appclips": {
+    "apps": [
+      "9H7K68M6U6.carlo.InOrario.Clip"
+    ]
+  },
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "9H7K68M6U6.carlo.InOrario",
+          "9H7K68M6U6.carlo.InOrario.Clip"
+        ],
+        "components": [
+          {
+            "/": "/s/*",
+            "comment": "Station short link"
+          },
+          {
+            "/": "/station/*",
+            "comment": "Station direct link"
+          },
+          {
+            "/": "/stazione/*",
+            "comment": "Station link in Italian"
+          }
+        ]
+      }
+    ]
+  }
+}

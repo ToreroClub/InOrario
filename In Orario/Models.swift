@@ -381,7 +381,7 @@ nonisolated func cleanTrainCategory(_ category: String) -> String {
     if up.contains("INTERCITY") || up == "IC" {
         return "IC"
     }
-    if up.contains("ITALO") {
+    if up.contains("ITALO") || up.contains("NTV") || up == "ITA" {
         return "Italo"
     }
     if up.contains("MALPENSA EXPRESS") || up == "MXP" {
@@ -394,6 +394,24 @@ nonisolated func cleanTrainCategory(_ category: String) -> String {
         return trimmed
     }
     return trimmed.replacingOccurrences(of: "TRENORD", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+/// Identifica in modo deterministico se un treno è operato da Italo (NTV).
+/// Verifica la categoria (NTV, ITA, ITALO) o la numerazione ufficiale (serie RFI 99xx, 89xx, 81xx a 4 cifre riservate a Italo).
+nonisolated func isItaloTrain(category: String? = nil, number: String? = nil) -> Bool {
+    if let cat = category {
+        let clean = cleanTrainCategory(cat).uppercased()
+        if clean.contains("ITALO") || clean.contains("NTV") || clean == "ITA" {
+            return true
+        }
+    }
+    if let num = number {
+        let cleanNum = num.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanNum.count == 4 && (cleanNum.hasPrefix("99") || cleanNum.hasPrefix("89") || cleanNum.hasPrefix("81")) {
+            return true
+        }
+    }
+    return false
 }
 
 struct Train: Identifiable, Sendable, Equatable {
@@ -409,9 +427,19 @@ struct Train: Identifiable, Sendable, Equatable {
     let isDelayUncertain: Bool
     let origin: String?
     
+    var isItalo: Bool {
+        isItaloTrain(category: category, number: number)
+    }
+    
     nonisolated init(category: String, number: String, destination: String, time: String, delay: String, platform: String, isDelayUncertain: Bool = false, origin: String? = nil) {
         let cleaned = cleanTrainCategory(category)
-        self.category = cleaned.isEmpty ? category : cleaned
+        let resolvedCat: String
+        if isItaloTrain(category: cleaned, number: number) {
+            resolvedCat = "Italo"
+        } else {
+            resolvedCat = cleaned.isEmpty ? category : cleaned
+        }
+        self.category = resolvedCat
         self.number = number
         self.destination = Train.cleanStationName(destination)
         self.time = time
@@ -435,6 +463,10 @@ struct Train: Identifiable, Sendable, Equatable {
         var clean = name
         
         let replacements: [(String, String)] = [
+            ("Torino Porta di Susa", "Torino Porta Susa"),
+            ("Milano Expo Rho", "Rho Fiera"),
+            ("Expo Rho", "Rho Fiera"),
+            ("Mediopadana R.Emilia", "Reggio Emilia AV Mediopadana"),
             ("Milano Bovisa Politecnico", "Milano Bovisa"),
             ("Milano Bovisa", "Milano Bovisa"),
             ("Milano Porta Garibaldi", "Milano P. Garibaldi"),

@@ -154,30 +154,14 @@ class TrainGuessingEngine: ObservableObject {
         currentGuess = .guessing
         
         // Ensure we have a location
-        if let location = locationManager.userLocation {
-            performGuess(location: location, locationManager: locationManager, passanteManager: passanteManager, trainManager: manager)
-        } else {
-            print("[TrainGuessingEngine] Richiedo singola posizione GPS...")
-            locationManager.requestLocation()
-            
-            var cancellable: AnyCancellable?
-            cancellable = locationManager.$userLocation
-                .compactMap { $0 }
-                .first()
-                .setFailureType(to: Error.self)
-                .timeout(.seconds(5), scheduler: RunLoop.main, customError: { URLError(.timedOut) })
-                .sink(receiveCompletion: { [weak self] completion in
-                    if case .failure = completion {
-                        print("[TrainGuessingEngine] GPS Timeout.")
-                        self?.currentGuess = .failed(reason: "GPS Timeout")
-                        self?.isCurrentlyGuessing = false
-                    }
-                    cancellable?.cancel()
-                }, receiveValue: { [weak self] loc in
-                    guard let self = self else { return }
-                    self.performGuess(location: loc, locationManager: locationManager, passanteManager: passanteManager, trainManager: manager)
-                    cancellable?.cancel()
-                })
+        Task { @MainActor in
+            if let location = await locationManager.getCurrentLocation(maxAge: 45, timeout: 5) {
+                self.performGuess(location: location, locationManager: locationManager, passanteManager: passanteManager, trainManager: manager)
+            } else {
+                print("[TrainGuessingEngine] Posizione GPS non disponibile o timeout.")
+                self.currentGuess = .failed(reason: "GPS non disponibile")
+                self.isCurrentlyGuessing = false
+            }
         }
     }
     

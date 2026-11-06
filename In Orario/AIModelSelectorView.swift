@@ -357,7 +357,31 @@ struct SupportPaywallSheet: View {
                     
                     // Opzioni di acquisto
                     VStack(spacing: 12) {
-                        if tipManager.isLoadingProducts {
+                        if manager.hasSupport() {
+                            HStack(spacing: 12) {
+                                Image(systemName: "crown.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.yellow)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    let role: String = {
+                                        switch tipManager.activeProductType {
+                                        case .yearly: return "Sostenitore annuale"
+                                        case .lifetime, .legacy, .none: return "Sostenitore a vita"
+                                        }
+                                    }()
+                                    Text(role)
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                    Text("Grazie ❤️")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .padding(16)
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(16)
+                        } else if tipManager.isLoadingProducts {
                             ProgressView("Caricamento offerte...")
                                 .padding()
                         } else if tipManager.products.isEmpty {
@@ -367,6 +391,7 @@ struct SupportPaywallSheet: View {
                                 .padding()
                         } else {
                             ForEach(tipManager.products, id: \.id) { product in
+                                let isYearly = product.id == TipManager.yearlySubscriptionID
                                 Button(action: {
                                     Task {
                                         await tipManager.purchase(product)
@@ -379,9 +404,9 @@ struct SupportPaywallSheet: View {
                                 }) {
                                     HStack(spacing: 14) {
                                         VStack(alignment: .leading, spacing: 3) {
-                                            Text("Sostieni il Progetto")
+                                            Text(isYearly ? "Abbonamento Annuale" : "Sostenitore per Sempre")
                                                 .font(.headline.bold())
-                                            Text("Acquisto una tantum")
+                                            Text(isYearly ? "Accesso completo per 1 anno" : "Accesso completo per sempre")
                                                 .font(.caption)
                                                 .opacity(0.9)
                                         }
@@ -389,47 +414,54 @@ struct SupportPaywallSheet: View {
                                         if tipManager.purchaseState == .purchasing {
                                             ProgressView().tint(.white)
                                         } else {
-                                            Text(product.displayPrice)
-                                                .font(.title3.bold())
+                                            VStack(alignment: .trailing, spacing: 2) {
+                                                Text(product.displayPrice)
+                                                    .font(.title3.bold())
+                                                Text(isYearly ? "all'anno" : "una tantum")
+                                                    .font(.caption2.weight(.medium))
+                                                    .opacity(0.9)
+                                            }
                                         }
                                     }
                                     .padding(.vertical, 14)
                                     .padding(.horizontal, 16)
                                     .background(
                                         LinearGradient(
-                                            colors: [.blue, .indigo],
+                                            colors: isYearly ? [Color.green, Color(red: 0.12, green: 0.65, blue: 0.32)] : [Color.orange, Color(red: 0.95, green: 0.45, blue: 0.1)],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
                                     .foregroundColor(.white)
                                     .cornerRadius(16)
-                                    .shadow(color: Color.blue.opacity(0.25), radius: 8, x: 0, y: 4)
+                                    .shadow(color: (isYearly ? Color.green : Color.orange).opacity(0.25), radius: 8, x: 0, y: 4)
                                 }
                                 .disabled(tipManager.purchaseState == .purchasing)
                             }
                         }
                         
-                        Button("Ripristina Acquisti") {
-                            Haptics.play(.medium)
-                            Task {
-                                do {
-                                    try await AppStore.sync()
-                                    await tipManager.updatePurchases()
-                                    if manager.hasSupport() {
-                                        aiManager.aiModeChoice = .cloud
-                                        aiManager.preferLocalAI = false
-                                        dismiss()
+                        if !manager.hasSupport() {
+                            Button("Ripristina Acquisti") {
+                                Haptics.play(.medium)
+                                Task {
+                                    do {
+                                        try await AppStore.sync()
+                                        await tipManager.updatePurchases()
+                                        if manager.hasSupport() {
+                                            aiManager.aiModeChoice = .cloud
+                                            aiManager.preferLocalAI = false
+                                            dismiss()
+                                        }
+                                    } catch {
+                                        print("Errore ripristino acquisti: \(error)")
                                     }
-                                } catch {
-                                    print("Errore ripristino acquisti: \(error)")
                                 }
                             }
+                            .font(.subheadline.weight(.medium))
+                            .foregroundColor(.blue)
+                            .padding(.top, 4)
+                            .padding(.bottom, 16)
                         }
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.blue)
-                        .padding(.top, 4)
-                        .padding(.bottom, 16)
                     }
                     .padding(.horizontal, 16)
                 }

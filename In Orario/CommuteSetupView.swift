@@ -310,8 +310,8 @@ struct CommuteSetupView: View {
                     Task {
                         commuteManager.activePlanB = nil
                         await saveSettings()
-                        locationManager.requestLocation()
-                        let coord = locationManager.userLocation?.coordinate
+                        let loc = await locationManager.getCurrentLocation(maxAge: 30)
+                        let coord = loc?.coordinate
                         await commuteManager.requestManualPlanB(
                             origins: origins,
                             destinations: destinations,
@@ -549,8 +549,8 @@ struct PlanBDetailView: View {
     }
     
     private func reloadAlternatives() async {
-        locationManager.requestLocation()
-        let coord = locationManager.userLocation?.coordinate
+        let loc = await locationManager.getCurrentLocation(maxAge: 30)
+        let coord = loc?.coordinate
         let isReturn = currentPlan.origins.contains { orig in
             commuteManager.destinations.contains { $0.localizedCaseInsensitiveContains(orig) || orig.localizedCaseInsensitiveContains($0) }
         }

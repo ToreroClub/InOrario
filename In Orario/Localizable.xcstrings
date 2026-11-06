@@ -346,6 +346,9 @@
         }
       }
     },
+    "Abbonamento Annuale" : {
+
+    },
     "Abilita Notifiche" : {
       "localizations" : {
         "en" : {
@@ -379,7 +382,10 @@
     "Abitudini di viaggio 💖" : {
 
     },
-    "Acquisto una tantum" : {
+    "Accesso completo per 1 anno" : {
+
+    },
+    "Accesso completo per sempre" : {
 
     },
     "Affollamento" : {
@@ -523,6 +529,9 @@
 
     },
     "Aiuta un singolo sviluppatore a sostenere i costi continuativi dell'app, mantenendola gratuita per tutti e senza alcuna pubblicità." : {
+
+    },
+    "all'anno" : {
 
     },
     "alle %@" : {
@@ -1200,9 +1209,6 @@
         }
       }
     },
-    "Continua Gratis" : {
-
-    },
     "Corri!" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1732,6 +1738,12 @@
     "Giorni di viaggio" : {
 
     },
+    "Grazie ❤️" : {
+
+    },
+    "Grazie davvero ❤️" : {
+
+    },
     "Grazie di cuore! ❤️" : {
       "localizations" : {
         "en" : {
@@ -1763,7 +1775,14 @@
         }
       }
     },
+    "Ho capito" : {
+
+    },
+    "Ho creato In Orario per rendere un po’ più semplice la vita di chi prende il treno ogni giorno. L’app mostra le stesse informazioni presenti sui tabelloni in stazione, aggiornate in tempo reale." : {
+
+    },
     "Ho creato In Orario per rendere un po’ più semplice la vita di chi prende il treno ogni giorno. L’app mostra le stesse informazioni presenti sui tabelloni in stazione, aggiornate in tempo reale.\n\nLa sviluppo e la mantengo da solo, nel mio tempo libero. Ho scelto di offrirla gratuitamente e senza pubblicità, ma mantenerla attiva comporta alcuni costi.\n\nSe In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, una piccola donazione è un aiuto concreto per continuare a farla crescere.\n\nGrazie davvero ❤️" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1937,6 +1956,9 @@
       }
     },
     "In Orario monitora ritardi e tabelloni dei treni. Per approfondire scioperi del trasporto pubblico, cantieri stradali e deviazioni a Milano, scopri l'app LavoraMi." : {
+
+    },
+    "In Orario supporta il monitoraggio continuo, le notifiche e le Live Activity solo per i treni Trenitalia e Trenord.\n\nPer i treni Italo puoi consultare orari, fermate e binari in tempo reale direttamente nell'app." : {
 
     },
     "In Orario v%@ (%@)" : {
@@ -2123,10 +2145,10 @@
     "L'elaborazione tramite server Cloud è riservata a chi sostiene il progetto In Orario per coprire i costi di calcolo." : {
 
     },
-    "La Live Activity è attiva sul tuo dispositivo!\n\nNella versione gratuita i dati si aggiornano quando apri l'app. L'aggiornamento automatico e continuo in background anche a schermo spento richiede server dedicati: puoi attivarlo sostenendo lo sviluppo di InOrario." : {
+    "La scelta dei giorni della settimana è riservata a chi sostiene il progetto In Orario." : {
 
     },
-    "La scelta dei giorni della settimana è riservata a chi sostiene il progetto In Orario." : {
+    "La sviluppo e la mantengo da solo, nel mio tempo libero. Ho scelto di offrirla gratuitamente e senza pubblicità, ma mantenerla attiva comporta alcuni costi." : {
 
     },
     "La Tua Regione" : {
@@ -2154,6 +2176,7 @@
 
     },
     "Le donazioni non sono al momento disponibili." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2218,7 +2241,13 @@
         }
       }
     },
+    "Le notifiche e le Live Activity non sono disponibili per i treni Italo: In Orario supporta il monitoraggio in background solo per Trenitalia e Trenord." : {
+
+    },
     "Le offerte donazione non sono al momento disponibili." : {
+
+    },
+    "Le offerte non sono al momento disponibili." : {
 
     },
     "Limite gratuito raggiunto" : {
@@ -2286,7 +2315,7 @@
         }
       }
     },
-    "Live Activity Attivata" : {
+    "Live Activity Attiva! 🚆" : {
 
     },
     "Mappa" : {
@@ -2793,6 +2822,9 @@
         }
       }
     },
+    "Non disponibile per Italo" : {
+
+    },
     "Non è stato possibile inviare il feedback. Verifica la tua connessione internet o riprova più tardi." : {
       "localizations" : {
         "en" : {
@@ -3291,6 +3323,9 @@
       }
     },
     "Prova a cambiare orario di partenza." : {
+
+    },
+    "Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ogni minuto anche a telefono bloccato? Sostieni il progetto per sbloccarli!" : {
 
     },
     "Puoi ignorare singoli elementi con un tocco prolungato su di essi nella sezione 'Per te'." : {
@@ -3795,6 +3830,9 @@
         }
       }
     },
+    "Se In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, puoi sostenere il progetto con un abbonamento annuale o un acquisto a vita." : {
+
+    },
     "Segnala" : {
       "localizations" : {
         "en" : {
@@ -4041,6 +4079,9 @@
         }
       }
     },
+    "Sostenitore per Sempre" : {
+
+    },
     "Sostenitori" : {
       "localizations" : {
         "en" : {
@@ -4054,10 +4095,10 @@
     "Sostieni il progetto" : {
 
     },
-    "Sostieni il Progetto" : {
+    "Sostieni il progetto per sbloccare" : {
 
     },
-    "Sostieni il progetto per sbloccare" : {
+    "Sostieni In Orario" : {
 
     },
     "Sostieni InOrario" : {
@@ -4699,6 +4740,9 @@
       }
     },
     "Un viaggio è un itinerario a un orario specifico, composto da uno o più mezzi: salvalo per monitorare coincidenze, fermate e ritardi." : {
+
+    },
+    "una tantum" : {
 
     },
     "Una tratta è un percorso tra due stazioni: salvala per consultare con un tocco tutte le partenze disponibili." : {

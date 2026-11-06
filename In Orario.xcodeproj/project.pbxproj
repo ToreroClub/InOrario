@@ -10,6 +10,7 @@
 		234C32662FF5474000937D01 /* LlamaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 234C32652FF5473F00937D01 /* LlamaSwift */; };
 		2390EF5D2FAA8B59007DFB3C /* TrainWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2390EF492FAA8B58007DFB3C /* TrainWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		23A637B02FE4690F00020D3F /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23A637AF2FE4690F00020D3F /* StoreKit.framework */; };
+		23E100092FAA9501007DFB3C /* InOrarioClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 23E100062FAA9501007DFB3C /* InOrarioClip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,6 +28,13 @@
 			remoteGlobalIDString = 23C4E8C12F992D4200CF3B22;
 			remoteInfo = "In Orario?";
 		};
+		23E100072FAA9501007DFB3C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 23C4E8BA2F992D4200CF3B22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 23E100012FAA9501007DFB3C;
+			remoteInfo = InOrarioClip;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -41,6 +49,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		23E1000A2FAA9501007DFB3C /* Embed App Clips */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				23E100092FAA9501007DFB3C /* InOrarioClip.app in Embed App Clips */,
+			);
+			name = "Embed App Clips";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +69,7 @@
 		23A7E2A62FC75B8A00F8356C /* TrainWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TrainWidgetExtension.entitlements; sourceTree = "<group>"; };
 		23C4E8C22F992D4200CF3B22 /* In Orario?.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "In Orario?.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		23D100082FAA9001007DFB3C /* In OrarioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "In OrarioTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		23E100062FAA9501007DFB3C /* InOrarioClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = InOrarioClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -66,6 +86,13 @@
 				TrainAttributes.swift,
 			);
 			target = 23C4E8C12F992D4200CF3B22 /* In Orario? */;
+		};
+		23E1000F2FAA9501007DFB3C /* Exceptions for "InOrarioClip" folder in "InOrarioClip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 23E100012FAA9501007DFB3C /* InOrarioClip */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -87,6 +114,14 @@
 		23D100092FAA9001007DFB3C /* In OrarioTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "In OrarioTests";
+			sourceTree = "<group>";
+		};
+		23E100052FAA9501007DFB3C /* InOrarioClip */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				23E1000F2FAA9501007DFB3C /* Exceptions for "InOrarioClip" folder in "InOrarioClip" target */,
+			);
+			path = InOrarioClip;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -115,6 +150,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		23E100032FAA9501007DFB3C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -134,6 +176,7 @@
 				23C4E8C42F992D4200CF3B22 /* In Orario */,
 				23D100092FAA9001007DFB3C /* In OrarioTests */,
 				2390EF4F2FAA8B58007DFB3C /* TrainWidget */,
+				23E100052FAA9501007DFB3C /* InOrarioClip */,
 				23A637AE2FE4690F00020D3F /* Frameworks */,
 				23C4E8C32F992D4200CF3B22 /* Products */,
 			);
@@ -145,6 +188,7 @@
 				23C4E8C22F992D4200CF3B22 /* In Orario?.app */,
 				2390EF492FAA8B58007DFB3C /* TrainWidgetExtension.appex */,
 				23D100082FAA9001007DFB3C /* In OrarioTests.xctest */,
+				23E100062FAA9501007DFB3C /* InOrarioClip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -182,11 +226,13 @@
 				23C4E8BF2F992D4200CF3B22 /* Frameworks */,
 				23C4E8C02F992D4200CF3B22 /* Resources */,
 				2390EF5E2FAA8B59007DFB3C /* Embed Foundation Extensions */,
+				23E1000A2FAA9501007DFB3C /* Embed App Clips */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				2390EF5C2FAA8B59007DFB3C /* PBXTargetDependency */,
+				23E100082FAA9501007DFB3C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				23C4E8C42F992D4200CF3B22 /* In Orario */,
@@ -222,6 +268,28 @@
 			productReference = 23D100082FAA9001007DFB3C /* In OrarioTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		23E100012FAA9501007DFB3C /* InOrarioClip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 23E1000B2FAA9501007DFB3C /* Build configuration list for PBXNativeTarget "InOrarioClip" */;
+			buildPhases = (
+				23E100022FAA9501007DFB3C /* Sources */,
+				23E100032FAA9501007DFB3C /* Frameworks */,
+				23E100042FAA9501007DFB3C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				23E100052FAA9501007DFB3C /* InOrarioClip */,
+			);
+			name = InOrarioClip;
+			packageProductDependencies = (
+			);
+			productName = InOrarioClip;
+			productReference = 23E100062FAA9501007DFB3C /* InOrarioClip.app */;
+			productType = "com.apple.product-type.application.on-demand-install-capable";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -241,6 +309,9 @@
 					23D100012FAA9001007DFB3C = {
 						CreatedOnToolsVersion = 26.4.1;
 						TestTargetID = 23C4E8C12F992D4200CF3B22;
+					};
+					23E100012FAA9501007DFB3C = {
+						CreatedOnToolsVersion = 26.4.1;
 					};
 				};
 			};
@@ -265,6 +336,7 @@
 				23C4E8C12F992D4200CF3B22 /* In Orario? */,
 				2390EF482FAA8B58007DFB3C /* TrainWidgetExtension */,
 				23D100012FAA9001007DFB3C /* In OrarioTests */,
+				23E100012FAA9501007DFB3C /* InOrarioClip */,
 			);
 		};
 /* End PBXProject section */
@@ -285,6 +357,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		23D100072FAA9001007DFB3C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		23E100042FAA9501007DFB3C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -315,6 +394,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		23E100022FAA9501007DFB3C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -327,6 +413,11 @@
 			isa = PBXTargetDependency;
 			target = 23C4E8C12F992D4200CF3B22 /* In Orario? */;
 			targetProxy = 23D1000A2FAA9001007DFB3C /* PBXContainerItemProxy */;
+		};
+		23E100082FAA9501007DFB3C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 23E100012FAA9501007DFB3C /* InOrarioClip */;
+			targetProxy = 23E100072FAA9501007DFB3C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -691,6 +782,78 @@
 			};
 			name = Release;
 		};
+		23E1000C2FAA9501007DFB3C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = InOrarioClip/InOrarioClip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9H7K68M6U6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = InOrarioClip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "In Orario";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		23E1000D2FAA9501007DFB3C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = InOrarioClip/InOrarioClip.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9H7K68M6U6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = InOrarioClip/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "In Orario";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = carlo.InOrario.Clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -726,6 +889,15 @@
 			buildConfigurations = (
 				23D100032FAA9001007DFB3C /* Debug */,
 				23D100042FAA9001007DFB3C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		23E1000B2FAA9501007DFB3C /* Build configuration list for PBXNativeTarget "InOrarioClip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				23E1000C2FAA9501007DFB3C /* Debug */,
+				23E1000D2FAA9501007DFB3C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
