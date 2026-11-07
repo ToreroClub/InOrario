@@ -151,8 +151,7 @@ class StationBoardDataProvider {
     private let selectedIndexKey = "widgetStationBoardSelectedIndex"
     
     func checkSupporterUnlocked() -> Bool {
-        let defaults = UserDefaults(suiteName: suiteName)
-        return defaults?.bool(forKey: supporterKey) ?? false
+        return true
     }
     
     func getSavedStations() -> [WidgetStation] {

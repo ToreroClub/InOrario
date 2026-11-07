@@ -335,10 +335,10 @@ struct SupportPaywallSheet: View {
                         Divider()
                         
                         SupportBenefitRow(
-                            icon: "square.dashed.inset.filled",
+                            icon: "bolt.fill",
                             iconColor: .orange,
-                            title: "Widget su Schermata Home e di Blocco",
-                            description: "Visualizza partenze, binari e ritardi in tempo reale con i widget dedicati direttamente sulla schermata di blocco o Home."
+                            title: "Live Activity con push al minuto",
+                            description: "Aggiornamenti automatici in tempo reale inviati direttamente dal server ogni minuto a schermo bloccato."
                         )
                         
                         Divider()

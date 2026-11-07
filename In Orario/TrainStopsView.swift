@@ -18,6 +18,7 @@ struct TrainStopsView: View {
     @State private var metroPreviewStop: Stop? = nil
     @State private var selectedTrainForConfig: SavedTrain? = nil
     @State private var showFreeLiveActivityAlert = false
+    @State private var showReplaceLiveActivityAlert = false
     @State private var showPaywallSheet = false
     @State private var showItaloUnsupportedAlert = false
 
@@ -377,14 +378,9 @@ struct TrainStopsView: View {
                         } else if isActive {
                             startLiveActivity(train: train)
                         } else {
-                            let limit = manager.getLimit()
-                            if manager.activeLiveActivities.count >= limit {
-                                Haptics.notify(.error)
-                                if manager.hasSupport() {
-                                    manager.notificationLimitError = "Puoi avere al massimo \(limit) Live Activity attive alla volta. Disattivane un'altra per procedere."
-                                } else {
-                                    manager.notificationLimitError = "Hai raggiunto il limite di monitoraggio per la versione gratuita. Sostieni il progetto per sbloccare fino a 10 treni in tempo reale, Live Activity senza limiti e avvisi scioperi dedicati."
-                                }
+                            let otherActive = manager.activeLiveActivities.filter { $0 != train.number }
+                            if !otherActive.isEmpty {
+                                showReplaceLiveActivityAlert = true
                             } else {
                                 startLiveActivity(train: train)
                                 if !manager.hasSupport() {
@@ -466,6 +462,23 @@ struct TrainStopsView: View {
             Button("Ho capito", role: .cancel) { }
         } message: {
             Text("Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ogni minuto anche a telefono bloccato? Sostieni il progetto per sbloccarli!")
+        }
+        .alert("Attenzione", isPresented: $showReplaceLiveActivityAlert) {
+            Button("OK") {
+                Task {
+                    for activity in Activity<TrainLiveActivityAttributes>.activities {
+                        await activity.end(nil, dismissalPolicy: .immediate)
+                    }
+                    manager.syncLiveActivities()
+                    startLiveActivity(train: train)
+                    if !manager.hasSupport() {
+                        showFreeLiveActivityAlert = true
+                    }
+                }
+            }
+            Button("Annulla", role: .cancel) { }
+        } message: {
+            Text("Hai già una Live Activity attiva, verrà sostituita.")
         }
         .sheet(isPresented: $showPaywallSheet) {
             SupportPaywallSheet()
@@ -560,6 +573,12 @@ struct TrainStopsView: View {
             print("Dynamic Island spenta per il treno \(train.number)")
             Haptics.notify(.warning)
             return
+        }
+        
+        for other in Activity<TrainLiveActivityAttributes>.activities {
+            Task {
+                await other.end(nil, dismissalPolicy: .immediate)
+            }
         }
         
         let originStation = manager.selectedTrainStops.first?.stationName ?? "Partenza"

@@ -1675,7 +1675,7 @@ struct Haptics {
     func registerDeviceForStrikes(token: String) {
         guard remoteNotificationsEnabled else { return }
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/register") else { return }
-        let region = hasSupport() ? strikeRegion : "Tutte"
+        let region = strikeRegion
         
         let model = getDeviceModelName()
         let os = "iOS \(UIDevice.current.systemVersion)"
@@ -1837,7 +1837,7 @@ struct Haptics {
             "station_pass_name": stationPassName,
             "notify_departure": notifyDeparture,
             "limit": limit,
-            "strike_region": hasSupport() ? strikeRegion : "Tutte",
+            "strike_region": strikeRegion,
             "departure_time": trainPref?.departureTime ?? "",
             "arrival_time": trainPref?.arrivalTime ?? "",
             "notify_platform_change": notifyPlatformChange,

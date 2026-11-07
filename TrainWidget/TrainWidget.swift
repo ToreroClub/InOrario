@@ -312,8 +312,7 @@ struct TrainWidgetEntryView : View {
     @Environment(\.widgetFamily) var family
 
     private var isUnlocked: Bool {
-        let defaults = UserDefaults(suiteName: "group.carlo.InOrario")
-        return (defaults?.bool(forKey: "tip.colazionee") ?? false)
+        return true
     }
 
     var body: some View {
