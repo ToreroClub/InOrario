@@ -150,6 +150,23 @@ struct FAQView: View {
                     }
                 }
             }
+            
+            Section(header: Label("Legale e Privacy", systemImage: "hand.raised.fill")
+                .font(.subheadline.bold())
+                .foregroundColor(.green)
+            ) {
+                Link(destination: URL(string: "https://inorario.toreroclub.com")!) {
+                    HStack {
+                        Label("Informativa sulla Privacy", systemImage: "lock.shield.fill")
+                            .foregroundColor(.primary)
+                            .font(.body.weight(.medium))
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
         }
         .navigationTitle("Domande Frequenti")
         .navigationBarTitleDisplayMode(.inline)

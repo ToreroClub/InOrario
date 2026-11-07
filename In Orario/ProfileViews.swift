@@ -348,7 +348,6 @@ struct ProfileView: View {
 
     @StateObject private var tipManager = TipManager()
     @ObservedObject private var updateManager = AppUpdateManager.shared
-    @State private var showFeedbackSheet = false
     @State private var showClearHistoryAlert = false
     
     var body: some View {
@@ -452,25 +451,15 @@ struct ProfileView: View {
                         manager.saveFavorites()
                     }
                     
-                    NavigationLink(destination: CustomizeDashboardView()) {
-                        Label("Personalizza Dashboard", systemImage: "slider.horizontal.3")
-                            .font(.headline)
-                    }
-                    
-                    NavigationLink(destination: CustomizePassanteView()) {
-                        Label("Personalizza Linee Suburbane", systemImage: "tram.fill")
-                            .font(.headline)
-                    }
-                    
-                    NavigationLink(destination: CustomizeWidgetView()) {
-                        Label("Personalizza Widget", systemImage: "rectangle.3.group.fill")
-                            .foregroundColor(.blue)
-                            .font(.headline)
-                    }
-                    
                     NavigationLink(destination: NotificationsSettingsView()) {
                         Label("Avvisi Treno", systemImage: "bell.fill")
                             .foregroundColor(.orange)
+                            .font(.headline)
+                    }
+                    
+                    NavigationLink(destination: CustomizeHubView()) {
+                        Label("Personalizza", systemImage: "slider.horizontal.3")
+                            .foregroundColor(.blue)
                             .font(.headline)
                     }
                 }
@@ -520,7 +509,7 @@ struct ProfileView: View {
                     }
                 }
 
-                Section(header: Text("Supporto e community")) {
+                Section(header: Text("FAQ e supporto")) {
                     NavigationLink(destination: FAQView()) {
                         Label("Domande Frequenti", systemImage: "questionmark.circle.fill")
                             .foregroundColor(.blue)
@@ -530,37 +519,6 @@ struct ProfileView: View {
                     NavigationLink(destination: AboutProjectView()) {
                         Label("Il Progetto In Orario", systemImage: "heart.fill")
                             .foregroundColor(.pink)
-                            .font(.headline)
-                    }
-                    
-                    Button {
-                        Haptics.play(.light)
-                        showFeedbackSheet = true
-                    } label: {
-                        Label("Invia Feedback o Segnala un errore", systemImage: "envelope.fill")
-                            .foregroundColor(.orange)
-                            .font(.headline)
-                    }
-                    
-                    Link(destination: URL(string: "https://apps.apple.com/app/id6773419855?action=write-review")!) {
-                        Label("Valuta In Orario su App Store", systemImage: "star.bubble.fill")
-                            .foregroundColor(.yellow)
-                            .font(.headline)
-                    }
-                    
-                    ShareLink(
-                        item: URL(string: "https://apps.apple.com/app/id6773419855")!,
-                        subject: Text("In Orario"),
-                        message: Text("Prova In Orario: l'app per seguire i treni e i ritardi in tutta Italia!")
-                    ) {
-                        Label("Consiglia In Orario a un amico", systemImage: "square.and.arrow.up.fill")
-                            .foregroundColor(.blue)
-                            .font(.headline)
-                    }
-                    
-                    Link(destination: URL(string: "https://inorario.toreroclub.com")!) {
-                        Label("Informativa sulla Privacy", systemImage: "lock.shield.fill")
-                            .foregroundColor(.green)
                             .font(.headline)
                     }
                 }
@@ -659,9 +617,6 @@ struct ProfileView: View {
                     Text(msg)
                 }
             }
-            .sheet(isPresented: $showFeedbackSheet) {
-                FeedbackFormView()
-            }
             .alert("Cancellare la cronologia?", isPresented: $showClearHistoryAlert) {
                 Button("Annulla", role: .cancel) { }
                 Button("Cancella", role: .destructive) {
@@ -728,7 +683,54 @@ struct AboutProjectView: View {
                 Text("Grazie davvero ❤️")
                     .font(.headline)
                     .foregroundColor(.primary)
-                    .padding(.top, 8)
+                    .padding(.top, 4)
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                VStack(spacing: 12) {
+                    Link(destination: URL(string: "https://apps.apple.com/app/id6773419855?action=write-review")!) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "star.bubble.fill")
+                                .foregroundColor(.yellow)
+                                .font(.title3)
+                            Text("Valuta In Orario su App Store")
+                                .font(.body.weight(.medium))
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                    
+                    ShareLink(
+                        item: URL(string: "https://apps.apple.com/app/id6773419855")!,
+                        subject: Text("In Orario"),
+                        message: Text("Prova In Orario: l'app per seguire i treni e i ritardi in tutta Italia!")
+                    ) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "square.and.arrow.up.fill")
+                                .foregroundColor(.blue)
+                                .font(.title3)
+                            Text("Consiglia In Orario a un amico")
+                                .font(.body.weight(.medium))
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                }
             }
             .padding(20)
         }
@@ -870,6 +872,34 @@ struct FeedbackFormView: View {
                 Haptics.notify(.error)
             }
         }
+    }
+}
+
+struct CustomizeHubView: View {
+    var body: some View {
+        List {
+            Section(header: Text("Opzioni di personalizzazione"), footer: Text("Scegli le sezioni da visualizzare nella Home, seleziona le linee suburbane di tuo interesse e configura i treni nei widget.")) {
+                NavigationLink(destination: CustomizeDashboardView()) {
+                    Label("Personalizza Home", systemImage: "house.fill")
+                        .foregroundColor(.blue)
+                        .font(.headline)
+                }
+                
+                NavigationLink(destination: CustomizePassanteView()) {
+                    Label("Personalizza Linee Suburbane", systemImage: "tram.fill")
+                        .foregroundColor(.green)
+                        .font(.headline)
+                }
+                
+                NavigationLink(destination: CustomizeWidgetView()) {
+                    Label("Personalizza Widget", systemImage: "rectangle.3.group.fill")
+                        .foregroundColor(.purple)
+                        .font(.headline)
+                }
+            }
+        }
+        .navigationTitle("Personalizza")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -1086,12 +1116,13 @@ struct CustomizeWidgetView: View {
     }
     
     @State private var excludedNumbers: Set<String> = []
+    @State private var widgetTimeRotationEnabled: Bool = true
     
     var body: some View {
         List {
             Section(
                 header: Text("Treni nei Widget"),
-                footer: Text("Disattiva i treni che non vuoi vedere nei widget della schermata Home o di blocco. I widget mostrano fino a 3 treni nei formati Piccolo e Medio, ordinati e ruotati automaticamente in base all'orario attuale.")
+                footer: Text("Disattiva i treni che non vuoi vedere nei widget della schermata Home o di blocco.")
             ) {
                 if manager.favoriteTrains.isEmpty {
                     Text("Nessun treno salvato tra i preferiti.")
@@ -1142,22 +1173,22 @@ struct CustomizeWidgetView: View {
                 }
             }
             
-            Section(header: Text("Regole di Visualizzazione"), footer: Text("L'ordine dei treni nel widget si adatta durante la giornata: in alto trovi i treni in viaggio o in partenza a breve rispetto all'orario corrente.")) {
-                HStack {
-                    Label("Rotazione intelligente orario", systemImage: "clock.arrow.circlepath")
+            Section(
+                header: Text("Ordinamento e Rotazione"),
+                footer: Text("I widget mostrano fino a un massimo di 3 treni contemporaneamente nei formati Piccolo e Medio. Se la rotazione è attiva, i treni ruotano durante la giornata mostrando in alto quelli in partenza a breve o in viaggio.")
+            ) {
+                Toggle(isOn: Binding(
+                    get: { widgetTimeRotationEnabled },
+                    set: { newValue in
+                        Haptics.play(.medium)
+                        widgetTimeRotationEnabled = newValue
+                        groupDefaults?.set(newValue, forKey: "widgetTimeRotationEnabled_v1")
+                        WidgetCenter.shared.reloadAllTimelines()
+                    }
+                )) {
+                    Label("Rotazione automatica per orario", systemImage: "clock.arrow.circlepath")
                         .foregroundColor(.orange)
-                    Spacer()
-                    Text("Attiva")
-                        .font(.subheadline.bold())
-                        .foregroundColor(.green)
-                }
-                HStack {
-                    Label("Limite treni per widget", systemImage: "square.stack.3d.down.right.fill")
-                        .foregroundColor(.blue)
-                    Spacer()
-                    Text("Max 3")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.headline)
                 }
             }
         }
@@ -1169,6 +1200,12 @@ struct CustomizeWidgetView: View {
     }
     
     private func loadExclusions() {
+        if let val = groupDefaults?.object(forKey: "widgetTimeRotationEnabled_v1") as? Bool {
+            widgetTimeRotationEnabled = val
+        } else {
+            widgetTimeRotationEnabled = true
+        }
+        
         if let rawData = groupDefaults?.data(forKey: "excludedWidgetTrainNumbers_v1"),
            let set = try? JSONDecoder().decode(Set<String>.self, from: rawData) {
             excludedNumbers = set

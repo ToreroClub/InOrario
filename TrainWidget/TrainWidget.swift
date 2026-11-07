@@ -145,7 +145,12 @@ struct Provider: TimelineProvider {
             return true
         }
         
-        return sortTrainsByProximity(trains: filtered)
+        let rotationEnabled = defaults.object(forKey: "widgetTimeRotationEnabled_v1") == nil ? true : defaults.bool(forKey: "widgetTimeRotationEnabled_v1")
+        if rotationEnabled {
+            return sortTrainsByProximity(trains: filtered)
+        } else {
+            return filtered
+        }
     }
     
     private func sortTrainsByProximity(trains: [WidgetSavedTrain]) -> [WidgetSavedTrain] {
