@@ -19,6 +19,8 @@ struct WidgetSavedTrain: Codable, Identifiable {
     let description: String
     var lastDelayText: String?
     var lastDelayColorName: String?
+    var category: String?
+    var departureTime: String?
 }
 
 struct WidgetTrainData: Identifiable {
@@ -27,13 +29,51 @@ struct WidgetTrainData: Identifiable {
     let description: String
     let delayText: String
     let delayColor: Color
+    var category: String? = nil
+    var departureTime: String? = nil
+    var lastStation: String? = nil
+    var detectionTime: String? = nil
+    
+    var formattedCategory: String {
+        guard let cat = category?.trimmingCharacters(in: .whitespacesAndNewlines), !cat.isEmpty else {
+            return ""
+        }
+        let upper = cat.uppercased()
+        switch upper {
+        case "REG": return "Regionale"
+        case "RV": return "Reg. Veloce"
+        case "FR": return "Frecciarossa"
+        case "FA": return "Frecciargento"
+        case "FB": return "Frecciabianca"
+        case "IC": return "Intercity"
+        case "ICN": return "Intercity Notte"
+        case "EC": return "Eurocity"
+        case "EN": return "Euronight"
+        case "XP", "MXP": return "Malpensa Express"
+        case "AV": return "Alta Velocità"
+        default:
+            return cat
+        }
+    }
+    
+    var displayTitle: String {
+        let num = number.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cat = formattedCategory
+        if cat.isEmpty {
+            return num.lowercased().hasPrefix("treno") ? num : "Treno \(num)"
+        }
+        if num.uppercased().hasPrefix(cat.uppercased()) || (category != nil && num.uppercased().hasPrefix(category!.uppercased())) {
+            return num
+        }
+        return "\(cat) \(num)"
+    }
 }
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(date: Date(), trains: [
-            WidgetTrainData(number: "2010", description: "Milano Centrale", delayText: "In orario", delayColor: .green),
-            WidgetTrainData(number: "24555", description: "Treviglio", delayText: "Ritardo 5 min", delayColor: .red)
+            WidgetTrainData(number: "2010", description: "Milano Centrale", delayText: "In orario", delayColor: .green, category: "Regionale", lastStation: "Magenta", detectionTime: "12:15"),
+            WidgetTrainData(number: "24555", description: "Treviglio", delayText: "Ritardo 5 min", delayColor: .red, category: "S5", lastStation: "Rho Fiera", detectionTime: "12:20")
         ])
     }
 
@@ -41,7 +81,16 @@ struct Provider: TimelineProvider {
         let trains = getFavorites()
         let placeholderData = trains.isEmpty ? placeholder(in: context).trains : trains.map {
             let (fbDelay, fbColor) = fallbackStatus(for: $0)
-            return WidgetTrainData(number: $0.number, description: $0.description, delayText: fbDelay, delayColor: fbColor)
+            return WidgetTrainData(
+                number: $0.number,
+                description: $0.description,
+                delayText: fbDelay,
+                delayColor: fbColor,
+                category: $0.category,
+                departureTime: $0.departureTime,
+                lastStation: nil,
+                detectionTime: nil
+            )
         }
         let entry = SimpleEntry(date: Date(), trains: placeholderData)
         completion(entry)
@@ -54,8 +103,17 @@ struct Provider: TimelineProvider {
             
             for train in savedTrains {
                 let fb = fallbackStatus(for: train)
-                let (delay, color) = await fetchTrainStatus(number: train.number, description: train.description, fallback: fb)
-                widgetData.append(WidgetTrainData(number: train.number, description: train.description, delayText: delay, delayColor: color))
+                let (delay, color, lastStation, cat, detTime) = await fetchTrainStatusWithDetails(number: train.number, description: train.description, fallback: fb)
+                widgetData.append(WidgetTrainData(
+                    number: train.number,
+                    description: train.description,
+                    delayText: delay,
+                    delayColor: color,
+                    category: cat ?? train.category,
+                    departureTime: train.departureTime,
+                    lastStation: lastStation,
+                    detectionTime: detTime
+                ))
             }
             
             let entry = SimpleEntry(date: Date(), trains: widgetData)
@@ -96,9 +154,9 @@ struct Provider: TimelineProvider {
         return ("In orario", .green)
     }
     
-    private func fetchTrainStatus(number: String, description: String, fallback: (String, Color)) async -> (String, Color) {
+    private func fetchTrainStatusWithDetails(number: String, description: String, fallback: (String, Color)) async -> (String, Color, String?, String?, String?) {
         let cleanNumber = number.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanNumber.isEmpty else { return fallback }
+        guard !cleanNumber.isEmpty else { return (fallback.0, fallback.1, nil, nil, nil) }
         
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = 8.0
@@ -129,13 +187,13 @@ struct Provider: TimelineProvider {
         }
         
         guard let responseStr = responseStr else {
-            return fallback
+            return (fallback.0, fallback.1, nil, nil, nil)
         }
         
         let lines = responseStr.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         var targets = lines.filter { $0.contains("|\(cleanNumber)-") }
         if targets.isEmpty, let firstLine = lines.first { targets = [firstLine] }
-        if targets.isEmpty { return fallback }
+        if targets.isEmpty { return (fallback.0, fallback.1, nil, nil, nil) }
         
         // 2. Scarica andamento treno per i target
         let results: [(String, [String: Any])] = await withTaskGroup(of: (String, [String: Any])?.self) { group in
@@ -178,7 +236,7 @@ struct Provider: TimelineProvider {
             return collected
         }
         
-        guard !results.isEmpty else { return fallback }
+        guard !results.isEmpty else { return (fallback.0, fallback.1, nil, nil, nil) }
         
         // 3. Seleziona la corsa migliore
         let nowTs = Date().timeIntervalSince1970 * 1000.0
@@ -233,12 +291,33 @@ struct Provider: TimelineProvider {
             }
         }
         
-        guard let json = bestJson ?? results.first?.1 else { return fallback }
+        guard let json = bestJson ?? results.first?.1 else { return (fallback.0, fallback.1, nil, nil, nil) }
+        
+        // Estrazione dettagli aggiuntivi
+        let rawCategory = (json["categoria"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var rawStation = (json["stazioneUltimoRilevamento"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if rawStation == "--" || rawStation?.isEmpty == true {
+            rawStation = nil
+        }
+        let lastStation = rawStation?.capitalized
+        
+        var detectionTime: String? = nil
+        if let compOra = json["compOraUltimoRilevamento"] as? String, !compOra.isEmpty {
+            detectionTime = String(compOra.prefix(5))
+        } else if let ms = json["oraUltimoRilevamento"] as? Int, ms > 0 {
+            let date = Date(timeIntervalSince1970: TimeInterval(ms) / 1000.0)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            formatter.timeZone = TimeZone(identifier: "Europe/Rome")
+            detectionTime = formatter.string(from: date)
+        } else if let oraStr = json["oraUltimoRilevamento"] as? String, !oraStr.isEmpty {
+            detectionTime = String(oraStr.prefix(5))
+        }
         
         // 4. Parsing affidabile dello stato
         // 4a. Treno soppresso
         if let provv = json["provvedimento"] as? Int, provv != 0 {
-            return ("Soppresso", .red)
+            return ("Soppresso", .red, lastStation, rawCategory, detectionTime)
         }
         
         let isNonPartito = (json["nonPartito"] as? Bool) ?? false
@@ -252,43 +331,43 @@ struct Provider: TimelineProvider {
         
         if let r = ritardoMin {
             if r > 0 {
-                return ("Ritardo \(r) min", .red)
+                return ("Ritardo \(r) min", .red, lastStation, rawCategory, detectionTime)
             } else if r < 0 {
-                return ("Anticipo \(abs(r)) min", .green)
+                return ("Anticipo \(abs(r)) min", .green, lastStation, rawCategory, detectionTime)
             } else {
                 if isArrived {
-                    return ("Arrivato", .secondary)
+                    return ("Arrivato", .secondary, lastStation, rawCategory, detectionTime)
                 }
-                return ("In orario", .green)
+                return ("In orario", .green, lastStation, rawCategory, detectionTime)
             }
         }
         
         if let ritardoText = compRitardoStr {
             if ritardoText.localizedCaseInsensitiveContains("soppresso") {
-                return ("Soppresso", .red)
+                return ("Soppresso", .red, lastStation, rawCategory, detectionTime)
             } else if ritardoText.localizedCaseInsensitiveContains("ritardo") {
                 if let min = extractMinutes(from: ritardoText) {
-                    return ("Ritardo \(min) min", .red)
+                    return ("Ritardo \(min) min", .red, lastStation, rawCategory, detectionTime)
                 }
-                return ("In ritardo", .red)
+                return ("In ritardo", .red, lastStation, rawCategory, detectionTime)
             } else if ritardoText.localizedCaseInsensitiveContains("anticipo") {
                 if let min = extractMinutes(from: ritardoText) {
-                    return ("Anticipo \(min) min", .green)
+                    return ("Anticipo \(min) min", .green, lastStation, rawCategory, detectionTime)
                 }
-                return ("In anticipo", .green)
+                return ("In anticipo", .green, lastStation, rawCategory, detectionTime)
             } else if ritardoText.localizedCaseInsensitiveContains("in orario") {
-                return ("In orario", .green)
+                return ("In orario", .green, lastStation, rawCategory, detectionTime)
             }
         }
         
         if isArrived {
-            return ("Arrivato", .secondary)
+            return ("Arrivato", .secondary, lastStation, rawCategory, detectionTime)
         }
         if isNonPartito {
-            return ("In orario", .green)
+            return ("In orario", .green, lastStation, rawCategory, detectionTime)
         }
         
-        return fallback
+        return (fallback.0, fallback.1, lastStation, rawCategory, detectionTime)
     }
     
     private func extractMinutes(from str: String) -> String? {
@@ -351,21 +430,61 @@ struct TrainWidgetEntryView : View {
     @ViewBuilder
     private var rectangularWidgetBody: some View {
         if !isUnlocked || entry.trains.isEmpty {
-            HStack {
-                Image(systemName: "train.side.front.car")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("In Orario")
+                    .font(.headline)
                 Text("Nessun treno")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         } else {
             let train = entry.trains[0]
-            HStack(spacing: 8) {
-                Image(systemName: "train.side.front.car")
-                    .font(.title3)
+            let shortDelay: String = {
+                if train.delayText.localizedCaseInsensitiveContains("soppresso") {
+                    return "Soppr."
+                }
+                return train.delayText
+                    .replacingOccurrences(of: "Ritardo ", with: "+")
+                    .replacingOccurrences(of: "Anticipo ", with: "-")
+                    .replacingOccurrences(of: " min", with: "'")
+                    .replacingOccurrences(of: "In orario", with: "0'")
+                    .replacingOccurrences(of: "In attesa", with: "--")
+            }()
+            
+            let subtitleText: String = {
+                if let st = train.lastStation, !st.isEmpty, st != "--" {
+                    return "Visto a \(st)"
+                } else if !train.description.isEmpty {
+                    return "Per \(train.description)"
+                } else {
+                    return "In attesa"
+                }
+            }()
+            
+            HStack(alignment: .center, spacing: 6) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(train.number) \(train.description)")
-                        .font(.headline)
+                    Text(train.displayTitle)
+                        .font(.system(size: 14, weight: .bold))
                         .lineLimit(1)
-                    Text(train.delayText)
-                        .font(.subheadline)
+                    
+                    Text(subtitleText)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer(minLength: 4)
+                
+                VStack(alignment: .trailing, spacing: 1) {
+                    if let time = train.detectionTime, !time.isEmpty {
+                        Text(time)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    Text(shortDelay)
+                        .font(.system(size: 19, weight: .heavy))
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
                 }
             }
         }
