@@ -181,6 +181,7 @@ struct TrainProgressBar: View {
     let isDeparted: Bool
     let isArrived: Bool
     let accentColor: Color
+    var barHeight: CGFloat = 12
 
     var body: some View {
         GeometryReader { geo in
@@ -230,7 +231,7 @@ struct TrainProgressBar: View {
                     .position(x: w - dotRadius, y: geo.size.height / 2)
             }
         }
-        .frame(height: 12)
+        .frame(height: barHeight)
     }
 }
 
@@ -802,7 +803,7 @@ struct TrainWidgetEntryView : View {
             
             let subtitleText: String = {
                 if let st = train.lastStation, !st.isEmpty, st != "--" {
-                    return "Visto a \(st)"
+                    return st
                 } else if let dest = train.destinationStation, !dest.isEmpty {
                     return "Per \(dest)"
                 } else if !train.description.isEmpty {
@@ -842,7 +843,7 @@ struct TrainWidgetEntryView : View {
     }
 
     private var systemWidgetBody: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 5) {
             // Widget Header
             HStack(spacing: 6) {
                 Image(systemName: "tram.fill")
@@ -870,7 +871,7 @@ struct TrainWidgetEntryView : View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.bottom, 2)
+            .padding(.bottom, 1)
 
             if entry.trains.isEmpty {
                 VStack {
@@ -882,18 +883,13 @@ struct TrainWidgetEntryView : View {
                     Spacer()
                 }
             } else {
-                let maxTrains = family == .systemSmall ? 1 : (family == .systemLarge ? 4 : 2)
-                let trainsToShow = Array(entry.trains.prefix(maxTrains))
-
-                VStack(spacing: family == .systemMedium ? 6 : 8) {
-                    ForEach(Array(trainsToShow.enumerated()), id: \.element.id) { index, train in
-                        if index > 0 {
-                            Divider().opacity(0.35)
-                        }
-                        Link(destination: URL(string: "inorario://\(train.number)")!) {
-                            richTrainCard(train: train, isCompact: family == .systemSmall)
-                        }
-                    }
+                switch family {
+                case .systemSmall:
+                    smallContent
+                case .systemMedium:
+                    mediumContent
+                default:
+                    largeContent
                 }
             }
 
@@ -901,9 +897,122 @@ struct TrainWidgetEntryView : View {
         }
         .padding(.horizontal, family == .systemSmall ? 2 : 4)
     }
-    
+
+    @ViewBuilder
+    private var mediumContent: some View {
+        let count = entry.trains.count
+        if count == 1 {
+            Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
+                richTrainCard(train: entry.trains[0], isCompact: false)
+            }
+        } else if count == 2 {
+            VStack(spacing: 6) {
+                Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
+                    richTrainCard(train: entry.trains[0], isCompact: false)
+                }
+                Divider().opacity(0.35)
+                Link(destination: URL(string: "inorario://\(entry.trains[1].number)")!) {
+                    richTrainCard(train: entry.trains[1], isCompact: false)
+                }
+            }
+        } else {
+            // 3 treni o più: Primi 2 con timeline, terzo normale
+            VStack(spacing: 4) {
+                Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
+                    richTrainCard(train: entry.trains[0], isCompact: true)
+                }
+                Divider().opacity(0.3)
+                Link(destination: URL(string: "inorario://\(entry.trains[1].number)")!) {
+                    richTrainCard(train: entry.trains[1], isCompact: true)
+                }
+                Divider().opacity(0.3)
+                Link(destination: URL(string: "inorario://\(entry.trains[2].number)")!) {
+                    normalTrainRow(train: entry.trains[2])
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var smallContent: some View {
+        let count = entry.trains.count
+        if count == 1 {
+            Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
+                richTrainCard(train: entry.trains[0], isCompact: true)
+            }
+        } else {
+            VStack(spacing: 4) {
+                Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
+                    richTrainCard(train: entry.trains[0], isCompact: true)
+                }
+                Divider().opacity(0.3)
+                Link(destination: URL(string: "inorario://\(entry.trains[1].number)")!) {
+                    normalTrainRow(train: entry.trains[1])
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var largeContent: some View {
+        let trains = Array(entry.trains.prefix(4))
+        VStack(spacing: 6) {
+            ForEach(Array(trains.enumerated()), id: \.element.id) { index, train in
+                if index > 0 {
+                    Divider().opacity(0.35)
+                }
+                Link(destination: URL(string: "inorario://\(train.number)")!) {
+                    if trains.count >= 4 && index == 3 {
+                        normalTrainRow(train: train)
+                    } else {
+                        richTrainCard(train: train, isCompact: false)
+                    }
+                }
+            }
+        }
+    }
+
+    private func normalTrainRow(train: WidgetTrainData) -> some View {
+        HStack(alignment: .center, spacing: 6) {
+            HStack(spacing: 3) {
+                Text(train.shortCategoryText)
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundColor(train.categoryThemeColor)
+                Text(train.number)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.primary)
+            }
+
+            Text("•")
+                .font(.system(size: 9))
+                .foregroundColor(.secondary)
+
+            Text(train.destinationStation ?? train.description)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            if let time = train.departureTime, !time.isEmpty, time != "--:--" {
+                Text(time)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+
+            Text(train.shortDelayBadge)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(train.delayColor)
+                .lineLimit(1)
+        }
+        .padding(.vertical, 3)
+        .padding(.horizontal, 6)
+        .background(Color.primary.opacity(0.04))
+        .cornerRadius(6)
+    }
+
     private func richTrainCard(train: WidgetTrainData, isCompact: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: isCompact ? 1 : 2) {
             // Line 1: Header (Category + Number ... Delay badge)
             HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 4) {
@@ -955,7 +1064,8 @@ struct TrainWidgetEntryView : View {
                 progress: train.progress,
                 isDeparted: train.isDeparted,
                 isArrived: train.isArrived,
-                accentColor: train.categoryThemeColor
+                accentColor: train.categoryThemeColor,
+                barHeight: isCompact ? 10 : 12
             )
 
             // Line 4: Times
