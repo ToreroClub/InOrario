@@ -1770,21 +1770,19 @@ struct DaySelectorView: View {
 
 struct SmartSuggestionsSettingsView: View {
     @EnvironmentObject var usageTracker: UsageTracker
+    @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var guessingEngine: TrainGuessingEngine
     @State private var showDeleteConfirmation = false
     @State private var showResetIgnoredConfirmation = false
     @State private var selectedSlotIndex: Int = {
         let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 6..<12: return 0
-        case 12..<18: return 1
-        case 18..<24: return 2
-        default: return 3
-        }
+        if hour >= 5 && hour < 12 { return 0 }
+        else if hour >= 12 && hour < 19 { return 1 }
+        else { return 2 }
     }()
 
     var body: some View {
-        let habits = usageTracker.learnedHabitsByTimeSlot()
+        let habits = usageTracker.learnedHabitsByTimeSlot(favoriteTrains: manager.favoriteTrains)
         let hasAnyData = habits.contains { !$0.isEmpty }
 
         List {
@@ -1797,7 +1795,7 @@ struct SmartSuggestionsSettingsView: View {
 
             Section(
                 header: Text("Abitudini apprese"),
-                footer: Text("I dati sono memorizzati solo sul dispositivo per suggerirti stazioni e treni pertinenti al momento giusto.")
+                footer: Text("I dati sono memorizzati solo in locale sul tuo iPhone. I conteggi mostrano le visualizzazioni complessive accumulate nei diversi giorni in ciascuna fascia oraria.")
             ) {
                 if !hasAnyData {
                     VStack(alignment: .leading, spacing: 8) {
@@ -1809,17 +1807,16 @@ struct SmartSuggestionsSettingsView: View {
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
-                        Text("L'app impara man mano che consulti orari e stazioni nelle diverse ore della giornata. Continuando a usare l'app, vedrai apparire qui i tuoi schemi abituali.")
+                        Text("L'app apprende man mano che consulti orari, tabelloni e stazioni nelle diverse ore della giornata. Continuando a usare l'app, vedrai apparire qui i tuoi tragitti abituali.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 4)
                 } else {
                     Picker("Fascia oraria", selection: $selectedSlotIndex) {
-                        Text("Mattina").tag(0)
-                        Text("Pomeriggio").tag(1)
-                        Text("Sera").tag(2)
-                        Text("Notte").tag(3)
+                        Text("Mattina (5-12)").tag(0)
+                        Text("Pomeriggio (12-19)").tag(1)
+                        Text("Sera (19-1)").tag(2)
                     }
                     .pickerStyle(.segmented)
                     .padding(.vertical, 4)
@@ -1830,24 +1827,30 @@ struct SmartSuggestionsSettingsView: View {
                         HStack(spacing: 6) {
                             Image(systemName: slot.icon)
                                 .foregroundColor(slot.color)
-                            Text("\(slot.title) (\(slot.timeRange))")
+                            Text("\(slot.title) • \(slot.timeRange)")
                                 .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
                         }
                         .padding(.vertical, 2)
 
                         if slot.isEmpty {
-                            Text("Nessuna attività registrata in questa fascia oraria.")
+                            Text("Nessuna attività o treno abituale registrato in questa fascia oraria (\(slot.timeRange)).")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .padding(.vertical, 4)
                         } else {
                             if !slot.stations.isEmpty {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("STAZIONI PIÙ CERCATE")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(.secondary)
+                                    HStack {
+                                        Text("STAZIONI PIÙ CONSULTATE")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text("Aperture tabellone")
+                                            .font(.system(size: 9))
+                                            .foregroundColor(.secondary)
+                                    }
 
                                     ForEach(slot.stations) { st in
                                         HStack(spacing: 8) {
@@ -1857,8 +1860,9 @@ struct SmartSuggestionsSettingsView: View {
                                                 .frame(width: 20)
                                             Text(st.name)
                                                 .font(.subheadline)
+                                                .fontWeight(.medium)
                                             Spacer()
-                                            Text("\(st.count) \(st.count == 1 ? "visita" : "visite")")
+                                            Text(st.countDescription)
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -1870,28 +1874,52 @@ struct SmartSuggestionsSettingsView: View {
 
                             if !slot.trains.isEmpty {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("TRENI PIÙ CONSULTATI")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(.secondary)
+                                    HStack {
+                                        Text("TRENI ABITUALI E CONSULTATI")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Text("Frequenza & orari")
+                                            .font(.system(size: 9))
+                                            .foregroundColor(.secondary)
+                                    }
 
                                     ForEach(slot.trains) { tr in
                                         HStack(spacing: 8) {
-                                            Image(systemName: "tram.fill")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.orange)
-                                                .frame(width: 20)
+                                            // Badge categoria
+                                            Text(tr.category)
+                                                .font(.system(size: 9, weight: .black))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 2)
+                                                .background(habitCategoryColor(for: tr.category))
+                                                .cornerRadius(4)
+
                                             VStack(alignment: .leading, spacing: 1) {
-                                                Text("\(tr.category) \(tr.number)")
-                                                    .font(.subheadline)
-                                                    .fontWeight(.semibold)
+                                                HStack(spacing: 4) {
+                                                    Text(tr.number)
+                                                        .font(.subheadline)
+                                                        .fontWeight(.bold)
+                                                    if let dep = tr.departureTime, !dep.isEmpty, dep != "--:--" {
+                                                        Text("• ore \(dep)")
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                    }
+                                                    if tr.isFavorite {
+                                                        Image(systemName: "star.fill")
+                                                            .font(.system(size: 9))
+                                                            .foregroundColor(.yellow)
+                                                    }
+                                                }
                                                 if !tr.destination.isEmpty {
                                                     Text("Per \(tr.destination)")
                                                         .font(.caption2)
                                                         .foregroundColor(.secondary)
+                                                        .lineLimit(1)
                                                 }
                                             }
                                             Spacer()
-                                            Text("\(tr.count) \(tr.count == 1 ? "volta" : "volte")")
+                                            Text(tr.countDescription)
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }

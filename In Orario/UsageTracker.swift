@@ -8,12 +8,13 @@ struct StationVisit: Codable, Identifiable {
     let stationName: String
     let vtID: String?
     let rfiID: String?
-    let date: Date
+    var date: Date
     let weekday: Int
     let hour: Int
     let gpsConfirmed: Bool
     var lat: Double?
     var lon: Double?
+    var viewCount: Int? = 1
 }
 
 struct TrainCheck: Codable, Identifiable {
@@ -21,11 +22,12 @@ struct TrainCheck: Codable, Identifiable {
     let trainNumber: String
     let category: String
     let destination: String
-    let date: Date
+    var date: Date
     let weekday: Int
     let hour: Int
     var lat: Double?
     var lon: Double?
+    var viewCount: Int? = 1
 }
 
 struct RouteUsage: Codable, Identifiable {
@@ -195,10 +197,31 @@ class UsageTracker: ObservableObject {
         let weekday = cal.component(.weekday, from: now)
         let hour = cal.component(.hour, from: now)
         
-        let visit = StationVisit(stationName: name, vtID: vtID, rfiID: rfiID, date: now, weekday: weekday, hour: hour, gpsConfirmed: gpsNear, lat: location?.latitude, lon: location?.longitude)
-        
-        stationVisits.removeAll { $0.stationName == name && cal.isDate($0.date, inSameDayAs: now) && abs(cal.component(.hour, from: $0.date) - hour) < 2 }
-        stationVisits.insert(visit, at: 0)
+        if let existingIndex = stationVisits.firstIndex(where: {
+            $0.stationName.lowercased() == name.lowercased() &&
+            cal.isDate($0.date, inSameDayAs: now) &&
+            abs(cal.component(.hour, from: $0.date) - hour) < 3
+        }) {
+            var item = stationVisits[existingIndex]
+            item.viewCount = (item.viewCount ?? 1) + 1
+            item.date = now
+            stationVisits.remove(at: existingIndex)
+            stationVisits.insert(item, at: 0)
+        } else {
+            let visit = StationVisit(
+                stationName: name,
+                vtID: vtID,
+                rfiID: rfiID,
+                date: now,
+                weekday: weekday,
+                hour: hour,
+                gpsConfirmed: gpsNear,
+                lat: location?.latitude,
+                lon: location?.longitude,
+                viewCount: 1
+            )
+            stationVisits.insert(visit, at: 0)
+        }
         
         if stationVisits.count > maxEntries {
             stationVisits = Array(stationVisits.prefix(maxEntries))
@@ -212,10 +235,30 @@ class UsageTracker: ObservableObject {
         let weekday = cal.component(.weekday, from: now)
         let hour = cal.component(.hour, from: now)
         
-        let check = TrainCheck(trainNumber: number, category: category, destination: destination, date: now, weekday: weekday, hour: hour, lat: location?.latitude, lon: location?.longitude)
-        
-        trainChecks.removeAll { $0.trainNumber == number && cal.isDate($0.date, inSameDayAs: now) && abs(cal.component(.hour, from: $0.date) - hour) < 2 }
-        trainChecks.insert(check, at: 0)
+        if let existingIndex = trainChecks.firstIndex(where: {
+            $0.trainNumber == number &&
+            cal.isDate($0.date, inSameDayAs: now) &&
+            abs(cal.component(.hour, from: $0.date) - hour) < 3
+        }) {
+            var item = trainChecks[existingIndex]
+            item.viewCount = (item.viewCount ?? 1) + 1
+            item.date = now
+            trainChecks.remove(at: existingIndex)
+            trainChecks.insert(item, at: 0)
+        } else {
+            let check = TrainCheck(
+                trainNumber: number,
+                category: category,
+                destination: destination,
+                date: now,
+                weekday: weekday,
+                hour: hour,
+                lat: location?.latitude,
+                lon: location?.longitude,
+                viewCount: 1
+            )
+            trainChecks.insert(check, at: 0)
+        }
         
         if trainChecks.count > maxEntries {
             trainChecks = Array(trainChecks.prefix(maxEntries))
@@ -474,63 +517,223 @@ class UsageTracker: ObservableObject {
     
     // MARK: - Learned Habits by Time Slot
     
-    func learnedHabitsByTimeSlot() -> [TimeSlotHabit] {
-        let slotsConfig: [(title: String, range: String, icon: String, color: Color, hours: Range<Int>)] = [
-            ("Mattina", "06:00 - 12:00", "sun.and.horizon.fill", .orange, 6..<12),
-            ("Pomeriggio", "12:00 - 18:00", "sun.max.fill", .yellow, 12..<18),
-            ("Sera", "18:00 - 24:00", "sunset.fill", .indigo, 18..<24),
-            ("Notte", "00:00 - 06:00", "moon.stars.fill", .purple, 0..<6)
+    func learnedHabitsByTimeSlot(favoriteTrains: [SavedTrain] = []) -> [TimeSlotHabit] {
+        let cal = Calendar.current
+        
+        let slotsConfig: [(title: String, range: String, icon: String, color: Color, matches: (Int) -> Bool)] = [
+            ("Mattina", "05:00 - 12:00", "sun.and.horizon.fill", .orange, { $0 >= 5 && $0 < 12 }),
+            ("Pomeriggio", "12:00 - 19:00", "sun.max.fill", .yellow, { $0 >= 12 && $0 < 19 }),
+            ("Sera", "19:00 - 01:00", "sunset.fill", .indigo, { $0 >= 19 || $0 < 5 })
         ]
         
+        let favs: [SavedTrain] = {
+            if !favoriteTrains.isEmpty { return favoriteTrains }
+            if let data = UserDefaults.standard.data(forKey: "savedFavoriteTrains_v3"),
+               let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
+                return decoded
+            }
+            if let defaults = UserDefaults(suiteName: "group.carlo.InOrario"),
+               let data = defaults.data(forKey: "savedFavoriteTrains_v3"),
+               let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
+                return decoded
+            }
+            return []
+        }()
+        
         return slotsConfig.map { cfg in
+            // 1. Stazioni più consultate nella fascia oraria
             let filteredVisits = stationVisits.filter {
-                cfg.hours.contains($0.hour) && !isStationIgnored($0.stationName)
+                cfg.matches($0.hour) && !isStationIgnored($0.stationName)
             }
-            let stationCounts = Dictionary(grouping: filteredVisits, by: { $0.stationName.capitalized })
-                .map { name, visits in LearnedStationHabit(name: name, count: visits.count) }
-                .sorted { $0.count > $1.count }
-            
-            let filteredTrains = trainChecks.filter {
-                cfg.hours.contains($0.hour) && !isTrainIgnored($0.trainNumber)
-            }
-            let trainCounts = Dictionary(grouping: filteredTrains, by: { $0.trainNumber })
-                .compactMap { number, checks -> LearnedTrainHabit? in
-                    guard let first = checks.first else { return nil }
-                    return LearnedTrainHabit(
-                        number: number,
-                        category: first.category,
-                        destination: first.destination,
-                        count: checks.count
-                    )
+            let stationGroups = Dictionary(grouping: filteredVisits, by: { $0.stationName.capitalized })
+            let stations: [LearnedStationHabit] = stationGroups.map { name, visits in
+                let total = visits.reduce(0) { $0 + ($1.viewCount ?? 1) }
+                let days = Set(visits.map { cal.startOfDay(for: $0.date) }).count
+                return LearnedStationHabit(name: name, totalViews: total, distinctDays: max(1, days))
+            }.sorted {
+                if $0.distinctDays != $1.distinctDays {
+                    return $0.distinctDays > $1.distinctDays
                 }
-                .sorted { $0.count > $1.count }
+                return $0.totalViews > $1.totalViews
+            }
+            
+            // 2. Treni consultati e abituali nella fascia oraria
+            let filteredChecks = trainChecks.filter {
+                cfg.matches($0.hour) && !isTrainIgnored($0.trainNumber)
+            }
+            let checkGroups = Dictionary(grouping: filteredChecks, by: { $0.trainNumber })
+            
+            var trainsMap: [String: LearnedTrainHabit] = [:]
+            
+            // Includi i check registrati
+            for (num, checks) in checkGroups {
+                guard let first = checks.first else { continue }
+                let total = checks.reduce(0) { $0 + ($1.viewCount ?? 1) }
+                let days = Set(checks.map { cal.startOfDay(for: $0.date) }).count
+                let favMatch = favs.first { $0.number == num }
+                let isFav = favMatch != nil
+                
+                let cat = resolveTrainCategory(number: num, categoryDesc: first.category, destination: first.destination)
+                trainsMap[num] = LearnedTrainHabit(
+                    number: num,
+                    category: cat,
+                    destination: favMatch?.description ?? first.destination,
+                    departureTime: favMatch?.departureTime,
+                    totalViews: total,
+                    distinctDays: max(1, days),
+                    isFavorite: isFav
+                )
+            }
+            
+            // Includi i treni preferiti con orario programmato in questa fascia oraria
+            for fav in favs {
+                if isTrainIgnored(fav.number) { continue }
+                
+                var matchesSlot = false
+                if let dep = fav.departureTime?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   let h = Int(dep.components(separatedBy: ":").first ?? "") {
+                    matchesSlot = cfg.matches(h)
+                }
+                
+                if matchesSlot {
+                    if let existing = trainsMap[fav.number] {
+                        trainsMap[fav.number] = LearnedTrainHabit(
+                            number: existing.number,
+                            category: existing.category,
+                            destination: fav.description.isEmpty ? existing.destination : fav.description,
+                            departureTime: fav.departureTime ?? existing.departureTime,
+                            totalViews: max(1, existing.totalViews),
+                            distinctDays: existing.distinctDays,
+                            isFavorite: true
+                        )
+                    } else {
+                        let cat = resolveTrainCategory(number: fav.number, categoryDesc: nil, destination: fav.description)
+                        trainsMap[fav.number] = LearnedTrainHabit(
+                            number: fav.number,
+                            category: cat,
+                            destination: fav.description,
+                            departureTime: fav.departureTime,
+                            totalViews: 0,
+                            distinctDays: 1,
+                            isFavorite: true
+                        )
+                    }
+                }
+            }
+            
+            let sortedTrains = trainsMap.values.sorted {
+                if $0.isFavorite != $1.isFavorite {
+                    return $0.isFavorite && !$1.isFavorite
+                }
+                if $0.distinctDays != $1.distinctDays {
+                    return $0.distinctDays > $1.distinctDays
+                }
+                return $0.totalViews > $1.totalViews
+            }
             
             return TimeSlotHabit(
                 title: cfg.title,
                 timeRange: cfg.range,
                 icon: cfg.icon,
                 color: cfg.color,
-                stations: Array(stationCounts.prefix(4)),
-                trains: Array(trainCounts.prefix(4))
+                stations: Array(stations.prefix(5)),
+                trains: Array(sortedTrains.prefix(5))
             )
         }
     }
 }
 
-// MARK: - Learned Habits Models
+// MARK: - Learned Habits Models & Helpers
+
+func resolveTrainCategory(number: String, categoryDesc: String?, destination: String?) -> String {
+    let cleanNum = number.trimmingCharacters(in: .whitespacesAndNewlines)
+    var cat = categoryDesc?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let catUpper = cat.uppercased()
+    let destLower = (destination ?? "").lowercased()
+    
+    if catUpper.contains("FRECCIAROSSA") || catUpper == "FR" { return "FR" }
+    if catUpper.contains("FRECCIARGENTO") || catUpper == "FA" { return "FA" }
+    if catUpper.contains("FRECCIABIANCA") || catUpper == "FB" { return "FB" }
+    if catUpper.contains("ITALO") { return "ITALO" }
+    if catUpper.contains("ALTA VELOCIT") || catUpper == "AV" { return "AV" }
+    if catUpper.contains("INTERCITY NOTTE") || catUpper == "ICN" { return "ICN" }
+    if catUpper.contains("INTERCITY") || catUpper == "IC" { return "IC" }
+    if catUpper.contains("EUROCITY") || catUpper == "EC" { return "EC" }
+    if catUpper.contains("EURONIGHT") || catUpper == "EN" { return "EN" }
+    if catUpper.contains("MALPENSA") || catUpper == "XP" || catUpper == "MXP" { return "XP" }
+    if catUpper == "REGIONALE VELOCE" || catUpper == "RV" { return "RV" }
+    if catUpper == "REGIOEXPRESS" || catUpper == "RE" { return "RE" }
+    if catUpper == "SUBURBANO" || catUpper == "S" { cat = "S" }
+    if catUpper == "REGIONALE" || catUpper == "REG" { cat = "REG" }
+    
+    if cat == "S" || cat == "REG" || cat.isEmpty {
+        if cleanNum.hasPrefix("240") || cleanNum.hasPrefix("230") || cleanNum.hasPrefix("241") || cleanNum.hasPrefix("231") { return "S1" }
+        if cleanNum.hasPrefix("242") || cleanNum.hasPrefix("232") {
+            if destLower.contains("melegnano") || destLower.contains("cormano") { return "S12" }
+            return "S2"
+        }
+        if cleanNum.hasPrefix("243") || cleanNum.hasPrefix("233") || cleanNum.hasPrefix("328") || cleanNum.hasPrefix("329") { return "S13" }
+        if cleanNum.hasPrefix("245") || cleanNum.hasPrefix("235") { return "S5" }
+        if cleanNum.hasPrefix("246") || cleanNum.hasPrefix("236") { return "S6" }
+        if cleanNum.hasPrefix("256") || cleanNum.hasPrefix("257") || cleanNum.hasPrefix("247") || cleanNum.hasPrefix("237") { return "S12" }
+        if cleanNum.hasPrefix("248") || cleanNum.hasPrefix("238") { return "S8" }
+        if cleanNum.hasPrefix("249") || cleanNum.hasPrefix("239") { return "S9" }
+        if cleanNum.hasPrefix("250") || cleanNum.hasPrefix("251") || cleanNum.hasPrefix("252") { return "S11" }
+        if cleanNum.hasPrefix("253") || cleanNum.hasPrefix("254") || cleanNum.hasPrefix("255") { return "S7" }
+        if cleanNum.hasPrefix("244") || cleanNum.hasPrefix("234") { return "S4" }
+    }
+    
+    return cat.isEmpty ? "REG" : cat
+}
+
+func habitCategoryColor(for cat: String) -> Color {
+    let c = cat.uppercased()
+    if c.contains("FR") || c.contains("ITA") || c == "AV" { return .red }
+    if c == "IC" || c == "EC" || c == "ICN" || c == "EN" { return Color(white: 0.4) }
+    if c.contains("S") { return Color(red: 0.0, green: 0.6, blue: 0.2) }
+    if c.contains("RV") || c.contains("RE") { return .blue }
+    if c.contains("XP") || c.contains("MXP") { return Color(red: 0.75, green: 0.10, blue: 0.25) }
+    return Color(red: 0.2, green: 0.45, blue: 0.85)
+}
 
 struct LearnedStationHabit: Identifiable, Equatable {
     var id: String { name }
     let name: String
-    let count: Int
+    let totalViews: Int
+    let distinctDays: Int
+    
+    var countDescription: String {
+        if distinctDays > 1 {
+            return "\(totalViews) visualizzazioni in \(distinctDays) giorni"
+        } else if totalViews == 1 {
+            return "1 visualizzazione"
+        } else {
+            return "\(totalViews) visualizzazioni"
+        }
+    }
 }
 
 struct LearnedTrainHabit: Identifiable, Equatable {
-    var id: String { "\(category) \(number)" }
+    var id: String { number }
     let number: String
     let category: String
     let destination: String
-    let count: Int
+    let departureTime: String?
+    let totalViews: Int
+    let distinctDays: Int
+    let isFavorite: Bool
+    
+    var countDescription: String {
+        if isFavorite && totalViews == 0 {
+            return "Treno preferito abituale"
+        } else if distinctDays > 1 {
+            return "\(totalViews) consultazioni in \(distinctDays) giorni"
+        } else if totalViews == 1 {
+            return "1 consultazione"
+        } else {
+            return "\(totalViews) consultazioni"
+        }
+    }
 }
 
 struct TimeSlotHabit: Identifiable, Equatable {
