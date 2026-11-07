@@ -286,7 +286,8 @@ class UsageTracker: ObservableObject {
         location: CLLocationCoordinate2D? = nil,
         excludeStations: [String] = [],
         excludeTrainNumbers: [String] = [],
-        favoriteTrains: [SavedTrain] = []
+        favoriteTrains: [SavedTrain] = [],
+        favoriteStations: [Station] = []
     ) -> [SmartSuggestion] {
         guard smartSuggestionsEnabled else { return [] }
 
@@ -356,6 +357,16 @@ class UsageTracker: ObservableObject {
                 totalScore += visitScore
             }
             
+            // Bonus per stazioni preferite e anzianità
+            let favMatch = favoriteStations.first {
+                $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame ||
+                ($0.vtID != nil && latestVisit.vtID != nil && $0.vtID == latestVisit.vtID)
+            }
+            if let fav = favMatch {
+                let daysSaved = favoriteSeniorityDays(addedDate: fav.addedDate)
+                totalScore += (daysSaved >= 30 ? 25 : (daysSaved >= 14 ? 15 : 8))
+            }
+            
             guard totalScore >= 18 else { continue }
             let stationObj = Station(name: name, rfiID: latestVisit.rfiID, vtID: latestVisit.vtID, lat: nil, lon: nil)
             if bestStationCandidate == nil || totalScore > bestStationCandidate!.score {
@@ -412,8 +423,13 @@ class UsageTracker: ObservableObject {
                 totalScore += checkScore
             }
             
-            guard totalScore >= 18 else { continue }
             let favMatch = favoriteTrains.first(where: { $0.number == number })
+            if let fav = favMatch {
+                let daysSaved = favoriteSeniorityDays(addedDate: fav.addedDate)
+                totalScore += (daysSaved >= 30 ? 25 : (daysSaved >= 14 ? 15 : 8))
+            }
+            
+            guard totalScore >= 18 else { continue }
             let cat = latestCheck.category.isEmpty ? "Treno" : latestCheck.category
             let dest = !latestCheck.destination.isEmpty ? latestCheck.destination : (favMatch?.description ?? "")
             let time = favMatch?.departureTime ?? "--:--"
@@ -424,7 +440,7 @@ class UsageTracker: ObservableObject {
             }
         }
         
-        // 2b. Treni preferiti in partenza imminente (tra -10 min e +75 min)
+        // 2b. Treni preferiti in partenza imminente (tra -10 min e +75 min) con ponderazione anzianità
         let currentTotalMinutes = currentHour * 60 + currentMinute
         for fav in favoriteTrains {
             if isTrainIgnored(fav.number) { continue }
@@ -437,7 +453,10 @@ class UsageTracker: ObservableObject {
             let favMinutes = h * 60 + m
             let diff = favMinutes - currentTotalMinutes
             if diff >= -10 && diff <= 75 {
-                let score = 60 - abs(diff) / 2
+                let daysSaved = favoriteSeniorityDays(addedDate: fav.addedDate)
+                let seniorityBonus = daysSaved >= 30 ? 20 : (daysSaved >= 14 ? 12 : 5)
+                let score = 60 - abs(diff) / 2 + seniorityBonus
+                
                 let lastCheck = checksByNumber[fav.number]?.first
                 let cat = lastCheck?.category ?? "Treno"
                 let dest = lastCheck?.destination ?? fav.description
@@ -517,16 +536,20 @@ class UsageTracker: ObservableObject {
     
     // MARK: - Learned Habits by Time Slot
     
-    func learnedHabitsByTimeSlot(favoriteTrains: [SavedTrain] = []) -> [TimeSlotHabit] {
+    func learnedHabitsByTimeSlot(
+        favoriteTrains: [SavedTrain] = [],
+        favoriteStations: [Station] = []
+    ) -> [TimeSlotHabit] {
         let cal = Calendar.current
         
+        // 3 fasce orarie: Mattina (05:00-12:00), Pomeriggio (12:00-19:00), Sera (19:00-01:00)
         let slotsConfig: [(title: String, range: String, icon: String, color: Color, matches: (Int) -> Bool)] = [
             ("Mattina", "05:00 - 12:00", "sun.and.horizon.fill", .orange, { $0 >= 5 && $0 < 12 }),
             ("Pomeriggio", "12:00 - 19:00", "sun.max.fill", .yellow, { $0 >= 12 && $0 < 19 }),
-            ("Sera", "19:00 - 01:00", "sunset.fill", .indigo, { $0 >= 19 || $0 < 5 })
+            ("Sera", "19:00 - 01:00", "sunset.fill", .indigo, { $0 >= 19 || $0 == 0 })
         ]
         
-        let favs: [SavedTrain] = {
+        let favTrains: [SavedTrain] = {
             if !favoriteTrains.isEmpty { return favoriteTrains }
             if let data = UserDefaults.standard.data(forKey: "savedFavoriteTrains_v3"),
                let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
@@ -540,21 +563,88 @@ class UsageTracker: ObservableObject {
             return []
         }()
         
+        let favStations: [Station] = {
+            if !favoriteStations.isEmpty { return favoriteStations }
+            if let data = UserDefaults.standard.data(forKey: "savedMyStations_v3"),
+               let decoded = try? JSONDecoder().decode([Station].self, from: data) {
+                return decoded
+            }
+            if let defaults = UserDefaults(suiteName: "group.carlo.InOrario"),
+               let data = defaults.data(forKey: "savedMyStations_v3"),
+               let decoded = try? JSONDecoder().decode([Station].self, from: data) {
+                return decoded
+            }
+            return []
+        }()
+        
         return slotsConfig.map { cfg in
-            // 1. Stazioni più consultate nella fascia oraria
+            // 1. Stazioni più consultate e preferite nella fascia oraria
             let filteredVisits = stationVisits.filter {
                 cfg.matches($0.hour) && !isStationIgnored($0.stationName)
             }
-            let stationGroups = Dictionary(grouping: filteredVisits, by: { $0.stationName.capitalized })
-            let stations: [LearnedStationHabit] = stationGroups.map { name, visits in
+            let stationGroups = Dictionary(grouping: filteredVisits, by: { $0.stationName.trimmingCharacters(in: .whitespacesAndNewlines).capitalized })
+            
+            var stationMap: [String: LearnedStationHabit] = [:]
+            
+            for (name, visits) in stationGroups {
+                guard let firstVisit = visits.first else { continue }
                 let total = visits.reduce(0) { $0 + ($1.viewCount ?? 1) }
                 let days = Set(visits.map { cal.startOfDay(for: $0.date) }).count
-                return LearnedStationHabit(name: name, totalViews: total, distinctDays: max(1, days))
-            }.sorted {
-                if $0.distinctDays != $1.distinctDays {
-                    return $0.distinctDays > $1.distinctDays
+                let favMatch = favStations.first {
+                    $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame ||
+                    ($0.vtID != nil && firstVisit.vtID != nil && $0.vtID == firstVisit.vtID)
                 }
-                return $0.totalViews > $1.totalViews
+                let isFav = favMatch != nil
+                let daysSaved = isFav ? favoriteSeniorityDays(addedDate: favMatch?.addedDate) : 0
+                
+                let viewPoints = min(total, 30) * 2
+                let dayPoints = days * 8
+                let favPoints = isFav ? (35 + min(daysSaved, 30)) : 0
+                let totalScore = viewPoints + dayPoints + favPoints
+                
+                let strength = calculateHabitStrength(score: totalScore, isFavorite: isFav, daysSaved: daysSaved, distinctDays: days)
+                let desc = stationHabitCountDescription(isFavorite: isFav, daysSaved: daysSaved, totalViews: total, distinctDays: max(1, days))
+                
+                stationMap[name] = LearnedStationHabit(
+                    name: name,
+                    totalViews: total,
+                    distinctDays: max(1, days),
+                    isFavorite: isFav,
+                    habitStrength: strength,
+                    countDescription: desc,
+                    score: totalScore
+                )
+            }
+            
+            // Includi stazioni preferite dell'utente
+            for fav in favStations {
+                if isStationIgnored(fav.name) { continue }
+                let capName = fav.name.trimmingCharacters(in: .whitespacesAndNewlines).capitalized
+                if stationMap[capName] == nil {
+                    let daysSaved = favoriteSeniorityDays(addedDate: fav.addedDate)
+                    let totalScore = 35 + min(daysSaved, 30)
+                    let strength = calculateHabitStrength(score: totalScore, isFavorite: true, daysSaved: daysSaved, distinctDays: 1)
+                    let desc = stationHabitCountDescription(isFavorite: true, daysSaved: daysSaved, totalViews: 0, distinctDays: 1, trainContext: "Stazione preferita")
+                    stationMap[capName] = LearnedStationHabit(
+                        name: capName,
+                        totalViews: 0,
+                        distinctDays: 1,
+                        isFavorite: true,
+                        habitStrength: strength,
+                        countDescription: desc,
+                        score: totalScore
+                    )
+                }
+            }
+            
+            let sortedStations = stationMap.values.sorted {
+                if $0.score != $1.score {
+                    return $0.score > $1.score
+                }
+                if $0.isFavorite != $1.isFavorite {
+                    return $0.isFavorite && !$1.isFavorite
+                }
+                return $0.distinctDays > $1.distinctDays
             }
             
             // 2. Treni consultati e abituali nella fascia oraria
@@ -570,23 +660,37 @@ class UsageTracker: ObservableObject {
                 guard let first = checks.first else { continue }
                 let total = checks.reduce(0) { $0 + ($1.viewCount ?? 1) }
                 let days = Set(checks.map { cal.startOfDay(for: $0.date) }).count
-                let favMatch = favs.first { $0.number == num }
+                let favMatch = favTrains.first { $0.number == num }
                 let isFav = favMatch != nil
+                let daysSaved = isFav ? favoriteSeniorityDays(addedDate: favMatch?.addedDate) : 0
                 
                 let cat = resolveTrainCategory(number: num, categoryDesc: first.category, destination: first.destination)
+                let dest = favMatch?.description.isEmpty == false ? favMatch!.description : first.destination
+                
+                let viewPoints = min(total, 30) * 2
+                let dayPoints = days * 8
+                let favPoints = isFav ? (35 + min(daysSaved, 30)) : 0
+                let totalScore = viewPoints + dayPoints + favPoints
+                
+                let strength = calculateHabitStrength(score: totalScore, isFavorite: isFav, daysSaved: daysSaved, distinctDays: days)
+                let desc = trainHabitCountDescription(isFavorite: isFav, daysSaved: daysSaved, totalViews: total, distinctDays: max(1, days))
+                
                 trainsMap[num] = LearnedTrainHabit(
                     number: num,
                     category: cat,
-                    destination: favMatch?.description ?? first.destination,
+                    destination: dest,
                     departureTime: favMatch?.departureTime,
                     totalViews: total,
                     distinctDays: max(1, days),
-                    isFavorite: isFav
+                    isFavorite: isFav,
+                    habitStrength: strength,
+                    countDescription: desc,
+                    score: totalScore
                 )
             }
             
             // Includi i treni preferiti con orario programmato in questa fascia oraria
-            for fav in favs {
+            for fav in favTrains {
                 if isTrainIgnored(fav.number) { continue }
                 
                 var matchesSlot = false
@@ -596,18 +700,31 @@ class UsageTracker: ObservableObject {
                 }
                 
                 if matchesSlot {
+                    let daysSaved = favoriteSeniorityDays(addedDate: fav.addedDate)
                     if let existing = trainsMap[fav.number] {
+                        let favPoints = 35 + min(daysSaved, 30)
+                        let newScore = existing.score + favPoints
+                        let strength = calculateHabitStrength(score: newScore, isFavorite: true, daysSaved: daysSaved, distinctDays: existing.distinctDays)
+                        let desc = trainHabitCountDescription(isFavorite: true, daysSaved: daysSaved, totalViews: existing.totalViews, distinctDays: existing.distinctDays)
+                        
                         trainsMap[fav.number] = LearnedTrainHabit(
                             number: existing.number,
                             category: existing.category,
                             destination: fav.description.isEmpty ? existing.destination : fav.description,
                             departureTime: fav.departureTime ?? existing.departureTime,
-                            totalViews: max(1, existing.totalViews),
+                            totalViews: existing.totalViews,
                             distinctDays: existing.distinctDays,
-                            isFavorite: true
+                            isFavorite: true,
+                            habitStrength: strength,
+                            countDescription: desc,
+                            score: newScore
                         )
                     } else {
                         let cat = resolveTrainCategory(number: fav.number, categoryDesc: nil, destination: fav.description)
+                        let totalScore = 40 + min(daysSaved, 30)
+                        let strength = calculateHabitStrength(score: totalScore, isFavorite: true, daysSaved: daysSaved, distinctDays: 1)
+                        let desc = trainHabitCountDescription(isFavorite: true, daysSaved: daysSaved, totalViews: 0, distinctDays: 1)
+                        
                         trainsMap[fav.number] = LearnedTrainHabit(
                             number: fav.number,
                             category: cat,
@@ -615,20 +732,23 @@ class UsageTracker: ObservableObject {
                             departureTime: fav.departureTime,
                             totalViews: 0,
                             distinctDays: 1,
-                            isFavorite: true
+                            isFavorite: true,
+                            habitStrength: strength,
+                            countDescription: desc,
+                            score: totalScore
                         )
                     }
                 }
             }
             
             let sortedTrains = trainsMap.values.sorted {
+                if $0.score != $1.score {
+                    return $0.score > $1.score
+                }
                 if $0.isFavorite != $1.isFavorite {
                     return $0.isFavorite && !$1.isFavorite
                 }
-                if $0.distinctDays != $1.distinctDays {
-                    return $0.distinctDays > $1.distinctDays
-                }
-                return $0.totalViews > $1.totalViews
+                return $0.distinctDays > $1.distinctDays
             }
             
             return TimeSlotHabit(
@@ -636,7 +756,7 @@ class UsageTracker: ObservableObject {
                 timeRange: cfg.range,
                 icon: cfg.icon,
                 color: cfg.color,
-                stations: Array(stations.prefix(5)),
+                stations: Array(sortedStations.prefix(5)),
                 trains: Array(sortedTrains.prefix(5))
             )
         }
@@ -644,6 +764,98 @@ class UsageTracker: ObservableObject {
 }
 
 // MARK: - Learned Habits Models & Helpers
+
+func favoriteSeniorityDays(addedDate: Date?) -> Int {
+    guard let date = addedDate else {
+        // Se non specificata, è un preferito storico esistente salvato prima dell'aggiornamento (> 35 giorni)
+        return 35
+    }
+    let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+    return max(0, days)
+}
+
+func habitSeniorityDescription(daysSaved: Int, isFavorite: Bool) -> String {
+    guard isFavorite else { return "" }
+    if daysSaved >= 30 {
+        return "Preferito da oltre 1 mese"
+    } else if daysSaved >= 14 {
+        let weeks = daysSaved / 7
+        return "Preferito da \(weeks) settiman\(weeks == 1 ? "a" : "e")"
+    } else if daysSaved >= 2 {
+        return "Preferito da \(daysSaved) giorni"
+    } else {
+        return "Aggiunto di recente"
+    }
+}
+
+func calculateHabitStrength(score: Int, isFavorite: Bool, daysSaved: Int, distinctDays: Int) -> String {
+    if isFavorite && daysSaved >= 30 {
+        return "Abitudine consolidata"
+    } else if distinctDays >= 4 || (isFavorite && daysSaved >= 14) || score >= 50 {
+        return "Abitudine frequente"
+    } else if isFavorite {
+        return "Nuovo preferito"
+    } else if distinctDays >= 2 || score >= 25 {
+        return "Consultato spesso"
+    } else {
+        return "Consultazione recente"
+    }
+}
+
+func trainHabitCountDescription(
+    isFavorite: Bool,
+    daysSaved: Int,
+    totalViews: Int,
+    distinctDays: Int
+) -> String {
+    if isFavorite {
+        let seniority = habitSeniorityDescription(daysSaved: daysSaved, isFavorite: true)
+        if totalViews > 1 && distinctDays > 1 {
+            return "\(seniority) • \(totalViews) consultazioni in \(distinctDays) giorni"
+        } else if totalViews >= 1 {
+            return "\(seniority) • \(totalViews) consultazione"
+        } else {
+            return "\(seniority) • Treno abituale programmato"
+        }
+    } else {
+        if distinctDays > 1 {
+            return "\(totalViews) consultazioni in \(distinctDays) giorni"
+        } else if totalViews == 1 {
+            return "1 consultazione"
+        } else {
+            return "\(totalViews) consultazioni"
+        }
+    }
+}
+
+func stationHabitCountDescription(
+    isFavorite: Bool,
+    daysSaved: Int,
+    totalViews: Int,
+    distinctDays: Int,
+    trainContext: String? = nil
+) -> String {
+    if isFavorite {
+        let seniority = habitSeniorityDescription(daysSaved: daysSaved, isFavorite: true)
+        if totalViews > 1 && distinctDays > 1 {
+            return "\(seniority) • \(totalViews) aperture in \(distinctDays) giorni"
+        } else if totalViews >= 1 {
+            return "\(seniority) • \(totalViews) apertura"
+        } else if let ctx = trainContext {
+            return "\(seniority) • \(ctx)"
+        } else {
+            return "\(seniority) • Stazione preferita"
+        }
+    } else {
+        if distinctDays > 1 {
+            return "\(totalViews) aperture in \(distinctDays) giorni"
+        } else if totalViews == 1 {
+            return "1 apertura recente"
+        } else {
+            return "\(totalViews) aperture"
+        }
+    }
+}
 
 func resolveTrainCategory(number: String, categoryDesc: String?, destination: String?) -> String {
     let cleanNum = number.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -701,16 +913,10 @@ struct LearnedStationHabit: Identifiable, Equatable {
     let name: String
     let totalViews: Int
     let distinctDays: Int
-    
-    var countDescription: String {
-        if distinctDays > 1 {
-            return "\(totalViews) visualizzazioni in \(distinctDays) giorni"
-        } else if totalViews == 1 {
-            return "1 visualizzazione"
-        } else {
-            return "\(totalViews) visualizzazioni"
-        }
-    }
+    let isFavorite: Bool
+    let habitStrength: String
+    let countDescription: String
+    let score: Int
 }
 
 struct LearnedTrainHabit: Identifiable, Equatable {
@@ -722,18 +928,9 @@ struct LearnedTrainHabit: Identifiable, Equatable {
     let totalViews: Int
     let distinctDays: Int
     let isFavorite: Bool
-    
-    var countDescription: String {
-        if isFavorite && totalViews == 0 {
-            return "Treno preferito abituale"
-        } else if distinctDays > 1 {
-            return "\(totalViews) consultazioni in \(distinctDays) giorni"
-        } else if totalViews == 1 {
-            return "1 consultazione"
-        } else {
-            return "\(totalViews) consultazioni"
-        }
-    }
+    let habitStrength: String
+    let countDescription: String
+    let score: Int
 }
 
 struct TimeSlotHabit: Identifiable, Equatable {

@@ -1782,7 +1782,10 @@ struct SmartSuggestionsSettingsView: View {
     }()
 
     var body: some View {
-        let habits = usageTracker.learnedHabitsByTimeSlot(favoriteTrains: manager.favoriteTrains)
+        let habits = usageTracker.learnedHabitsByTimeSlot(
+            favoriteTrains: manager.favoriteTrains,
+            favoriteStations: manager.myStations
+        )
         let hasAnyData = habits.contains { !$0.isEmpty }
 
         List {
@@ -1795,7 +1798,7 @@ struct SmartSuggestionsSettingsView: View {
 
             Section(
                 header: Text("Abitudini apprese"),
-                footer: Text("I dati sono memorizzati solo in locale sul tuo iPhone. I conteggi mostrano le visualizzazioni complessive accumulate nei diversi giorni in ciascuna fascia oraria.")
+                footer: Text("L'algoritmo valuta in modo combinato i treni e le stazioni salvati nei preferiti (inclusa la loro anzianità nel tempo), le aperture dei tabelloni e i dettagli dei treni consultati nelle diverse fasce orarie. I dati sono memorizzati solo in locale sul tuo iPhone.")
             ) {
                 if !hasAnyData {
                     VStack(alignment: .leading, spacing: 8) {
@@ -1807,7 +1810,7 @@ struct SmartSuggestionsSettingsView: View {
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                         }
-                        Text("L'app apprende man mano che consulti orari, tabelloni e stazioni nelle diverse ore della giornata. Continuando a usare l'app, vedrai apparire qui i tuoi tragitti abituali.")
+                        Text("L'app apprende man mano che consulti orari, tabelloni e stazioni nelle diverse ore della giornata, integrando i tuoi preferiti storici. Continuando a usare l'app, vedrai apparire qui i tuoi tragitti abituali.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -1855,16 +1858,37 @@ struct SmartSuggestionsSettingsView: View {
                                     ForEach(slot.stations) { st in
                                         HStack(spacing: 8) {
                                             Image(systemName: "building.2.fill")
-                                                .font(.system(size: 12))
+                                                .font(.system(size: 13))
                                                 .foregroundColor(.blue)
-                                                .frame(width: 20)
-                                            Text(st.name)
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
+                                                .frame(width: 22)
+                                            
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                HStack(spacing: 5) {
+                                                    Text(st.name)
+                                                        .font(.subheadline)
+                                                        .fontWeight(.semibold)
+                                                    
+                                                    if st.isFavorite {
+                                                        Image(systemName: "star.fill")
+                                                            .font(.system(size: 9))
+                                                            .foregroundColor(.yellow)
+                                                    }
+                                                    
+                                                    Text(st.habitStrength)
+                                                        .font(.system(size: 9, weight: .bold))
+                                                        .padding(.horizontal, 5)
+                                                        .padding(.vertical, 1.5)
+                                                        .background(Color.accentColor.opacity(0.12))
+                                                        .foregroundColor(.accentColor)
+                                                        .clipShape(Capsule())
+                                                }
+                                                
+                                                Text(st.countDescription)
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
                                             Spacer()
-                                            Text(st.countDescription)
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
                                         }
                                         .padding(.vertical, 2)
                                     }
@@ -1895,8 +1919,8 @@ struct SmartSuggestionsSettingsView: View {
                                                 .background(habitCategoryColor(for: tr.category))
                                                 .cornerRadius(4)
 
-                                            VStack(alignment: .leading, spacing: 1) {
-                                                HStack(spacing: 4) {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                HStack(spacing: 5) {
                                                     Text(tr.number)
                                                         .font(.subheadline)
                                                         .fontWeight(.bold)
@@ -1910,18 +1934,25 @@ struct SmartSuggestionsSettingsView: View {
                                                             .font(.system(size: 9))
                                                             .foregroundColor(.yellow)
                                                     }
+                                                    Text(tr.habitStrength)
+                                                        .font(.system(size: 9, weight: .bold))
+                                                        .padding(.horizontal, 5)
+                                                        .padding(.vertical, 1.5)
+                                                        .background(Color.accentColor.opacity(0.12))
+                                                        .foregroundColor(.accentColor)
+                                                        .clipShape(Capsule())
                                                 }
-                                                if !tr.destination.isEmpty {
-                                                    Text("Per \(tr.destination)")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
-                                                        .lineLimit(1)
+                                                HStack(spacing: 4) {
+                                                    if !tr.destination.isEmpty {
+                                                        Text("Per \(tr.destination) •")
+                                                            .lineLimit(1)
+                                                    }
+                                                    Text(tr.countDescription)
                                                 }
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
                                             }
                                             Spacer()
-                                            Text(tr.countDescription)
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
                                         }
                                         .padding(.vertical, 2)
                                     }

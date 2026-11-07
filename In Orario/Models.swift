@@ -310,6 +310,7 @@ struct SavedTrain: Codable, Identifiable, Equatable {
     var lastDelayText: String? = nil
     var lastDelayColorName: String? = nil
     var showInWidget: Bool? = true
+    var addedDate: Date? = nil
 }
 
 struct VTSearchStation: Codable, Identifiable {
@@ -560,6 +561,7 @@ struct Station: Identifiable, Codable, Hashable {
     let vtID: String?
     let lat: Double?
     let lon: Double?
+    var addedDate: Date? = nil
     
     var formattedName: String {
         let lower = name.lowercased()

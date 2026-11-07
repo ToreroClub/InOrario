@@ -399,7 +399,8 @@ struct ContentView: View {
                             location: locationManager.userLocation?.coordinate,
                             excludeStations: [locationManager.manualNearbyStation?.name, locationManager.nearbyStation?.name].compactMap { $0 },
                             excludeTrainNumbers: isFavoritesExpanded ? manager.favoriteTrains.map { $0.number } : [],
-                            favoriteTrains: manager.favoriteTrains
+                            favoriteTrains: manager.favoriteTrains,
+                            favoriteStations: manager.myStations
                         ),
                         nearby: locationManager.manualNearbyStation ?? locationManager.nearbyStation,
                         nearbyDistance: locationManager.manualNearbyStation != nil ? nil : locationManager.nearbyStationDistance,
@@ -689,9 +690,9 @@ struct ContentView: View {
                         }
                     } label: {
                         if showingMetroView {
-                            Label("Sezione treni", systemImage: "train.side.front.car")
+                            Label("Treni", systemImage: "train.side.front.car")
                         } else {
-                            Label("Sezione metro", systemImage: "tram.fill")
+                            Label("Metropolitana", systemImage: "tram.fill")
                         }
                     }
                 }

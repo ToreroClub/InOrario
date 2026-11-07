@@ -717,7 +717,8 @@ struct Haptics {
         var updatedMyStations = false
         self.myStations = self.myStations.map { st in
             let cleanRfi = (st.rfiID?.hasPrefix("S") == true || st.rfiID?.hasPrefix("N") == true) ? nil : st.rfiID
-            let resolved = resolveStation(name: st.name, fallbackVtID: st.vtID, fallbackRfiID: cleanRfi)
+            var resolved = resolveStation(name: st.name, fallbackVtID: st.vtID, fallbackRfiID: cleanRfi)
+            resolved.addedDate = st.addedDate
             if resolved.rfiID != st.rfiID || resolved.vtID != st.vtID {
                 updatedMyStations = true
             }
@@ -749,14 +750,30 @@ struct Haptics {
         }
 
         if let data = UserDefaults.standard.data(forKey: favoritesKey), let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
-            self.favoriteTrains = decoded
+            var updated = false
+            self.favoriteTrains = decoded.map { tr in
+                var t = tr
+                if t.addedDate == nil {
+                    t.addedDate = Calendar.current.date(byAdding: .day, value: -35, to: Date())
+                    updated = true
+                }
+                return t
+            }
+            if updated { saveFavorites() }
         }
         
         if let data = UserDefaults.standard.data(forKey: myStationsKey), let decoded = try? JSONDecoder().decode([Station].self, from: data) {
+            var updated = false
             self.myStations = decoded.map { st in
                 let cleanRfi = (st.rfiID?.hasPrefix("S") == true || st.rfiID?.hasPrefix("N") == true) ? nil : st.rfiID
-                return resolveStation(name: st.name, fallbackVtID: st.vtID, fallbackRfiID: cleanRfi)
+                var resolved = resolveStation(name: st.name, fallbackVtID: st.vtID, fallbackRfiID: cleanRfi)
+                resolved.addedDate = st.addedDate ?? Calendar.current.date(byAdding: .day, value: -35, to: Date())
+                if st.addedDate == nil || resolved.rfiID != st.rfiID || resolved.vtID != st.vtID {
+                    updated = true
+                }
+                return resolved
             }
+            if updated { saveFavorites() }
         } else {
             self.myStations = []
         }
@@ -1437,7 +1454,7 @@ struct Haptics {
             }
         } else {
             let cleanDescription = description.replacingOccurrences(of: "\(trainNumber) - ", with: "")
-            favoriteTrains.append(SavedTrain(number: trainNumber, description: cleanDescription, departureTime: departureTime))
+            favoriteTrains.append(SavedTrain(number: trainNumber, description: cleanDescription, departureTime: departureTime, addedDate: Date()))
             Haptics.notify(.success)
             // Asynchronously enrich with origin and arrival time from API
             Task {
@@ -2029,7 +2046,8 @@ struct Haptics {
     }
     
     func addMyStation(name: String, vtID: String) {
-        let resolved = resolveStation(name: name, fallbackVtID: vtID)
+        var resolved = resolveStation(name: name, fallbackVtID: vtID)
+        resolved.addedDate = Date()
         let key = resolved.name.lowercased()
         if !myStations.contains(where: { $0.name.lowercased() == key || ($0.vtID != nil && $0.vtID == resolved.vtID) }) {
             myStations.append(resolved)
@@ -2040,7 +2058,8 @@ struct Haptics {
     
     func addMyStation(_ station: Station) {
         let cleanRfi = (station.rfiID?.hasPrefix("S") == true || station.rfiID?.hasPrefix("N") == true) ? nil : station.rfiID
-        let resolved = resolveStation(name: station.name, fallbackVtID: station.vtID, fallbackRfiID: cleanRfi)
+        var resolved = resolveStation(name: station.name, fallbackVtID: station.vtID, fallbackRfiID: cleanRfi)
+        resolved.addedDate = Date()
         let key = resolved.name.lowercased()
         if !myStations.contains(where: { $0.name.lowercased() == key || ($0.vtID != nil && $0.vtID == resolved.vtID) }) {
             myStations.append(resolved)

@@ -9,6 +9,9 @@ import SwiftUI
     @Published var hiddenSuburbanStations: [String: [String]] = [:] {
         didSet { save() }
     }
+    @Published var favoriteSuburbanStations: [String] = [] {
+        didSet { save() }
+    }
     
     @Published var selectedPassanteStation: Station = Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01649", lat: 45.4746, lon: 9.2052) {
         didSet { save() }
@@ -44,6 +47,7 @@ import SwiftUI
     
     private let selectedSuburbanLinesKey = "selectedSuburbanLines_v1"
     private let hiddenSuburbanStationsKey = "hiddenSuburbanStations_v1"
+    private let favoriteSuburbanStationsKey = "favoriteSuburbanStations_v1"
     private let selectedPassanteStationKey = "selectedPassanteStation_v1"
     private let useSpecialPassanteViewKey = "useSpecialPassanteView_v1"
     
@@ -56,6 +60,10 @@ import SwiftUI
         let decodedHidden = hiddenStationsData.flatMap { try? JSONDecoder().decode([String: [String]].self, from: $0) } ?? [:]
         self._hiddenSuburbanStations = Published(initialValue: decodedHidden)
         
+        let favoriteStationsData = UserDefaults.standard.data(forKey: favoriteSuburbanStationsKey)
+        let decodedFavorites = favoriteStationsData.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+        self._favoriteSuburbanStations = Published(initialValue: decodedFavorites)
+        
         let selectedStationData = UserDefaults.standard.data(forKey: selectedPassanteStationKey)
         let decodedStation = selectedStationData.flatMap { try? JSONDecoder().decode(Station.self, from: $0) } ?? Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01649", lat: 45.4746, lon: 9.2052)
         self._selectedPassanteStation = Published(initialValue: decodedStation)
@@ -66,6 +74,7 @@ import SwiftUI
     func save() {
         if let data = try? JSONEncoder().encode(selectedSuburbanLines) { UserDefaults.standard.set(data, forKey: selectedSuburbanLinesKey) }
         if let data = try? JSONEncoder().encode(hiddenSuburbanStations) { UserDefaults.standard.set(data, forKey: hiddenSuburbanStationsKey) }
+        if let data = try? JSONEncoder().encode(favoriteSuburbanStations) { UserDefaults.standard.set(data, forKey: favoriteSuburbanStationsKey) }
         if let data = try? JSONEncoder().encode(selectedPassanteStation) { UserDefaults.standard.set(data, forKey: selectedPassanteStationKey) }
     }
 
@@ -528,6 +537,19 @@ import SwiftUI
             hiddenForLine.append(stationName)
         }
         hiddenSuburbanStations[lineId] = hiddenForLine
+        save()
+    }
+
+    func isFavoriteSuburbanStation(_ stationName: String) -> Bool {
+        favoriteSuburbanStations.contains { $0.localizedCaseInsensitiveCompare(stationName) == .orderedSame }
+    }
+    
+    func toggleFavoriteSuburbanStation(_ stationName: String) {
+        if let idx = favoriteSuburbanStations.firstIndex(where: { $0.localizedCaseInsensitiveCompare(stationName) == .orderedSame }) {
+            favoriteSuburbanStations.remove(at: idx)
+        } else {
+            favoriteSuburbanStations.append(stationName)
+        }
         save()
     }
 

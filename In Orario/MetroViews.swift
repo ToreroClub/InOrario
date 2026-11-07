@@ -22,11 +22,6 @@ struct MetroHomeView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // MARK: Subtitle
                 HStack(spacing: 8) {
-                    Text("Metro")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                    
                     Text("BETA")
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6)

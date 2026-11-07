@@ -326,6 +326,7 @@ struct StationSelectionSheet: View {
     @Environment(\.dismiss) var dismiss
     @Binding var selectedName: String
     @Binding var selectedID: String
+    var onStationSelected: ((Station) -> Void)? = nil
     @State private var query = ""
     let title: String
     var autoFocusSearch: Bool = true
@@ -424,6 +425,7 @@ struct StationSelectionSheet: View {
                                         let vt = resolved.vtID ?? manager.getVtID(for: resolved.name) ?? ""
                                         manager.addToRecentStations(VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: vt))
                                         manager.addToViewedRecentStations(name: resolved.name, vtID: vt)
+                                        onStationSelected?(resolved)
                                         Haptics.play(.medium)
                                         dismiss()
                                     } label: {
@@ -694,6 +696,7 @@ struct StationSelectionSheet: View {
                     let vt = resolved.vtID ?? manager.getVtID(for: resolved.name) ?? ""
                     manager.addToRecentStations(VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: vt))
                     manager.addToViewedRecentStations(name: resolved.name, vtID: vt)
+                    onStationSelected?(resolved)
                     Haptics.play(.medium)
                     dismiss()
                 } else {

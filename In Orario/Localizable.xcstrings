@@ -110,6 +110,16 @@
         }
       }
     },
+    "%@ (%@)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "%@ %@" : {
       "localizations" : {
         "en" : {
@@ -209,6 +219,9 @@
     "%lld opzioni" : {
 
     },
+    "%lld preferite" : {
+
+    },
     "•" : {
       "localizations" : {
         "en" : {
@@ -218,6 +231,9 @@
           }
         }
       }
+    },
+    "• %@" : {
+
     },
     "←" : {
       "localizations" : {
@@ -349,6 +365,9 @@
     "Abbonamento Annuale" : {
 
     },
+    "Abilita la visualizzazione del Passante e delle linee suburbane nella schermata principale per consultarne partenze e stato della rete." : {
+
+    },
     "Abilita Notifiche" : {
       "localizations" : {
         "en" : {
@@ -374,6 +393,9 @@
       }
     },
     "Abituale" : {
+
+    },
+    "Abitudini apprese" : {
 
     },
     "Abitudini di viaggio" : {
@@ -413,6 +435,9 @@
 
     },
     "Aggiorna ora su App Store" : {
+
+    },
+    "Aggiornamenti automatici in tempo reale inviati direttamente dal server ogni minuto a schermo bloccato." : {
 
     },
     "Aggiungi" : {
@@ -523,6 +548,9 @@
       }
     },
     "Aggiunta" : {
+
+    },
+    "Aggiunta manualmente" : {
 
     },
     "Aggiunto" : {
@@ -665,6 +693,9 @@
           }
         }
       }
+    },
+    "Attenzione" : {
+
     },
     "ATTENZIONE: Qwen è un modello sperimentale e potrebbe produrre risultati inaccurati. Usa con cautela." : {
       "extractionState" : "stale",
@@ -831,7 +862,14 @@
         }
       }
     },
+    "Cancella abitudini apprese" : {
+
+    },
+    "Cancella cronologia ricerche" : {
+
+    },
     "Cancella preferenze apprese" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -840,6 +878,9 @@
           }
         }
       }
+    },
+    "Cancellare la cronologia?" : {
+
     },
     "CANCELLATO" : {
       "localizations" : {
@@ -1172,6 +1213,9 @@
     "Consigli intelligenti di itinerari alternativi in caso di ritardi significativi o cancellazioni." : {
 
     },
+    "Consiglia In Orario a un amico" : {
+
+    },
     "Consigliata" : {
 
     },
@@ -1308,6 +1352,9 @@
         }
       }
     },
+    "Dati e sincronizzazione" : {
+
+    },
     "Dati in tempo reale da tabelloni RFI" : {
       "localizations" : {
         "en" : {
@@ -1421,6 +1468,12 @@
           }
         }
       }
+    },
+    "Disattiva i treni che non vuoi vedere nei widget della schermata Home o di blocco." : {
+
+    },
+    "Disattiva se non vuoi mostrare questo treno nei widget." : {
+
     },
     "Disattive" : {
       "localizations" : {
@@ -1626,6 +1679,9 @@
     "FAQ e supporto" : {
 
     },
+    "Fascia oraria" : {
+
+    },
     "Fattibilità trasbordo" : {
 
     },
@@ -1775,6 +1831,9 @@
         }
       }
     },
+    "Hai già una Live Activity attiva, verrà sostituita." : {
+
+    },
     "Ho capito" : {
 
     },
@@ -1791,6 +1850,9 @@
           }
         }
       }
+    },
+    "I dati sono memorizzati solo sul dispositivo per suggerirti stazioni e treni pertinenti al momento giusto." : {
+
     },
     "I miei Treni" : {
       "localizations" : {
@@ -1835,6 +1897,9 @@
       }
     },
     "I treni per la tua destinazione partono dalle altre stazioni configurate." : {
+
+    },
+    "I widget mostrano fino a un massimo di 3 treni contemporaneamente nei formati Piccolo e Medio. Se la rotazione è attiva, i treni ruotano durante la giornata mostrando in alto quelli in partenza a breve o in viaggio." : {
 
     },
     "IA Cloud a pagamento" : {
@@ -1933,6 +1998,9 @@
 
     },
     "In orario" : {
+
+    },
+    "In Orario" : {
 
     },
     "IN ORARIO" : {
@@ -2131,6 +2199,9 @@
         }
       }
     },
+    "L'app impara man mano che consulti orari e stazioni nelle diverse ore della giornata. Continuando a usare l'app, vedrai apparire qui i tuoi schemi abituali." : {
+
+    },
     "L'elaborazione Cloud è riservata a chi sostiene il progetto per coprire i costi dei server." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2146,6 +2217,9 @@
 
     },
     "La scelta dei giorni della settimana è riservata a chi sostiene il progetto In Orario." : {
+
+    },
+    "La sincronizzazione iCloud mantiene aggiornati i tuoi treni e stazioni preferite su tutti i tuoi dispositivi Apple." : {
 
     },
     "La sviluppo e la mantengo da solo, nel mio tempo libero. Ho scelto di offrirla gratuitamente e senza pubblicità, ma mantenerla attiva comporta alcuni costi." : {
@@ -2250,6 +2324,9 @@
     "Le offerte non sono al momento disponibili." : {
 
     },
+    "Legale e Privacy" : {
+
+    },
     "Limite gratuito raggiunto" : {
       "localizations" : {
         "en" : {
@@ -2318,6 +2395,9 @@
     "Live Activity Attiva! 🚆" : {
 
     },
+    "Live Activity con push al minuto" : {
+
+    },
     "Mappa" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2364,7 +2444,11 @@
         }
       }
     },
+    "Mattina" : {
+
+    },
     "Metro" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2440,6 +2524,9 @@
         }
       }
     },
+    "Mostra nei Widget" : {
+
+    },
     "Mostra Partenze" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2461,6 +2548,9 @@
         }
       }
     },
+    "Mostra tutte le fermate (%lld)" : {
+
+    },
     "Mostra tutte le stazioni" : {
 
     },
@@ -2478,6 +2568,9 @@
 
     },
     "Nascondi da Per te" : {
+
+    },
+    "Nascondi elenco fermate" : {
 
     },
     "Nazionale / Tutte" : {
@@ -2611,6 +2704,9 @@
         }
       }
     },
+    "Nessun treno salvato tra i preferiti." : {
+
+    },
     "Nessun treno suburbano in tempo reale." : {
       "localizations" : {
         "en" : {
@@ -2656,6 +2752,12 @@
 
     },
     "Nessun viaggio salvato" : {
+
+    },
+    "Nessuna abitudine registrata" : {
+
+    },
+    "Nessuna attività registrata in questa fascia oraria." : {
 
     },
     "Nessuna corsa diretta trovata da %@." : {
@@ -2971,6 +3073,9 @@
         }
       }
     },
+    "Notte" : {
+
+    },
     "OFFLINE" : {
       "localizations" : {
         "en" : {
@@ -3008,6 +3113,9 @@
     "OPZIONE %lld" : {
 
     },
+    "Opzioni di personalizzazione" : {
+
+    },
     "Opzioni disponibili" : {
 
     },
@@ -3024,6 +3132,9 @@
           }
         }
       }
+    },
+    "Ordinamento e Rotazione" : {
+
     },
     "Ordine Sezioni Dashboard" : {
       "localizations" : {
@@ -3127,6 +3238,9 @@
     "Passante Ferroviario" : {
 
     },
+    "Per %@" : {
+
+    },
     "Per te" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3144,6 +3258,9 @@
     "Percorso alternativo" : {
 
     },
+    "Personalizza" : {
+
+    },
     "Personalizza come In Orario elabora le informazioni e gli scioperi per te:" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3156,6 +3273,7 @@
       }
     },
     "Personalizza Dashboard" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3164,6 +3282,9 @@
           }
         }
       }
+    },
+    "Personalizza Home" : {
+
     },
     "Personalizza le tue abitudini di viaggio per restare sempre aggiornato su eventuali cambiamenti della tua linea, gravi ritardi o cancellazioni che vengono comunicate in anticipo con un elenco di alternative." : {
 
@@ -3182,6 +3303,9 @@
       }
     },
     "Personalizza per singolo giorno" : {
+
+    },
+    "Personalizza Widget" : {
 
     },
     "Personalizzazione" : {
@@ -3210,6 +3334,9 @@
 
     },
     "PIÙ VICINA" : {
+
+    },
+    "Pomeriggio" : {
 
     },
     "Posizione non disponibile" : {
@@ -3323,6 +3450,9 @@
       }
     },
     "Prova a cambiare orario di partenza." : {
+
+    },
+    "Prova In Orario: l'app per seguire i treni e i ritardi in tutta Italia!" : {
 
     },
     "Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ogni minuto anche a telefono bloccato? Sostieni il progetto per sbloccarli!" : {
@@ -3678,6 +3808,9 @@
         }
       }
     },
+    "Rotazione automatica per orario" : {
+
+    },
     "Salta" : {
       "localizations" : {
         "en" : {
@@ -3769,6 +3902,12 @@
           }
         }
       }
+    },
+    "Scegli le sezioni da visualizzare nella Home, seleziona le linee suburbane di tuo interesse e configura i treni nei widget." : {
+
+    },
+    "Scegli le tue preferite" : {
+
     },
     "Scegli se mantenere in memoria lo stato aperto o chiuso delle varie sezioni." : {
       "localizations" : {
@@ -3992,6 +4131,9 @@
         }
       }
     },
+    "Sera" : {
+
+    },
     "Servizio non attivo o dati non disponibili" : {
       "localizations" : {
         "en" : {
@@ -4016,6 +4158,7 @@
 
     },
     "Sezione metro" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4026,6 +4169,7 @@
       }
     },
     "Sezione treni" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4047,6 +4191,9 @@
       }
     },
     "Sfrutta l'IA integrata nel tuo dispositivo senza inviare dati all'esterno." : {
+
+    },
+    "Sincronizzazione iCloud" : {
 
     },
     "Sintesi Notizie e Scioperi" : {
@@ -4275,10 +4422,16 @@
         }
       }
     },
+    "STAZIONI AGGIUNTE" : {
+
+    },
     "Stazioni di arrivo" : {
 
     },
     "Stazioni di partenza" : {
+
+    },
+    "STAZIONI PIÙ CERCATE" : {
 
     },
     "Stazioni Preferite" : {
@@ -4298,10 +4451,10 @@
     "STAZIONI SUGGERITE" : {
 
     },
-    "Stazioni Vicine" : {
+    "STAZIONI SUGGERITE E VICINE" : {
 
     },
-    "STAZIONI VICINE A TE" : {
+    "Stazioni Vicine" : {
 
     },
     "Stazioni viste di recente" : {
@@ -4496,6 +4649,9 @@
         }
       }
     },
+    "Tocca per indicare le stazioni che usi più spesso su questa linea" : {
+
+    },
     "Tocca un viaggio per controllare lo stato dei treni, le coincidenze e le fermate." : {
 
     },
@@ -4586,6 +4742,9 @@
     "Treni e Stazioni" : {
 
     },
+    "Treni nei Widget" : {
+
+    },
     "Treni nel Passante" : {
       "localizations" : {
         "en" : {
@@ -4595,6 +4754,9 @@
           }
         }
       }
+    },
+    "TRENI PIÙ CONSULTATI" : {
+
     },
     "Treni Recenti" : {
 
@@ -4799,6 +4961,9 @@
         }
       }
     },
+    "Valuta In Orario su App Store" : {
+
+    },
     "Verifica alternative" : {
 
     },
@@ -4806,6 +4971,9 @@
 
     },
     "Verifica le stazioni impostate o riprova a verificare tra qualche minuto." : {
+
+    },
+    "Verranno rimossi i treni e le stazioni recenti dalla cronologia delle ricerche." : {
 
     },
     "Viaggi" : {
@@ -4856,9 +5024,6 @@
         }
       }
     },
-    "Visualizza partenze, binari e ritardi in tempo reale con i widget dedicati direttamente sulla schermata di blocco o Home." : {
-
-    },
     "Visualizzazione" : {
       "localizations" : {
         "en" : {
@@ -4868,6 +5033,9 @@
           }
         }
       }
+    },
+    "Visualizzazione sulla Dashboard" : {
+
     },
     "Widget" : {
       "extractionState" : "stale",
@@ -4880,7 +5048,7 @@
         }
       }
     },
-    "Widget su Schermata Home e di Blocco" : {
+    "Widget Schermata Home" : {
 
     }
   },

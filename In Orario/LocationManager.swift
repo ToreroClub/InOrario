@@ -101,6 +101,13 @@ final class DeviceLocationService: NSObject, CLLocationManagerDelegate {
         let status = manager.authorizationStatus
         Task { @MainActor in
             print("[DeviceLocationService] Stato autorizzazione GPS: \(status.rawValue)")
+            if status == .authorizedWhenInUse || status == .authorizedAlways {
+                if let loc = manager.location, loc.horizontalAccuracy >= 0 {
+                    self.lastLocation = loc
+                    self.onLocationUpdate?(loc)
+                }
+                self.manager.requestLocation()
+            }
             self.onAuthorizationChange?(status)
         }
     }
@@ -156,6 +163,12 @@ class LocationManager: ObservableObject {
         
         locationService.onLocationUpdate = { [weak self] newLocation in
             self?.userLocation = newLocation
+        }
+        
+        locationService.onAuthorizationChange = { [weak self] status in
+            if status == .authorizedWhenInUse || status == .authorizedAlways {
+                self?.requestLocation(force: true)
+            }
         }
         
         updateNearbyStation()
