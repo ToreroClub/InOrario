@@ -114,7 +114,7 @@ struct Haptics {
     private let viewedRecentStationsKey = "viewedRecentStations_v2"
     
     @Published var userName: String = ""
-    @Published var iCloudSyncEnabled: Bool = true
+    @Published var iCloudSyncEnabled: Bool = false
     
     private var refreshTimer: AnyCancellable?
     
@@ -278,13 +278,6 @@ struct Haptics {
                 self.syncRemoteNotifications()
             }
         }
-        
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(iCloudStoreDidChangeExternally(_:)),
-            name: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-            object: NSUbiquitousKeyValueStore.default
-        )
         
         isInitializing = false
         
@@ -728,9 +721,6 @@ struct Haptics {
     }
     
     func loadFavorites() {
-        // First, restore any missing preferences from iCloud key-value store
-        loadFromiCloud(keys: nil, onlyIfLocalMissing: true)
-        
         if let data = UserDefaults.standard.data(forKey: recentTrainsKey) {
             do {
                 let decoded = try JSONDecoder().decode([SavedTrain].self, from: data)
@@ -749,9 +739,19 @@ struct Haptics {
             }
         }
 
-        if let data = UserDefaults.standard.data(forKey: favoritesKey), let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
+        // 1. Carica treni preferiti (con fallback ad App Group se standard è vuoto)
+        var loadedTrains: [SavedTrain]? = nil
+        if let data = UserDefaults.standard.data(forKey: favoritesKey) {
+            loadedTrains = try? JSONDecoder().decode([SavedTrain].self, from: data)
+        }
+        if (loadedTrains == nil || loadedTrains?.isEmpty == true),
+           let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario"),
+           let groupData = groupDefaults.data(forKey: favoritesKey) {
+            loadedTrains = try? JSONDecoder().decode([SavedTrain].self, from: groupData)
+        }
+        if let trains = loadedTrains, !trains.isEmpty {
             var updated = false
-            self.favoriteTrains = decoded.map { tr in
+            self.favoriteTrains = trains.map { tr in
                 var t = tr
                 if t.addedDate == nil {
                     t.addedDate = Calendar.current.date(byAdding: .day, value: -35, to: Date())
@@ -762,9 +762,19 @@ struct Haptics {
             if updated { saveFavorites() }
         }
         
-        if let data = UserDefaults.standard.data(forKey: myStationsKey), let decoded = try? JSONDecoder().decode([Station].self, from: data) {
+        // 2. Carica stazioni preferite (con fallback ad App Group se standard è vuoto)
+        var loadedStations: [Station]? = nil
+        if let data = UserDefaults.standard.data(forKey: myStationsKey) {
+            loadedStations = try? JSONDecoder().decode([Station].self, from: data)
+        }
+        if (loadedStations == nil || loadedStations?.isEmpty == true),
+           let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario"),
+           let groupData = groupDefaults.data(forKey: myStationsKey) {
+            loadedStations = try? JSONDecoder().decode([Station].self, from: groupData)
+        }
+        if let stations = loadedStations, !stations.isEmpty {
             var updated = false
-            self.myStations = decoded.map { st in
+            self.myStations = stations.map { st in
                 let cleanRfi = (st.rfiID?.hasPrefix("S") == true || st.rfiID?.hasPrefix("N") == true) ? nil : st.rfiID
                 var resolved = resolveStation(name: st.name, fallbackVtID: st.vtID, fallbackRfiID: cleanRfi)
                 resolved.addedDate = st.addedDate ?? Calendar.current.date(byAdding: .day, value: -35, to: Date())
@@ -774,8 +784,6 @@ struct Haptics {
                 return resolved
             }
             if updated { saveFavorites() }
-        } else {
-            self.myStations = []
         }
         
         if let data = UserDefaults.standard.data(forKey: sectionOrderKey), let decoded = try? JSONDecoder().decode([AppSection].self, from: data) {
@@ -803,16 +811,6 @@ struct Haptics {
                 self.userName = savedName
             }
         }
-        if UserDefaults.standard.object(forKey: iCloudSyncEnabledKey) != nil {
-            let val = UserDefaults.standard.bool(forKey: iCloudSyncEnabledKey)
-            if self.iCloudSyncEnabled != val {
-                self.iCloudSyncEnabled = val
-            }
-        } else {
-            if !self.iCloudSyncEnabled {
-                self.iCloudSyncEnabled = true
-            }
-        }
         
         if UserDefaults.standard.object(forKey: remoteNotificationsEnabledKey) != nil {
             let val = UserDefaults.standard.bool(forKey: remoteNotificationsEnabledKey)
@@ -826,13 +824,13 @@ struct Haptics {
                 self.notifyOnStationPass = val
             }
         }
-        if let storedRegion = UserDefaults.standard.string(forKey: strikeRegionKey) {
+        if let storedRegion = UserDefaults.standard.string(forKey: strikeRegionKey), !storedRegion.isEmpty {
             if self.strikeRegion != storedRegion {
                 self.strikeRegion = storedRegion
             }
-        } else {
-            if self.strikeRegion != "Tutte" {
-                self.strikeRegion = "Tutte"
+        } else if let groupRegion = UserDefaults(suiteName: "group.carlo.InOrario")?.string(forKey: strikeRegionKey), !groupRegion.isEmpty {
+            if self.strikeRegion != groupRegion {
+                self.strikeRegion = groupRegion
             }
         }
         if UserDefaults.standard.object(forKey: strikeNotificationsEnabledKey) != nil {
@@ -905,25 +903,9 @@ struct Haptics {
         UserDefaults.standard.set(strikeNotificationsEnabled, forKey: strikeNotificationsEnabledKey)
         UserDefaults.standard.set(apnsToken, forKey: apnsTokenKey)
         
-        if iCloudSyncEnabled {
-            let store = NSUbiquitousKeyValueStore.default
-            if let encoded = try? JSONEncoder().encode(favoriteTrains) { store.set(encoded, forKey: favoritesKey) }
-            if let encoded = try? JSONEncoder().encode(myStations) { store.set(encoded, forKey: myStationsKey) }
-            if let encoded = try? JSONEncoder().encode(favoriteRoutes) { store.set(encoded, forKey: favoriteRoutesKey) }
-            if let encoded = try? JSONEncoder().encode(savedTrips) { store.set(encoded, forKey: savedTripsKey) }
-            if let encoded = try? JSONEncoder().encode(sectionOrder) { store.set(encoded, forKey: sectionOrderKey) }
-            
-            store.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
-            store.set(userName, forKey: userNameKey)
-            store.set(iCloudSyncEnabled, forKey: iCloudSyncEnabledKey)
-            store.set(remoteNotificationsEnabled, forKey: remoteNotificationsEnabledKey)
-            store.set(notifyOnStationPass, forKey: notifyOnStationPassKey)
-            store.set(strikeRegion, forKey: strikeRegionKey)
-            store.set(strikeNotificationsEnabled, forKey: strikeNotificationsEnabledKey)
-        }
-        
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
             groupDefaults.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
+            groupDefaults.set(strikeRegion, forKey: strikeRegionKey)
         }
         
         WidgetCenter.shared.reloadAllTimelines()
@@ -1108,126 +1090,6 @@ struct Haptics {
         }
         return list
     }
-    
-    @objc private func iCloudStoreDidChangeExternally(_ notification: Notification) {
-        guard iCloudSyncEnabled else { return }
-        if let userInfo = notification.userInfo,
-           let changedKeys = userInfo[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] {
-            loadFromiCloud(keys: changedKeys, onlyIfLocalMissing: false)
-        } else {
-            loadFromiCloud(keys: nil, onlyIfLocalMissing: false)
-        }
-    }
-    
-    private func loadFromiCloud(keys: [String]?, onlyIfLocalMissing: Bool) {
-        guard iCloudSyncEnabled else { return }
-        
-        let store = NSUbiquitousKeyValueStore.default
-        let keySet = keys != nil ? Set(keys!) : nil
-        var didModify = false
-        
-        func shouldUpdate(_ key: String) -> Bool {
-            if let ks = keySet, !ks.contains(key) { return false }
-            if onlyIfLocalMissing, UserDefaults.standard.object(forKey: key) != nil { return false }
-            return true
-        }
-        
-        if shouldUpdate(favoritesKey), let data = store.data(forKey: favoritesKey), let decoded = try? JSONDecoder().decode([SavedTrain].self, from: data) {
-            self.favoriteTrains = decoded
-            UserDefaults.standard.set(data, forKey: favoritesKey)
-            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: favoritesKey) }
-            didModify = true
-        }
-        
-        if shouldUpdate(myStationsKey), let data = store.data(forKey: myStationsKey), let decoded = try? JSONDecoder().decode([Station].self, from: data) {
-            self.myStations = decoded.map { st in
-                let cleanRfi = (st.rfiID?.hasPrefix("S") == true || st.rfiID?.hasPrefix("N") == true) ? nil : st.rfiID
-                return resolveStation(name: st.name, fallbackVtID: st.vtID, fallbackRfiID: cleanRfi)
-            }
-            UserDefaults.standard.set(data, forKey: myStationsKey)
-            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: myStationsKey) }
-            didModify = true
-        }
-        
-        if shouldUpdate(sectionOrderKey), let data = store.data(forKey: sectionOrderKey), let decoded = try? JSONDecoder().decode([AppSection].self, from: data) {
-            var loaded = decoded
-            for section in AppSection.allCases {
-                if !loaded.contains(section) { loaded.append(section) }
-            }
-            self.sectionOrder = loaded
-            UserDefaults.standard.set(data, forKey: sectionOrderKey)
-            didModify = true
-        }
-        
-        if shouldUpdate(favoriteRoutesKey), let data = store.data(forKey: favoriteRoutesKey), let decoded = try? JSONDecoder().decode([FavoriteRoute].self, from: data) {
-            self.favoriteRoutes = decoded
-            UserDefaults.standard.set(data, forKey: favoriteRoutesKey)
-            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: favoriteRoutesKey) }
-            didModify = true
-        }
-        
-        if shouldUpdate(savedTripsKey), let data = store.data(forKey: savedTripsKey), let decoded = try? JSONDecoder().decode([SavedTrip].self, from: data) {
-            self.savedTrips = decoded
-            UserDefaults.standard.set(data, forKey: savedTripsKey)
-            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(data, forKey: savedTripsKey) }
-            didModify = true
-        }
-        
-        if shouldUpdate(homeDestinationStationNameKey), let value = store.string(forKey: homeDestinationStationNameKey) {
-            self.homeDestinationStationName = value
-            UserDefaults.standard.set(value, forKey: homeDestinationStationNameKey)
-            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") { groupDefaults.set(value, forKey: homeDestinationStationNameKey) }
-            didModify = true
-        }
-        
-        if shouldUpdate(userNameKey), let value = store.string(forKey: userNameKey) {
-            self.userName = value
-            UserDefaults.standard.set(value, forKey: userNameKey)
-            didModify = true
-        }
-        
-        if shouldUpdate(iCloudSyncEnabledKey), store.object(forKey: iCloudSyncEnabledKey) != nil {
-            let value = store.bool(forKey: iCloudSyncEnabledKey)
-            self.iCloudSyncEnabled = value
-            UserDefaults.standard.set(value, forKey: iCloudSyncEnabledKey)
-            didModify = true
-        }
-        
-        if shouldUpdate(remoteNotificationsEnabledKey), store.object(forKey: remoteNotificationsEnabledKey) != nil {
-            let value = store.bool(forKey: remoteNotificationsEnabledKey)
-            self.remoteNotificationsEnabled = value
-            UserDefaults.standard.set(value, forKey: remoteNotificationsEnabledKey)
-            didModify = true
-        }
-        
-        if shouldUpdate(notifyOnStationPassKey), store.object(forKey: notifyOnStationPassKey) != nil {
-            let value = store.bool(forKey: notifyOnStationPassKey)
-            self.notifyOnStationPass = value
-            UserDefaults.standard.set(value, forKey: notifyOnStationPassKey)
-            didModify = true
-        }
-        
-        if shouldUpdate(strikeRegionKey), let value = store.string(forKey: strikeRegionKey) {
-            self.strikeRegion = value
-            UserDefaults.standard.set(value, forKey: strikeRegionKey)
-            didModify = true
-        }
-        
-        if shouldUpdate(strikeNotificationsEnabledKey), store.object(forKey: strikeNotificationsEnabledKey) != nil {
-            let value = store.bool(forKey: strikeNotificationsEnabledKey)
-            self.strikeNotificationsEnabled = value
-            UserDefaults.standard.set(value, forKey: strikeNotificationsEnabledKey)
-            didModify = true
-        }
-        
-        if didModify {
-            if !isInitializing {
-                syncRemoteNotifications()
-            }
-        }
-    }
-    
-    
     
     func filterTrainsForHome(_ trains: [Train], currentStationName: String) -> [Train] {
         guard !homeDestinationStationName.isEmpty else { return trains }

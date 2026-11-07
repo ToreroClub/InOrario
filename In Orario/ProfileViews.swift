@@ -348,7 +348,6 @@ struct ProfileView: View {
 
     @StateObject private var tipManager = TipManager()
     @ObservedObject private var updateManager = AppUpdateManager.shared
-    @State private var showClearHistoryAlert = false
     
     var body: some View {
         NavigationStack {
@@ -486,29 +485,6 @@ struct ProfileView: View {
                     }
                 }
                 
-                Section(header: Text("Dati e sincronizzazione"), footer: Text("La sincronizzazione iCloud mantiene aggiornati i tuoi treni e stazioni preferite su tutti i tuoi dispositivi Apple.")) {
-                    Toggle(isOn: Binding(
-                        get: { manager.iCloudSyncEnabled },
-                        set: { newValue in
-                            Haptics.play(.medium)
-                            manager.iCloudSyncEnabled = newValue
-                            manager.saveFavorites()
-                        }
-                    )) {
-                        Label("Sincronizzazione iCloud", systemImage: "icloud.fill")
-                            .foregroundColor(.blue)
-                            .font(.headline)
-                    }
-                    
-                    Button(role: .destructive) {
-                        showClearHistoryAlert = true
-                    } label: {
-                        Label("Cancella cronologia ricerche", systemImage: "trash.fill")
-                            .foregroundColor(.red)
-                            .font(.headline)
-                    }
-                }
-
                 Section(header: Text("FAQ e supporto")) {
                     NavigationLink(destination: FAQView()) {
                         Label("Domande Frequenti", systemImage: "questionmark.circle.fill")
@@ -617,17 +593,6 @@ struct ProfileView: View {
                     Text(msg)
                 }
             }
-            .alert("Cancellare la cronologia?", isPresented: $showClearHistoryAlert) {
-                Button("Annulla", role: .cancel) { }
-                Button("Cancella", role: .destructive) {
-                    manager.clearRecentTrains()
-                    manager.clearRecentStations()
-                    Haptics.play(.medium)
-                }
-            } message: {
-                Text("Verranno rimossi i treni e le stazioni recenti dalla cronologia delle ricerche.")
-            }
-
         }
     }
     

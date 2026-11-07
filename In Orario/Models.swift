@@ -555,13 +555,49 @@ struct Stop: Identifiable, Sendable {
 }
 
 struct Station: Identifiable, Codable, Hashable {
-    var id = UUID()
+    var id: UUID = UUID()
     let name: String
     let rfiID: String?
     let vtID: String?
     let lat: Double?
     let lon: Double?
     var addedDate: Date? = nil
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, rfiID, vtID, lat, lon, addedDate
+    }
+    
+    init(id: UUID = UUID(), name: String, rfiID: String? = nil, vtID: String? = nil, lat: Double? = nil, lon: Double? = nil, addedDate: Date? = nil) {
+        self.id = id
+        self.name = name
+        self.rfiID = rfiID
+        self.vtID = vtID
+        self.lat = lat
+        self.lon = lon
+        self.addedDate = addedDate
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = (try? container.decode(UUID.self, forKey: .id)) ?? UUID()
+        self.name = try container.decode(String.self, forKey: .name)
+        self.rfiID = try? container.decodeIfPresent(String.self, forKey: .rfiID)
+        self.vtID = try? container.decodeIfPresent(String.self, forKey: .vtID)
+        self.lat = try? container.decodeIfPresent(Double.self, forKey: .lat)
+        self.lon = try? container.decodeIfPresent(Double.self, forKey: .lon)
+        self.addedDate = try? container.decodeIfPresent(Date.self, forKey: .addedDate)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(rfiID, forKey: .rfiID)
+        try container.encodeIfPresent(vtID, forKey: .vtID)
+        try container.encodeIfPresent(lat, forKey: .lat)
+        try container.encodeIfPresent(lon, forKey: .lon)
+        try container.encodeIfPresent(addedDate, forKey: .addedDate)
+    }
     
     var formattedName: String {
         let lower = name.lowercased()
