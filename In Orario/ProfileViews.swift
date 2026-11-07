@@ -1817,9 +1817,9 @@ struct SmartSuggestionsSettingsView: View {
                     .padding(.vertical, 4)
                 } else {
                     Picker("Fascia oraria", selection: $selectedSlotIndex) {
-                        Text("Mattina (5-12)").tag(0)
-                        Text("Pomeriggio (12-19)").tag(1)
-                        Text("Sera (19-1)").tag(2)
+                        Text("Mattina").tag(0)
+                        Text("Pomeriggio").tag(1)
+                        Text("Sera").tag(2)
                     }
                     .pickerStyle(.segmented)
                     .padding(.vertical, 4)
@@ -1856,14 +1856,14 @@ struct SmartSuggestionsSettingsView: View {
                                     }
 
                                     ForEach(slot.stations) { st in
-                                        HStack(spacing: 8) {
+                                        HStack(alignment: .center, spacing: 8) {
                                             Image(systemName: "building.2.fill")
                                                 .font(.system(size: 13))
                                                 .foregroundColor(.blue)
                                                 .frame(width: 22)
                                             
                                             VStack(alignment: .leading, spacing: 2) {
-                                                HStack(spacing: 5) {
+                                                HStack(spacing: 4) {
                                                     Text(st.name)
                                                         .font(.subheadline)
                                                         .fontWeight(.semibold)
@@ -1873,24 +1873,25 @@ struct SmartSuggestionsSettingsView: View {
                                                             .font(.system(size: 9))
                                                             .foregroundColor(.yellow)
                                                     }
-                                                    
-                                                    Text(st.habitStrength)
-                                                        .font(.system(size: 9, weight: .bold))
-                                                        .padding(.horizontal, 5)
-                                                        .padding(.vertical, 1.5)
-                                                        .background(Color.accentColor.opacity(0.12))
-                                                        .foregroundColor(.accentColor)
-                                                        .clipShape(Capsule())
                                                 }
                                                 
                                                 Text(st.countDescription)
                                                     .font(.caption2)
                                                     .foregroundColor(.secondary)
+                                                    .lineLimit(1)
                                             }
                                             
                                             Spacer()
+                                            
+                                            Text(st.habitStrength)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .padding(.horizontal, 7)
+                                                .padding(.vertical, 3)
+                                                .background(habitTierColor(st.habitStrength).opacity(0.14))
+                                                .foregroundColor(habitTierColor(st.habitStrength))
+                                                .clipShape(Capsule())
                                         }
-                                        .padding(.vertical, 2)
+                                        .padding(.vertical, 3)
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -1909,7 +1910,7 @@ struct SmartSuggestionsSettingsView: View {
                                     }
 
                                     ForEach(slot.trains) { tr in
-                                        HStack(spacing: 8) {
+                                        HStack(alignment: .center, spacing: 8) {
                                             // Badge categoria
                                             Text(tr.category)
                                                 .font(.system(size: 9, weight: .black))
@@ -1920,7 +1921,7 @@ struct SmartSuggestionsSettingsView: View {
                                                 .cornerRadius(4)
 
                                             VStack(alignment: .leading, spacing: 2) {
-                                                HStack(spacing: 5) {
+                                                HStack(spacing: 4) {
                                                     Text(tr.number)
                                                         .font(.subheadline)
                                                         .fontWeight(.bold)
@@ -1934,27 +1935,30 @@ struct SmartSuggestionsSettingsView: View {
                                                             .font(.system(size: 9))
                                                             .foregroundColor(.yellow)
                                                     }
-                                                    Text(tr.habitStrength)
-                                                        .font(.system(size: 9, weight: .bold))
-                                                        .padding(.horizontal, 5)
-                                                        .padding(.vertical, 1.5)
-                                                        .background(Color.accentColor.opacity(0.12))
-                                                        .foregroundColor(.accentColor)
-                                                        .clipShape(Capsule())
                                                 }
-                                                HStack(spacing: 4) {
+                                                HStack(spacing: 3) {
                                                     if !tr.destination.isEmpty {
                                                         Text("Per \(tr.destination) •")
                                                             .lineLimit(1)
                                                     }
                                                     Text(tr.countDescription)
+                                                        .lineLimit(1)
                                                 }
                                                 .font(.caption2)
                                                 .foregroundColor(.secondary)
                                             }
+                                            
                                             Spacer()
+                                            
+                                            Text(tr.habitStrength)
+                                                .font(.system(size: 10, weight: .bold))
+                                                .padding(.horizontal, 7)
+                                                .padding(.vertical, 3)
+                                                .background(habitTierColor(tr.habitStrength).opacity(0.14))
+                                                .foregroundColor(habitTierColor(tr.habitStrength))
+                                                .clipShape(Capsule())
                                         }
-                                        .padding(.vertical, 2)
+                                        .padding(.vertical, 3)
                                     }
                                 }
                                 .padding(.vertical, 4)

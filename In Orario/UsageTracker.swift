@@ -789,16 +789,23 @@ func habitSeniorityDescription(daysSaved: Int, isFavorite: Bool) -> String {
 }
 
 func calculateHabitStrength(score: Int, isFavorite: Bool, daysSaved: Int, distinctDays: Int) -> String {
-    if isFavorite && daysSaved >= 30 {
-        return "Abitudine consolidata"
-    } else if distinctDays >= 4 || (isFavorite && daysSaved >= 14) || score >= 50 {
-        return "Abitudine frequente"
-    } else if isFavorite {
-        return "Nuovo preferito"
-    } else if distinctDays >= 2 || score >= 25 {
-        return "Consultato spesso"
+    if (isFavorite && daysSaved >= 14) || distinctDays >= 4 || score >= 55 {
+        return "Abituale"
+    } else if isFavorite || distinctDays >= 2 || score >= 25 {
+        return "Frequente"
     } else {
-        return "Consultazione recente"
+        return "Recente"
+    }
+}
+
+func habitTierColor(_ tier: String) -> Color {
+    switch tier {
+    case "Abituale":
+        return .green
+    case "Frequente":
+        return .orange
+    default:
+        return Color(white: 0.5)
     }
 }
 
@@ -808,23 +815,15 @@ func trainHabitCountDescription(
     totalViews: Int,
     distinctDays: Int
 ) -> String {
-    if isFavorite {
+    if totalViews > 1 && distinctDays > 1 {
+        return "\(totalViews) consultazioni in \(distinctDays) giorni"
+    } else if totalViews >= 1 {
+        return "\(totalViews) consultazione"
+    } else if isFavorite {
         let seniority = habitSeniorityDescription(daysSaved: daysSaved, isFavorite: true)
-        if totalViews > 1 && distinctDays > 1 {
-            return "\(seniority) • \(totalViews) consultazioni in \(distinctDays) giorni"
-        } else if totalViews >= 1 {
-            return "\(seniority) • \(totalViews) consultazione"
-        } else {
-            return "\(seniority) • Treno abituale programmato"
-        }
+        return seniority.isEmpty ? "Treno preferito" : seniority
     } else {
-        if distinctDays > 1 {
-            return "\(totalViews) consultazioni in \(distinctDays) giorni"
-        } else if totalViews == 1 {
-            return "1 consultazione"
-        } else {
-            return "\(totalViews) consultazioni"
-        }
+        return "Consultazione recente"
     }
 }
 
@@ -835,25 +834,15 @@ func stationHabitCountDescription(
     distinctDays: Int,
     trainContext: String? = nil
 ) -> String {
-    if isFavorite {
+    if totalViews > 1 && distinctDays > 1 {
+        return "\(totalViews) aperture in \(distinctDays) giorni"
+    } else if totalViews >= 1 {
+        return "\(totalViews) apertura recente"
+    } else if isFavorite {
         let seniority = habitSeniorityDescription(daysSaved: daysSaved, isFavorite: true)
-        if totalViews > 1 && distinctDays > 1 {
-            return "\(seniority) • \(totalViews) aperture in \(distinctDays) giorni"
-        } else if totalViews >= 1 {
-            return "\(seniority) • \(totalViews) apertura"
-        } else if let ctx = trainContext {
-            return "\(seniority) • \(ctx)"
-        } else {
-            return "\(seniority) • Stazione preferita"
-        }
+        return seniority.isEmpty ? "Stazione preferita" : "Stazione preferita (\(seniority.lowercased()))"
     } else {
-        if distinctDays > 1 {
-            return "\(totalViews) aperture in \(distinctDays) giorni"
-        } else if totalViews == 1 {
-            return "1 apertura recente"
-        } else {
-            return "\(totalViews) aperture"
-        }
+        return "Consultata di recente"
     }
 }
 

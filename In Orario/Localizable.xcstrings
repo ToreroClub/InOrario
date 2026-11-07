@@ -110,16 +110,6 @@
         }
       }
     },
-    "%@ (%@)" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ (%2$@)"
-          }
-        }
-      }
-    },
     "%@ %@" : {
       "localizations" : {
         "en" : {
@@ -132,6 +122,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ • %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • %2$@"
           }
         }
       }
@@ -233,6 +233,9 @@
       }
     },
     "• %@" : {
+
+    },
+    "• ore %@" : {
 
     },
     "←" : {
@@ -632,6 +635,9 @@
       }
     },
     "Anticipa stazioni, treni e tratte frequenti mostrandoli nella schermata Home al momento opportuno." : {
+
+    },
+    "Aperture tabellone" : {
 
     },
     "Apple Intelligence" : {
@@ -1742,6 +1748,9 @@
         }
       }
     },
+    "Frequenza & orari" : {
+
+    },
     "Funzionalità AI" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1850,9 +1859,6 @@
           }
         }
       }
-    },
-    "I dati sono memorizzati solo sul dispositivo per suggerirti stazioni e treni pertinenti al momento giusto." : {
-
     },
     "I miei Treni" : {
       "localizations" : {
@@ -2189,6 +2195,9 @@
         }
       }
     },
+    "L'algoritmo valuta in modo combinato i treni e le stazioni salvati nei preferiti (inclusa la loro anzianità nel tempo), le aperture dei tabelloni e i dettagli dei treni consultati nelle diverse fasce orarie. I dati sono memorizzati solo in locale sul tuo iPhone." : {
+
+    },
     "L'app apprende le tue abitudini (stazioni cercate, treni consultati, tratte preferite) per mostrarti informazioni personalizzate nella home al momento opportuno. I dati sono salvati esclusivamente in locale sul tuo dispositivo." : {
       "localizations" : {
         "en" : {
@@ -2199,7 +2208,7 @@
         }
       }
     },
-    "L'app impara man mano che consulti orari e stazioni nelle diverse ore della giornata. Continuando a usare l'app, vedrai apparire qui i tuoi schemi abituali." : {
+    "L'app apprende man mano che consulti orari, tabelloni e stazioni nelle diverse ore della giornata, integrando i tuoi preferiti storici. Continuando a usare l'app, vedrai apparire qui i tuoi tragitti abituali." : {
 
     },
     "L'elaborazione Cloud è riservata a chi sostiene il progetto per coprire i costi dei server." : {
@@ -2444,7 +2453,7 @@
         }
       }
     },
-    "Mattina" : {
+    "Mattina (5-12)" : {
 
     },
     "Metro" : {
@@ -2757,7 +2766,7 @@
     "Nessuna abitudine registrata" : {
 
     },
-    "Nessuna attività registrata in questa fascia oraria." : {
+    "Nessuna attività o treno abituale registrato in questa fascia oraria (%@)." : {
 
     },
     "Nessuna corsa diretta trovata da %@." : {
@@ -3073,9 +3082,6 @@
         }
       }
     },
-    "Notte" : {
-
-    },
     "OFFLINE" : {
       "localizations" : {
         "en" : {
@@ -3238,7 +3244,7 @@
     "Passante Ferroviario" : {
 
     },
-    "Per %@" : {
+    "Per %@ •" : {
 
     },
     "Per te" : {
@@ -3336,7 +3342,7 @@
     "PIÙ VICINA" : {
 
     },
-    "Pomeriggio" : {
+    "Pomeriggio (12-19)" : {
 
     },
     "Posizione non disponibile" : {
@@ -4131,7 +4137,7 @@
         }
       }
     },
-    "Sera" : {
+    "Sera (19-1)" : {
 
     },
     "Servizio non attivo o dati non disponibili" : {
@@ -4431,7 +4437,7 @@
     "Stazioni di partenza" : {
 
     },
-    "STAZIONI PIÙ CERCATE" : {
+    "STAZIONI PIÙ CONSULTATE" : {
 
     },
     "Stazioni Preferite" : {
@@ -4729,6 +4735,9 @@
         }
       }
     },
+    "TRENI ABITUALI E CONSULTATI" : {
+
+    },
     "Treni del Viaggio" : {
       "localizations" : {
         "en" : {
@@ -4754,9 +4763,6 @@
           }
         }
       }
-    },
-    "TRENI PIÙ CONSULTATI" : {
-
     },
     "Treni Recenti" : {
 
