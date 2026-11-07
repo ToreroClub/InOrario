@@ -349,6 +349,7 @@ struct ProfileView: View {
     @StateObject private var tipManager = TipManager()
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @State private var showFeedbackSheet = false
+    @State private var showClearHistoryAlert = false
     
     var body: some View {
         NavigationStack {
@@ -496,7 +497,30 @@ struct ProfileView: View {
                     }
                 }
                 
-                Section(header: Text("FAQ e supporto")) {
+                Section(header: Text("Dati e sincronizzazione"), footer: Text("La sincronizzazione iCloud mantiene aggiornati i tuoi treni e stazioni preferite su tutti i tuoi dispositivi Apple.")) {
+                    Toggle(isOn: Binding(
+                        get: { manager.iCloudSyncEnabled },
+                        set: { newValue in
+                            Haptics.play(.medium)
+                            manager.iCloudSyncEnabled = newValue
+                            manager.saveFavorites()
+                        }
+                    )) {
+                        Label("Sincronizzazione iCloud", systemImage: "icloud.fill")
+                            .foregroundColor(.blue)
+                            .font(.headline)
+                    }
+                    
+                    Button(role: .destructive) {
+                        showClearHistoryAlert = true
+                    } label: {
+                        Label("Cancella cronologia ricerche", systemImage: "trash.fill")
+                            .foregroundColor(.red)
+                            .font(.headline)
+                    }
+                }
+
+                Section(header: Text("Supporto e community")) {
                     NavigationLink(destination: FAQView()) {
                         Label("Domande Frequenti", systemImage: "questionmark.circle.fill")
                             .foregroundColor(.blue)
@@ -506,6 +530,31 @@ struct ProfileView: View {
                     NavigationLink(destination: AboutProjectView()) {
                         Label("Il Progetto In Orario", systemImage: "heart.fill")
                             .foregroundColor(.pink)
+                            .font(.headline)
+                    }
+                    
+                    Button {
+                        Haptics.play(.light)
+                        showFeedbackSheet = true
+                    } label: {
+                        Label("Invia Feedback o Segnala un errore", systemImage: "envelope.fill")
+                            .foregroundColor(.orange)
+                            .font(.headline)
+                    }
+                    
+                    Link(destination: URL(string: "https://apps.apple.com/app/id6773419855?action=write-review")!) {
+                        Label("Valuta In Orario su App Store", systemImage: "star.bubble.fill")
+                            .foregroundColor(.yellow)
+                            .font(.headline)
+                    }
+                    
+                    ShareLink(
+                        item: URL(string: "https://apps.apple.com/app/id6773419855")!,
+                        subject: Text("In Orario"),
+                        message: Text("Prova In Orario: l'app per seguire i treni e i ritardi in tutta Italia!")
+                    ) {
+                        Label("Consiglia In Orario a un amico", systemImage: "square.and.arrow.up.fill")
+                            .foregroundColor(.blue)
                             .font(.headline)
                     }
                     
@@ -612,6 +661,16 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showFeedbackSheet) {
                 FeedbackFormView()
+            }
+            .alert("Cancellare la cronologia?", isPresented: $showClearHistoryAlert) {
+                Button("Annulla", role: .cancel) { }
+                Button("Cancella", role: .destructive) {
+                    manager.clearRecentTrains()
+                    manager.clearRecentStations()
+                    Haptics.play(.medium)
+                }
+            } message: {
+                Text("Verranno rimossi i treni e le stazioni recenti dalla cronologia delle ricerche.")
             }
 
         }
