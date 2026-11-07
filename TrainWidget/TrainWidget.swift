@@ -21,6 +21,7 @@ struct WidgetSavedTrain: Codable, Identifiable {
     var lastDelayColorName: String?
     var category: String?
     var departureTime: String?
+    var showInWidget: Bool?
 }
 
 struct WidgetTrainData: Identifiable {
@@ -129,7 +130,65 @@ struct Provider: TimelineProvider {
               let decoded = try? JSONDecoder().decode([WidgetSavedTrain].self, from: data) else {
             return []
         }
-        return decoded
+        
+        var excludedSet = Set<String>()
+        if let rawExcludedData = defaults.data(forKey: "excludedWidgetTrainNumbers_v1"),
+           let set = try? JSONDecoder().decode(Set<String>.self, from: rawExcludedData) {
+            excludedSet = set
+        } else if let arr = defaults.stringArray(forKey: "excludedWidgetTrainNumbers_v1") {
+            excludedSet = Set(arr)
+        }
+        
+        let filtered = decoded.filter { train in
+            if excludedSet.contains(train.number) { return false }
+            if train.showInWidget == false { return false }
+            return true
+        }
+        
+        return sortTrainsByProximity(trains: filtered)
+    }
+    
+    private func sortTrainsByProximity(trains: [WidgetSavedTrain]) -> [WidgetSavedTrain] {
+        let calendar = Calendar.current
+        let now = Date()
+        let currentHour = calendar.component(.hour, from: now)
+        let currentMinute = calendar.component(.minute, from: now)
+        let nowMinuteOfDay = currentHour * 60 + currentMinute
+        
+        return trains.sorted { t1, t2 in
+            let score1 = proximityScore(timeStr: t1.departureTime, nowMinute: nowMinuteOfDay)
+            let score2 = proximityScore(timeStr: t2.departureTime, nowMinute: nowMinuteOfDay)
+            return score1 < score2
+        }
+    }
+    
+    private func proximityScore(timeStr: String?, nowMinute: Int) -> Int {
+        guard let timeStr = timeStr?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !timeStr.isEmpty,
+              timeStr != "--:--" else {
+            return 9999
+        }
+        
+        let parts = timeStr.components(separatedBy: ":")
+        guard parts.count >= 2,
+              let h = Int(parts[0].trimmingCharacters(in: .whitespaces)),
+              let m = Int(parts[1].trimmingCharacters(in: .whitespaces)) else {
+            return 9999
+        }
+        
+        let trainMin = h * 60 + m
+        let diff = trainMin - nowMinute
+        
+        // Se è partito da meno di 90 minuti (è in viaggio in questo momento!) ha priorità assoluta
+        if diff >= -90 && diff < 0 {
+            return abs(diff) // 0..90
+        } else if diff >= 0 {
+            // In partenza oggi (tra poco o più tardi)
+            return 91 + diff
+        } else {
+            // Partito molte ore fa oggi -> il prossimo è domani (+ 1440 minuti)
+            return 91 + diff + 1440
+        }
     }
     
     private func fallbackStatus(for train: WidgetSavedTrain) -> (String, Color) {
@@ -491,7 +550,7 @@ struct TrainWidgetEntryView : View {
     }
 
     private var systemWidgetBody: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 5) {
             if !isUnlocked {
                 VStack(spacing: 8) {
                     Spacer()
@@ -508,70 +567,133 @@ struct TrainWidgetEntryView : View {
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                HStack {
+                HStack(spacing: 5) {
                     Image(systemName: "star.fill")
                         .foregroundColor(.yellow)
-                    Text("Treni Preferiti")
-                        .font(.headline)
+                        .font(.system(size: family == .systemSmall ? 10 : 12))
+                    Text(family == .systemSmall ? "Preferiti" : "Treni Preferiti")
+                        .font(.system(size: family == .systemSmall ? 12 : 13, weight: .bold))
                         .foregroundColor(.primary)
                     Spacer()
                     if #available(iOS 17.0, *) {
                         Button(intent: RefreshWidgetIntent()) {
                             Image(systemName: "arrow.clockwise.circle.fill")
-                                .foregroundColor(.gray.opacity(0.5))
-                                .font(.title3)
+                                .foregroundColor(.gray.opacity(0.6))
+                                .font(.system(size: family == .systemSmall ? 13 : 15))
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.bottom, 4)
+                .padding(.bottom, family == .systemSmall ? 1 : 2)
 
                 if entry.trains.isEmpty {
-                    Text("Nessun treno preferito.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    VStack {
+                        Spacer()
+                        Text("Nessun treno salvato.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Spacer()
+                    }
                 } else {
-                    let displayCount = family == .systemSmall ? 2 : 4
-                    ForEach(entry.trains.prefix(displayCount)) { train in
-                        Link(destination: URL(string: "inorario://\(train.number)")!) {
-                            HStack {
-                                Image(systemName: "train.side.front.car")
-                                    .foregroundColor(.blue)
-                                    .font(.subheadline)
-                                VStack(alignment: .leading) {
-                                    Text("Treno \(train.number)")
-                                        .font(.subheadline)
-                                        .bold()
-                                        .foregroundColor(.primary)
-                                    Text(train.description)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                                Spacer()
-                                
-                                VStack(alignment: .trailing) {
-                                    HStack(spacing: 4) {
-                                        Circle()
-                                            .fill(train.delayColor)
-                                            .frame(width: 8, height: 8)
-                                        Text(train.delayText)
-                                            .font(.caption)
-                                            .bold()
-                                            .foregroundColor(train.delayColor)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(8)
+                    let displayCount = family == .systemLarge ? 6 : 3
+                    VStack(spacing: family == .systemSmall ? 3 : 4) {
+                        ForEach(entry.trains.prefix(displayCount)) { train in
+                            trainRowView(train: train)
                         }
                     }
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
         }
+    }
+    
+    @ViewBuilder
+    private func trainRowView(train: WidgetTrainData) -> some View {
+        Link(destination: URL(string: "inorario://\(train.number)")!) {
+            if family == .systemSmall {
+                smallTrainRow(train: train)
+            } else {
+                mediumTrainRow(train: train)
+            }
+        }
+    }
+    
+    private func smallTrainRow(train: WidgetTrainData) -> some View {
+        let shortDelay = train.delayText
+            .replacingOccurrences(of: "Ritardo ", with: "+")
+            .replacingOccurrences(of: "Anticipo ", with: "-")
+            .replacingOccurrences(of: " min", with: "'")
+            .replacingOccurrences(of: "In orario", with: "0'")
+            .replacingOccurrences(of: "In attesa", with: "--")
+            .replacingOccurrences(of: "Soppresso", with: "Soppr.")
+        
+        return HStack(spacing: 4) {
+            Circle()
+                .fill(train.delayColor)
+                .frame(width: 5, height: 5)
+            
+            Text(train.displayTitle)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.primary)
+                .lineLimit(1)
+            
+            Spacer(minLength: 2)
+            
+            Text(shortDelay)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(train.delayColor)
+                .lineLimit(1)
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(6)
+    }
+    
+    private func mediumTrainRow(train: WidgetTrainData) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: "train.side.front.car")
+                .foregroundColor(.blue)
+                .font(.system(size: 12))
+            
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(train.displayTitle)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    
+                    if let time = train.departureTime, !time.isEmpty, time != "--:--" {
+                        Text("• \(time)")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Text(train.description)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            
+            Spacer(minLength: 4)
+            
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(train.delayColor)
+                    .frame(width: 6, height: 6)
+                
+                Text(train.delayText)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(train.delayColor)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(7)
     }
 }
 

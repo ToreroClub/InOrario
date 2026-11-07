@@ -2,6 +2,7 @@ import SwiftUI
 import StoreKit
 import EventKit
 import ActivityKit
+import WidgetKit
 
 enum NewsCategory: String, CaseIterable, Identifiable {
     case sciopero = "Scioperi"
@@ -457,6 +458,12 @@ struct ProfileView: View {
                     
                     NavigationLink(destination: CustomizePassanteView()) {
                         Label("Personalizza Linee Suburbane", systemImage: "tram.fill")
+                            .font(.headline)
+                    }
+                    
+                    NavigationLink(destination: CustomizeWidgetView()) {
+                        Label("Personalizza Widget", systemImage: "rectangle.3.group.fill")
+                            .foregroundColor(.blue)
                             .font(.headline)
                     }
                     
@@ -919,9 +926,18 @@ struct CustomizeDashboardView: View {
 struct CustomizePassanteView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
+    @AppStorage("showSuburbanLines") private var showSuburbanLines = true
     
     var body: some View {
         List {
+            Section(header: Text("Visualizzazione sulla Dashboard"), footer: Text("Abilita la visualizzazione del Passante e delle linee suburbane nella schermata principale per consultarne partenze e stato della rete.")) {
+                Toggle(isOn: $showSuburbanLines) {
+                    Label("Mostra Linee Suburbane", systemImage: "tram.fill")
+                        .foregroundColor(.green)
+                        .font(.headline)
+                }
+            }
+            
             Section(header: Text("Vista Speciale Stazioni"), footer: Text("Quando attivo, il passante raggruppa le partenze in Ovest ed Est. Se disattivato, vedrai la lista classica Arrivi/Partenze.")) {
                 Toggle(isOn: Binding(
                     get: { passanteManager.useSpecialPassanteView },
@@ -1000,6 +1016,118 @@ struct CustomizePassanteView: View {
             }
         }
         .navigationTitle("Personalizza Passante")
+    }
+}
+
+struct CustomizeWidgetView: View {
+    @EnvironmentObject var manager: TrainManager
+    
+    private var groupDefaults: UserDefaults? {
+        UserDefaults(suiteName: "group.carlo.InOrario")
+    }
+    
+    @State private var excludedNumbers: Set<String> = []
+    
+    var body: some View {
+        List {
+            Section(
+                header: Text("Treni nei Widget"),
+                footer: Text("Disattiva i treni che non vuoi vedere nei widget della schermata Home o di blocco. I widget mostrano fino a 3 treni nei formati Piccolo e Medio, ordinati e ruotati automaticamente in base all'orario attuale.")
+            ) {
+                if manager.favoriteTrains.isEmpty {
+                    Text("Nessun treno salvato tra i preferiti.")
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(manager.favoriteTrains) { train in
+                        let isIncluded = !excludedNumbers.contains(train.number) && (train.showInWidget ?? true)
+                        Toggle(isOn: Binding(
+                            get: { isIncluded },
+                            set: { newValue in
+                                Haptics.play(.medium)
+                                if newValue {
+                                    excludedNumbers.remove(train.number)
+                                } else {
+                                    excludedNumbers.insert(train.number)
+                                }
+                                syncExclusions()
+                                if let idx = manager.favoriteTrains.firstIndex(where: { $0.id == train.id }) {
+                                    manager.favoriteTrains[idx].showInWidget = newValue
+                                    manager.saveFavorites()
+                                }
+                                WidgetCenter.shared.reloadAllTimelines()
+                            }
+                        )) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "train.side.front.car")
+                                    .foregroundColor(.blue)
+                                    .font(.title3)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack {
+                                        let dummy = manager.createDummyTrain(from: train)
+                                        Text("\(dummy.category) \(train.number)")
+                                            .font(.headline)
+                                        if let dep = train.departureTime, !dep.isEmpty, dep != "--:--" {
+                                            Text("• \(dep)")
+                                                .font(.caption.bold())
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    Text(train.description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Section(header: Text("Regole di Visualizzazione"), footer: Text("L'ordine dei treni nel widget si adatta durante la giornata: in alto trovi i treni in viaggio o in partenza a breve rispetto all'orario corrente.")) {
+                HStack {
+                    Label("Rotazione intelligente orario", systemImage: "clock.arrow.circlepath")
+                        .foregroundColor(.orange)
+                    Spacer()
+                    Text("Attiva")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.green)
+                }
+                HStack {
+                    Label("Limite treni per widget", systemImage: "square.stack.3d.down.right.fill")
+                        .foregroundColor(.blue)
+                    Spacer()
+                    Text("Max 3")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Personalizza Widget")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            loadExclusions()
+        }
+    }
+    
+    private func loadExclusions() {
+        if let rawData = groupDefaults?.data(forKey: "excludedWidgetTrainNumbers_v1"),
+           let set = try? JSONDecoder().decode(Set<String>.self, from: rawData) {
+            excludedNumbers = set
+        } else if let arr = groupDefaults?.stringArray(forKey: "excludedWidgetTrainNumbers_v1") {
+            excludedNumbers = Set(arr)
+        } else {
+            excludedNumbers = []
+        }
+        for train in manager.favoriteTrains where train.showInWidget == false {
+            excludedNumbers.insert(train.number)
+        }
+    }
+    
+    private func syncExclusions() {
+        if let encoded = try? JSONEncoder().encode(excludedNumbers) {
+            groupDefaults?.set(encoded, forKey: "excludedWidgetTrainNumbers_v1")
+        }
+        groupDefaults?.set(Array(excludedNumbers), forKey: "excludedWidgetTrainNumbers_v1")
     }
 }
 
@@ -1210,6 +1338,29 @@ struct TrainNotificationConfigSheet: View {
                         }
                     }
                     .padding(.vertical, 4)
+                }
+                
+                Section(header: Text("Widget Schermata Home"), footer: Text("Disattiva se non vuoi mostrare questo treno nei widget.")) {
+                    Toggle("Mostra nei Widget", isOn: Binding(
+                        get: { train.showInWidget ?? true },
+                        set: { newValue in
+                            train.showInWidget = newValue
+                            saveAndSync()
+                            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
+                                var excluded = Set(groupDefaults.stringArray(forKey: "excludedWidgetTrainNumbers_v1") ?? [])
+                                if newValue {
+                                    excluded.remove(train.number)
+                                } else {
+                                    excluded.insert(train.number)
+                                }
+                                groupDefaults.set(Array(excluded), forKey: "excludedWidgetTrainNumbers_v1")
+                                if let encoded = try? JSONEncoder().encode(excluded) {
+                                    groupDefaults.set(encoded, forKey: "excludedWidgetTrainNumbers_v1")
+                                }
+                            }
+                            WidgetCenter.shared.reloadAllTimelines()
+                        }
+                    ))
                 }
                 
                 Section(header: Text("Notifica di Base"), footer: Group {

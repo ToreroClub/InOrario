@@ -309,6 +309,7 @@ struct SavedTrain: Codable, Identifiable, Equatable {
     
     var lastDelayText: String? = nil
     var lastDelayColorName: String? = nil
+    var showInWidget: Bool? = true
 }
 
 struct VTSearchStation: Codable, Identifiable {
