@@ -45,6 +45,84 @@ func compactStationName(_ raw: String) -> String {
     return name
 }
 
+// MARK: - Category & Time Helpers
+
+func resolveCategory(number: String, categoryDesc: String?, destination: String?) -> String {
+    let cleanNum = number.trimmingCharacters(in: .whitespacesAndNewlines)
+    var cat = categoryDesc?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let catUpper = cat.uppercased()
+    let destLower = (destination ?? "").lowercased()
+    
+    if catUpper.contains("FRECCIAROSSA") || catUpper == "FR" { return "FR" }
+    if catUpper.contains("FRECCIARGENTO") || catUpper == "FA" { return "FA" }
+    if catUpper.contains("FRECCIABIANCA") || catUpper == "FB" { return "FB" }
+    if catUpper.contains("ITALO") { return "ITALO" }
+    if catUpper.contains("ALTA VELOCIT") || catUpper == "AV" { return "AV" }
+    if catUpper.contains("INTERCITY NOTTE") || catUpper == "ICN" { return "ICN" }
+    if catUpper.contains("INTERCITY") || catUpper == "IC" { return "IC" }
+    if catUpper.contains("EUROCITY") || catUpper == "EC" { return "EC" }
+    if catUpper.contains("EURONIGHT") || catUpper == "EN" { return "EN" }
+    if catUpper.contains("MALPENSA") || catUpper == "XP" || catUpper == "MXP" { return "XP" }
+    if catUpper == "REGIONALE VELOCE" || catUpper == "RV" { return "RV" }
+    if catUpper == "REGIOEXPRESS" || catUpper == "RE" { return "RE" }
+    if catUpper == "SUBURBANO" || catUpper == "S" { cat = "S" }
+    if catUpper == "REGIONALE" || catUpper == "REG" { cat = "REG" }
+    
+    // Linee suburbane lombarde basate sulla numerazione treno (S1..S13)
+    if cat == "S" || cat == "REG" || cat.isEmpty {
+        if cleanNum.hasPrefix("240") || cleanNum.hasPrefix("230") || cleanNum.hasPrefix("241") || cleanNum.hasPrefix("231") { return "S1" }
+        if cleanNum.hasPrefix("242") || cleanNum.hasPrefix("232") {
+            if destLower.contains("melegnano") || destLower.contains("cormano") { return "S12" }
+            return "S2"
+        }
+        if cleanNum.hasPrefix("243") || cleanNum.hasPrefix("233") || cleanNum.hasPrefix("328") || cleanNum.hasPrefix("329") { return "S13" }
+        if cleanNum.hasPrefix("245") || cleanNum.hasPrefix("235") { return "S5" }
+        if cleanNum.hasPrefix("246") || cleanNum.hasPrefix("236") { return "S6" }
+        if cleanNum.hasPrefix("256") || cleanNum.hasPrefix("257") || cleanNum.hasPrefix("247") || cleanNum.hasPrefix("237") { return "S12" }
+        if cleanNum.hasPrefix("248") || cleanNum.hasPrefix("238") { return "S8" }
+        if cleanNum.hasPrefix("249") || cleanNum.hasPrefix("239") { return "S9" }
+        if cleanNum.hasPrefix("250") || cleanNum.hasPrefix("251") || cleanNum.hasPrefix("252") { return "S11" }
+        if cleanNum.hasPrefix("253") || cleanNum.hasPrefix("254") || cleanNum.hasPrefix("255") { return "S7" }
+        if cleanNum.hasPrefix("244") || cleanNum.hasPrefix("234") { return "S4" }
+    }
+    
+    return cat.isEmpty ? "REG" : cat
+}
+
+func categoryColor(for cat: String) -> Color {
+    let c = cat.uppercased()
+    if c.contains("FR") || c.contains("ITA") || c == "AV" { return .red }
+    if c == "IC" || c == "EC" || c == "ICN" || c == "EN" { return Color(white: 0.4) }
+    if c.contains("S") { return Color(red: 0.0, green: 0.6, blue: 0.2) } // Verde linee suburbane
+    if c.contains("RV") || c.contains("RE") { return .blue }
+    if c.contains("XP") || c.contains("MXP") { return Color(red: 0.75, green: 0.10, blue: 0.25) }
+    return Color(red: 0.2, green: 0.45, blue: 0.85) // Blu regionale
+}
+
+func calculateUpdatedArrivalTime(scheduled: String?, delay: Int) -> String? {
+    guard let sched = scheduled?.trimmingCharacters(in: .whitespacesAndNewlines),
+          sched.contains(":") else {
+        return scheduled
+    }
+    let parts = sched.components(separatedBy: ":")
+    guard parts.count >= 2,
+          let h = Int(parts[0].trimmingCharacters(in: .whitespaces)),
+          let m = Int(parts[1].trimmingCharacters(in: .whitespaces)) else {
+        return scheduled
+    }
+    
+    if delay == 0 {
+        return sched
+    }
+    
+    var totalMin = h * 60 + m + delay
+    if totalMin < 0 { totalMin += 1440 }
+    totalMin = totalMin % 1440
+    let newH = totalMin / 60
+    let newM = totalMin % 60
+    return String(format: "%02d:%02d", newH, newM)
+}
+
 // MARK: - Models
 
 struct WidgetSavedTrain: Codable, Identifiable {
@@ -75,59 +153,19 @@ struct WidgetTrainData: Identifiable {
     var isDeparted: Bool = false
     var isArrived: Bool = false
     var isCancelled: Bool = false
-    var progress: Double = 0.0
+    var delayMinutes: Int = 0
     
-    var shortCategoryText: String {
-        guard let cat = category?.trimmingCharacters(in: .whitespacesAndNewlines), !cat.isEmpty else {
-            return "Treno"
-        }
-        let upper = cat.uppercased()
-        switch upper {
-        case "REG": return "Reg"
-        case "RV": return "Reg. Veloce"
-        case "FR": return "FrRossa"
-        case "FA": return "FrArgento"
-        case "FB": return "FrBianca"
-        case "IC": return "Intercity"
-        case "ICN": return "IC Notte"
-        case "EC": return "Eurocity"
-        case "EN": return "Euronight"
-        case "XP", "MXP": return "Malpensa Exp"
-        default: return cat
-        }
-    }
-    
-    var categoryThemeColor: Color {
-        guard let cat = category?.uppercased().trimmingCharacters(in: .whitespacesAndNewlines) else {
-            return Color(red: 0.95, green: 0.45, blue: 0.10)
-        }
-        if cat.contains("FR") || cat.contains("FRECCIAROSSA") {
-            return Color(red: 0.77, green: 0.08, blue: 0.11)
-        } else if cat.contains("FA") || cat.contains("FRECCIARGENTO") {
-            return Color(white: 0.35)
-        } else if cat.contains("FB") || cat.contains("FRECCIABIANCA") {
-            return Color(red: 0.15, green: 0.45, blue: 0.75)
-        } else if cat.contains("ITALO") {
-            return Color(red: 0.65, green: 0.05, blue: 0.15)
-        } else if cat.contains("IC") || cat.contains("INTERCITY") {
-            return Color(red: 0.0, green: 0.48, blue: 0.55)
-        } else if cat.contains("REG") || cat.contains("RV") {
-            return Color(red: 0.95, green: 0.45, blue: 0.10)
-        } else if cat.contains("XP") || cat.contains("MXP") {
-            return Color(red: 0.75, green: 0.10, blue: 0.25)
-        } else if cat.hasPrefix("S") {
-            return Color(red: 0.15, green: 0.65, blue: 0.35)
-        }
-        return Color(red: 0.95, green: 0.45, blue: 0.10)
+    var categoryBadge: String {
+        resolveCategory(number: number, categoryDesc: category, destination: destinationStation ?? description)
     }
     
     var displayTitle: String {
         let num = number.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cat = shortCategoryText
-        if num.uppercased().hasPrefix(cat.uppercased()) {
-            return num
-        }
-        return "\(cat) \(num)"
+        return "\(categoryBadge) \(num)"
+    }
+    
+    var effectiveArrivalTime: String? {
+        calculateUpdatedArrivalTime(scheduled: arrivalTime, delay: delayMinutes)
     }
     
     var shortDelayBadge: String {
@@ -154,84 +192,7 @@ struct WidgetTrainData: Identifiable {
     }
     
     var isDelayed: Bool {
-        delayText.localizedCaseInsensitiveContains("ritardo") || isCancelled
-    }
-    
-    var middleStationToDisplay: String? {
-        guard isDeparted && !isArrived,
-              let last = lastStation?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !last.isEmpty, last != "--" else {
-            return nil
-        }
-        let lastLower = last.lowercased()
-        if let orig = originStation?.lowercased(), lastLower == orig || lastLower.contains(orig) || orig.contains(lastLower) {
-            return nil
-        }
-        if let dest = destinationStation?.lowercased(), lastLower == dest || lastLower.contains(dest) || dest.contains(lastLower) {
-            return nil
-        }
-        return last
-    }
-}
-
-// MARK: - Progress Bar Component
-
-struct TrainProgressBar: View {
-    let progress: Double
-    let isDeparted: Bool
-    let isArrived: Bool
-    let accentColor: Color
-    var barHeight: CGFloat = 12
-
-    var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let dotRadius: CGFloat = 3.5
-            let haloRadius: CGFloat = 6.5
-            let clampedProgress = min(max(CGFloat(progress), 0.0), 1.0)
-            let currentX: CGFloat = isArrived ? (w - dotRadius) : (!isDeparted ? dotRadius : min(max(w * clampedProgress, dotRadius + 3), w - dotRadius - 3))
-
-            ZStack(alignment: .leading) {
-                // Background track
-                Capsule()
-                    .fill(Color.primary.opacity(0.12))
-                    .frame(height: 3)
-
-                // Completed progress track
-                if isDeparted {
-                    Capsule()
-                        .fill(accentColor)
-                        .frame(width: isArrived ? w : currentX, height: 3)
-                }
-
-                // Origin dot
-                Circle()
-                    .fill(isDeparted ? accentColor : Color.secondary.opacity(0.6))
-                    .frame(width: dotRadius * 2, height: dotRadius * 2)
-                    .position(x: dotRadius, y: geo.size.height / 2)
-
-                // Current position dot with glowing halo
-                if isDeparted && !isArrived {
-                    Circle()
-                        .fill(accentColor.opacity(0.3))
-                        .frame(width: haloRadius * 2, height: haloRadius * 2)
-                        .position(x: currentX, y: geo.size.height / 2)
-
-                    Circle()
-                        .fill(accentColor)
-                        .frame(width: dotRadius * 2, height: dotRadius * 2)
-                        .position(x: currentX, y: geo.size.height / 2)
-                }
-
-                // Destination terminal dot
-                Circle()
-                    .strokeBorder(isArrived ? accentColor : Color.secondary.opacity(0.4), lineWidth: 2)
-                    .background(Circle().fill(isArrived ? accentColor : Color(.systemBackground)))
-                    .frame(width: dotRadius * 2, height: dotRadius * 2)
-                    .position(x: w - dotRadius, y: geo.size.height / 2)
-            }
-        }
-        .frame(height: barHeight)
+        delayMinutes > 0 || delayText.localizedCaseInsensitiveContains("ritardo") || isCancelled
     }
 }
 
@@ -241,38 +202,55 @@ struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(date: Date(), trains: [
             WidgetTrainData(
-                number: "2017",
-                description: "Torino P.N. - Milano C.le",
-                delayText: "Ritardo 4 min",
+                number: "24653",
+                description: "Novara - Pioltello Limito",
+                delayText: "Ritardo 1 min",
                 delayColor: .red,
-                category: "Regionale",
-                departureTime: "12:28",
-                arrivalTime: "13:12",
-                originStation: "Torino P.N.",
-                destinationStation: "Milano C.le",
-                lastStation: "Novara",
-                detectionTime: "12:55",
+                category: "S6",
+                departureTime: "15:18",
+                arrivalTime: "16:37",
+                originStation: "Novara",
+                destinationStation: "Pioltello L.",
+                lastStation: "Rho Fiera",
+                detectionTime: "15:56",
                 isDeparted: true,
                 isArrived: false,
                 isCancelled: false,
-                progress: 0.65
+                delayMinutes: 1
             ),
             WidgetTrainData(
-                number: "9616",
-                description: "Napoli C.le - Firenze S.M.N.",
-                delayText: "Ritardo 12 min",
+                number: "2029",
+                description: "Torino P.N. - Milano C.le",
+                delayText: "In orario",
+                delayColor: .green,
+                category: "RV",
+                departureTime: "13:54",
+                arrivalTime: "15:49",
+                originStation: "Torino P.N.",
+                destinationStation: "Milano C.le",
+                lastStation: nil,
+                detectionTime: nil,
+                isDeparted: true,
+                isArrived: true,
+                isCancelled: false,
+                delayMinutes: 0
+            ),
+            WidgetTrainData(
+                number: "24655",
+                description: "Novara - Pioltello Limito",
+                delayText: "Ritardo 2 min",
                 delayColor: .red,
-                category: "FR",
-                departureTime: "14:08",
-                arrivalTime: "17:00",
-                originStation: "Napoli C.le",
-                destinationStation: "Firenze S.M.N.",
-                lastStation: "Roma Termini",
-                detectionTime: "15:17",
+                category: "S6",
+                departureTime: "15:48",
+                arrivalTime: "17:04",
+                originStation: "Novara",
+                destinationStation: "Pioltello L.",
+                lastStation: "Magenta",
+                detectionTime: "16:04",
                 isDeparted: true,
                 isArrived: false,
                 isCancelled: false,
-                progress: 0.42
+                delayMinutes: 2
             )
         ])
     }
@@ -323,7 +301,7 @@ struct Provider: TimelineProvider {
             isDeparted: false,
             isArrived: false,
             isCancelled: false,
-            progress: 0.0
+            delayMinutes: 0
         )
     }
 
@@ -625,33 +603,10 @@ struct Provider: TimelineProvider {
         let isArrived = (json["arrivato"] as? Bool) ?? false
         let isCancelled = (json["provvedimento"] as? Int ?? 0) != 0
         
-        // Calcolo progresso percorso
-        var progress: Double = 0.0
-        if isArrived {
-            progress = 1.0
-        } else if isDeparted {
-            if let fermate = json["fermate"] as? [[String: Any]], fermate.count > 1 {
-                let passedCount = fermate.filter { ($0["effettiva"] as? Int ?? 0) > 0 }.count
-                if passedCount > 0 {
-                    progress = Double(passedCount) / Double(fermate.count - 1)
-                } else if let last = lastStation?.lowercased() {
-                    if let idx = fermate.firstIndex(where: { (($0["stazione"] as? String) ?? "").lowercased().contains(last) || last.contains((($0["stazione"] as? String) ?? "").lowercased()) }) {
-                        progress = Double(idx) / Double(fermate.count - 1)
-                    } else {
-                        progress = 0.4
-                    }
-                } else {
-                    progress = 0.35
-                }
-            } else {
-                progress = 0.4
-            }
-            progress = min(0.92, max(0.08, progress))
-        }
-        
         // Parsing dello stato e ritardo
         var delayText = fallback.0
         var delayColor = fallback.1
+        var delayMinutes = 0
         
         if isCancelled {
             delayText = "Soppresso"
@@ -664,6 +619,7 @@ struct Provider: TimelineProvider {
             }
             
             if let r = ritardoMin {
+                delayMinutes = r
                 if r > 0 {
                     delayText = "Ritardo \(r) min"
                     delayColor = .red
@@ -684,15 +640,17 @@ struct Provider: TimelineProvider {
                     delayText = "Soppresso"
                     delayColor = .red
                 } else if ritardoText.localizedCaseInsensitiveContains("ritardo") {
-                    if let min = extractMinutes(from: ritardoText) {
-                        delayText = "Ritardo \(min) min"
+                    if let minStr = extractMinutes(from: ritardoText), let m = Int(minStr) {
+                        delayMinutes = m
+                        delayText = "Ritardo \(m) min"
                     } else {
                         delayText = "In ritardo"
                     }
                     delayColor = .red
                 } else if ritardoText.localizedCaseInsensitiveContains("anticipo") {
-                    if let min = extractMinutes(from: ritardoText) {
-                        delayText = "Anticipo \(min) min"
+                    if let minStr = extractMinutes(from: ritardoText), let m = Int(minStr) {
+                        delayMinutes = -m
+                        delayText = "Anticipo \(m) min"
                     } else {
                         delayText = "In anticipo"
                     }
@@ -725,7 +683,7 @@ struct Provider: TimelineProvider {
             isDeparted: isDeparted,
             isArrived: isArrived,
             isCancelled: isCancelled,
-            progress: progress
+            delayMinutes: delayMinutes
         )
     }
     
@@ -815,9 +773,19 @@ struct TrainWidgetEntryView : View {
             
             HStack(alignment: .center, spacing: 6) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(train.displayTitle)
-                        .font(.system(size: 14, weight: .bold))
-                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Text(train.categoryBadge)
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 3)
+                            .padding(.vertical, 1)
+                            .background(categoryColor(for: train.categoryBadge))
+                            .cornerRadius(3)
+                        
+                        Text(train.number)
+                            .font(.system(size: 13, weight: .bold))
+                            .lineLimit(1)
+                    }
                     
                     Text(subtitleText)
                         .font(.system(size: 12, weight: .medium))
@@ -843,7 +811,7 @@ struct TrainWidgetEntryView : View {
     }
 
     private var systemWidgetBody: some View {
-        VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 5) {
+        VStack(alignment: .leading, spacing: 5) {
             // Widget Header
             HStack(spacing: 6) {
                 Image(systemName: "tram.fill")
@@ -883,13 +851,18 @@ struct TrainWidgetEntryView : View {
                     Spacer()
                 }
             } else {
-                switch family {
-                case .systemSmall:
-                    smallContent
-                case .systemMedium:
-                    mediumContent
-                default:
-                    largeContent
+                let maxTrains = family == .systemSmall ? 2 : (family == .systemLarge ? 6 : 3)
+                let trainsToShow = Array(entry.trains.prefix(maxTrains))
+
+                VStack(spacing: 4) {
+                    ForEach(Array(trainsToShow.enumerated()), id: \.element.id) { index, train in
+                        if index > 0 {
+                            Divider().opacity(0.3)
+                        }
+                        Link(destination: URL(string: "inorario://\(train.number)")!) {
+                            trainRowView(train: train)
+                        }
+                    }
                 }
             }
 
@@ -898,197 +871,108 @@ struct TrainWidgetEntryView : View {
         .padding(.horizontal, family == .systemSmall ? 2 : 4)
     }
 
-    @ViewBuilder
-    private var mediumContent: some View {
-        let count = entry.trains.count
-        if count == 1 {
-            Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
-                richTrainCard(train: entry.trains[0], isCompact: false)
-            }
-        } else if count == 2 {
-            VStack(spacing: 6) {
-                Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
-                    richTrainCard(train: entry.trains[0], isCompact: false)
-                }
-                Divider().opacity(0.35)
-                Link(destination: URL(string: "inorario://\(entry.trains[1].number)")!) {
-                    richTrainCard(train: entry.trains[1], isCompact: false)
-                }
-            }
-        } else {
-            // 3 treni o più: Primi 2 con timeline, terzo normale
-            VStack(spacing: 4) {
-                Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
-                    richTrainCard(train: entry.trains[0], isCompact: true)
-                }
-                Divider().opacity(0.3)
-                Link(destination: URL(string: "inorario://\(entry.trains[1].number)")!) {
-                    richTrainCard(train: entry.trains[1], isCompact: true)
-                }
-                Divider().opacity(0.3)
-                Link(destination: URL(string: "inorario://\(entry.trains[2].number)")!) {
-                    normalTrainRow(train: entry.trains[2])
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var smallContent: some View {
-        let count = entry.trains.count
-        if count == 1 {
-            Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
-                richTrainCard(train: entry.trains[0], isCompact: true)
-            }
-        } else {
-            VStack(spacing: 4) {
-                Link(destination: URL(string: "inorario://\(entry.trains[0].number)")!) {
-                    richTrainCard(train: entry.trains[0], isCompact: true)
-                }
-                Divider().opacity(0.3)
-                Link(destination: URL(string: "inorario://\(entry.trains[1].number)")!) {
-                    normalTrainRow(train: entry.trains[1])
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var largeContent: some View {
-        let trains = Array(entry.trains.prefix(4))
-        VStack(spacing: 6) {
-            ForEach(Array(trains.enumerated()), id: \.element.id) { index, train in
-                if index > 0 {
-                    Divider().opacity(0.35)
-                }
-                Link(destination: URL(string: "inorario://\(train.number)")!) {
-                    if trains.count >= 4 && index == 3 {
-                        normalTrainRow(train: train)
+    private func trainRowView(train: WidgetTrainData) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // Riga 1: Badge Categoria + Numero treno ... Ritardo/Stato
+            HStack(alignment: .center, spacing: 6) {
+                // Badge Categoria (S6, RV, REG, FR, ecc.)
+                Text(train.categoryBadge)
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(categoryColor(for: train.categoryBadge))
+                    .cornerRadius(4)
+                
+                // Numero treno
+                Text(train.number)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                // Stato / Ritardo
+                HStack(spacing: 4) {
+                    if train.isCancelled {
+                        Text("Soppresso")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.red)
+                    } else if train.isArrived {
+                        Text("Arrivato")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.secondary)
+                    } else if !train.isDeparted {
+                        Text("In attesa")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
                     } else {
-                        richTrainCard(train: train, isCompact: false)
+                        Circle()
+                            .fill(train.delayColor)
+                            .frame(width: 5, height: 5)
+                        
+                        Text(train.shortDelayBadge)
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundColor(train.delayColor)
                     }
                 }
             }
-        }
-    }
-
-    private func normalTrainRow(train: WidgetTrainData) -> some View {
-        HStack(alignment: .center, spacing: 6) {
-            HStack(spacing: 3) {
-                Text(train.shortCategoryText)
-                    .font(.system(size: 11, weight: .black))
-                    .foregroundColor(train.categoryThemeColor)
-                Text(train.number)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.primary)
-            }
-
-            Text("•")
-                .font(.system(size: 9))
-                .foregroundColor(.secondary)
-
-            Text(train.destinationStation ?? train.description)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.secondary)
+            
+            // Riga 2: Partenza con ora ➔ Ultimo ril. con ora ➔ Arrivo con ora (aggiornata in base al ritardo)
+            HStack(alignment: .center, spacing: 4) {
+                // 1. Partenza con ora
+                HStack(spacing: 2) {
+                    Text(train.originStation ?? "Partenza")
+                        .foregroundColor(.secondary)
+                    if let dep = train.departureTime, !dep.isEmpty, dep != "--:--" {
+                        Text(dep)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .font(.system(size: 10))
                 .lineLimit(1)
-
-            Spacer(minLength: 4)
-
-            if let time = train.departureTime, !time.isEmpty, time != "--:--" {
-                Text(time)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary)
-            }
-
-            Text(train.shortDelayBadge)
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(train.delayColor)
+                
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundColor(.secondary.opacity(0.5))
+                
+                // 2. Ultimo rilevamento con ora (se in viaggio)
+                if let lastSt = train.lastStation, !lastSt.isEmpty, lastSt != "--",
+                   let det = train.detectionTime, !det.isEmpty,
+                   train.isDeparted && !train.isArrived {
+                    HStack(spacing: 2) {
+                        Text(lastSt)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        Text(det)
+                            .fontWeight(.heavy)
+                            .foregroundColor(train.delayColor)
+                    }
+                    .font(.system(size: 10))
+                    .lineLimit(1)
+                    
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundColor(.secondary.opacity(0.5))
+                }
+                
+                // 3. Arrivo con ora (aggiornata in base al ritardo)
+                HStack(spacing: 2) {
+                    Text(train.destinationStation ?? train.description)
+                        .foregroundColor(.secondary)
+                    if let arr = train.effectiveArrivalTime, !arr.isEmpty, arr != "--:--" {
+                        Text(arr)
+                            .fontWeight(.semibold)
+                            .foregroundColor(train.isDelayed ? .red : .primary)
+                    }
+                }
+                .font(.system(size: 10))
                 .lineLimit(1)
-        }
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .background(Color.primary.opacity(0.04))
-        .cornerRadius(6)
-    }
-
-    private func richTrainCard(train: WidgetTrainData, isCompact: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: isCompact ? 1 : 2) {
-            // Line 1: Header (Category + Number ... Delay badge)
-            HStack(alignment: .firstTextBaseline) {
-                HStack(spacing: 4) {
-                    Text(train.shortCategoryText)
-                        .font(.system(size: isCompact ? 11 : 13, weight: .black))
-                        .foregroundColor(train.categoryThemeColor)
-
-                    Text(train.number)
-                        .font(.system(size: isCompact ? 11 : 13, weight: .bold))
-                        .foregroundColor(.primary)
-                }
-
-                Spacer(minLength: 4)
-
-                Text(train.shortDelayBadge)
-                    .font(.system(size: isCompact ? 10 : 12, weight: .heavy))
-                    .foregroundColor(train.delayColor)
-            }
-
-            // Line 2: Station Names
-            HStack(alignment: .center) {
-                Text(train.originStation ?? "Partenza")
-                    .font(.system(size: isCompact ? 9 : 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-
-                Spacer(minLength: 4)
-
-                if let mid = train.middleStationToDisplay {
-                    Text(mid)
-                        .font(.system(size: isCompact ? 9 : 10, weight: .bold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-
-                    Spacer(minLength: 4)
-                }
-
-                Text(train.destinationStation ?? train.description)
-                    .font(.system(size: isCompact ? 9 : 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-
-            // Line 3: Progress track
-            TrainProgressBar(
-                progress: train.progress,
-                isDeparted: train.isDeparted,
-                isArrived: train.isArrived,
-                accentColor: train.categoryThemeColor,
-                barHeight: isCompact ? 10 : 12
-            )
-
-            // Line 4: Times
-            HStack(alignment: .center) {
-                Text(train.departureTime ?? "--:--")
-                    .font(.system(size: isCompact ? 9 : 10, weight: .semibold))
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                if train.middleStationToDisplay != nil, let det = train.detectionTime {
-                    Text(det)
-                        .font(.system(size: isCompact ? 9 : 10, weight: .heavy))
-                        .foregroundColor(train.categoryThemeColor)
-
-                    Spacer()
-                }
-
-                Text(train.arrivalTime ?? "--:--")
-                    .font(.system(size: isCompact ? 9 : 10, weight: .semibold))
-                    .foregroundColor(train.isDelayed ? .red : .secondary)
+                
+                Spacer(minLength: 0)
             }
         }
+        .padding(.vertical, 2)
     }
 }
 
