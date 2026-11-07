@@ -2,16 +2,50 @@ import WidgetKit
 import SwiftUI
 import AppIntents
 
+// MARK: - App Intent for Refresh
+
 @available(iOS 17.0, *)
 struct RefreshWidgetIntent: AppIntent {
     static let title: LocalizedStringResource = "Aggiorna Widget"
-    static let description = IntentDescription("Ricarica i ritardi dei treni nel widget.")
+    static let description = IntentDescription("Ricarica i ritardi e le posizioni dei treni nel widget.")
 
     func perform() async throws -> some IntentResult {
         WidgetCenter.shared.reloadAllTimelines()
         return .result()
     }
 }
+
+// MARK: - Station Name Helper
+
+func compactStationName(_ raw: String) -> String {
+    var name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !name.isEmpty else { return "" }
+    
+    name = name.capitalized
+    
+    let replacements: [(String, String)] = [
+        ("Porta Nuova", "P.N."),
+        ("P. Nuova", "P.N."),
+        ("Centrale", "C.le"),
+        ("Porta Garibaldi", "P.Gar."),
+        ("P. Garibaldi", "P.Gar."),
+        ("Santa Maria Novella", "S.M.N."),
+        ("S. Maria Novella", "S.M.N."),
+        ("S.m. Novella", "S.M.N."),
+        ("Santa Lucia", "S.L."),
+        ("S. Lucia", "S.L."),
+        ("Aeroporto", "Aerop."),
+        ("San Cristoforo", "S. Cristoforo"),
+        ("San Donato", "S. Donato"),
+        ("Pioltello Limito", "Pioltello L.")
+    ]
+    for (target, rep) in replacements {
+        name = name.replacingOccurrences(of: target, with: rep, options: .caseInsensitive)
+    }
+    return name
+}
+
+// MARK: - Models
 
 struct WidgetSavedTrain: Codable, Identifiable {
     var id: String { number }
@@ -21,6 +55,7 @@ struct WidgetSavedTrain: Codable, Identifiable {
     var lastDelayColorName: String?
     var category: String?
     var departureTime: String?
+    var arrivalTime: String?
     var showInWidget: Bool?
 }
 
@@ -32,66 +67,219 @@ struct WidgetTrainData: Identifiable {
     let delayColor: Color
     var category: String? = nil
     var departureTime: String? = nil
+    var arrivalTime: String? = nil
+    var originStation: String? = nil
+    var destinationStation: String? = nil
     var lastStation: String? = nil
     var detectionTime: String? = nil
+    var isDeparted: Bool = false
+    var isArrived: Bool = false
+    var isCancelled: Bool = false
+    var progress: Double = 0.0
     
-    var formattedCategory: String {
+    var shortCategoryText: String {
         guard let cat = category?.trimmingCharacters(in: .whitespacesAndNewlines), !cat.isEmpty else {
-            return ""
+            return "Treno"
         }
         let upper = cat.uppercased()
         switch upper {
-        case "REG": return "Regionale"
+        case "REG": return "Reg"
         case "RV": return "Reg. Veloce"
-        case "FR": return "Frecciarossa"
-        case "FA": return "Frecciargento"
-        case "FB": return "Frecciabianca"
+        case "FR": return "FrRossa"
+        case "FA": return "FrArgento"
+        case "FB": return "FrBianca"
         case "IC": return "Intercity"
-        case "ICN": return "Intercity Notte"
+        case "ICN": return "IC Notte"
         case "EC": return "Eurocity"
         case "EN": return "Euronight"
-        case "XP", "MXP": return "Malpensa Express"
-        case "AV": return "Alta Velocità"
-        default:
-            return cat
+        case "XP", "MXP": return "Malpensa Exp"
+        default: return cat
         }
+    }
+    
+    var categoryThemeColor: Color {
+        guard let cat = category?.uppercased().trimmingCharacters(in: .whitespacesAndNewlines) else {
+            return Color(red: 0.95, green: 0.45, blue: 0.10)
+        }
+        if cat.contains("FR") || cat.contains("FRECCIAROSSA") {
+            return Color(red: 0.77, green: 0.08, blue: 0.11)
+        } else if cat.contains("FA") || cat.contains("FRECCIARGENTO") {
+            return Color(white: 0.35)
+        } else if cat.contains("FB") || cat.contains("FRECCIABIANCA") {
+            return Color(red: 0.15, green: 0.45, blue: 0.75)
+        } else if cat.contains("ITALO") {
+            return Color(red: 0.65, green: 0.05, blue: 0.15)
+        } else if cat.contains("IC") || cat.contains("INTERCITY") {
+            return Color(red: 0.0, green: 0.48, blue: 0.55)
+        } else if cat.contains("REG") || cat.contains("RV") {
+            return Color(red: 0.95, green: 0.45, blue: 0.10)
+        } else if cat.contains("XP") || cat.contains("MXP") {
+            return Color(red: 0.75, green: 0.10, blue: 0.25)
+        } else if cat.hasPrefix("S") {
+            return Color(red: 0.15, green: 0.65, blue: 0.35)
+        }
+        return Color(red: 0.95, green: 0.45, blue: 0.10)
     }
     
     var displayTitle: String {
         let num = number.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cat = formattedCategory
-        if cat.isEmpty {
-            return num.lowercased().hasPrefix("treno") ? num : "Treno \(num)"
-        }
-        if num.uppercased().hasPrefix(cat.uppercased()) || (category != nil && num.uppercased().hasPrefix(category!.uppercased())) {
+        let cat = shortCategoryText
+        if num.uppercased().hasPrefix(cat.uppercased()) {
             return num
         }
         return "\(cat) \(num)"
     }
+    
+    var shortDelayBadge: String {
+        if isCancelled || delayText.localizedCaseInsensitiveContains("soppresso") {
+            return "Soppresso"
+        }
+        if isArrived || delayText.localizedCaseInsensitiveContains("arrivato") {
+            return "Arrivato"
+        }
+        if !isDeparted {
+            return "In attesa"
+        }
+        let t = delayText
+        if t.localizedCaseInsensitiveContains("ritardo") {
+            let digits = t.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+            return !digits.isEmpty ? "+\(digits)'" : "In ritardo"
+        } else if t.localizedCaseInsensitiveContains("anticipo") {
+            let digits = t.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+            return !digits.isEmpty ? "-\(digits)'" : "In anticipo"
+        } else if t.localizedCaseInsensitiveContains("orario") {
+            return "In orario"
+        }
+        return t
+    }
+    
+    var isDelayed: Bool {
+        delayText.localizedCaseInsensitiveContains("ritardo") || isCancelled
+    }
+    
+    var middleStationToDisplay: String? {
+        guard isDeparted && !isArrived,
+              let last = lastStation?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !last.isEmpty, last != "--" else {
+            return nil
+        }
+        let lastLower = last.lowercased()
+        if let orig = originStation?.lowercased(), lastLower == orig || lastLower.contains(orig) || orig.contains(lastLower) {
+            return nil
+        }
+        if let dest = destinationStation?.lowercased(), lastLower == dest || lastLower.contains(dest) || dest.contains(lastLower) {
+            return nil
+        }
+        return last
+    }
 }
+
+// MARK: - Progress Bar Component
+
+struct TrainProgressBar: View {
+    let progress: Double
+    let isDeparted: Bool
+    let isArrived: Bool
+    let accentColor: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let dotRadius: CGFloat = 3.5
+            let haloRadius: CGFloat = 6.5
+            let clampedProgress = min(max(CGFloat(progress), 0.0), 1.0)
+            let currentX: CGFloat = isArrived ? (w - dotRadius) : (!isDeparted ? dotRadius : min(max(w * clampedProgress, dotRadius + 3), w - dotRadius - 3))
+
+            ZStack(alignment: .leading) {
+                // Background track
+                Capsule()
+                    .fill(Color.primary.opacity(0.12))
+                    .frame(height: 3)
+
+                // Completed progress track
+                if isDeparted {
+                    Capsule()
+                        .fill(accentColor)
+                        .frame(width: isArrived ? w : currentX, height: 3)
+                }
+
+                // Origin dot
+                Circle()
+                    .fill(isDeparted ? accentColor : Color.secondary.opacity(0.6))
+                    .frame(width: dotRadius * 2, height: dotRadius * 2)
+                    .position(x: dotRadius, y: geo.size.height / 2)
+
+                // Current position dot with glowing halo
+                if isDeparted && !isArrived {
+                    Circle()
+                        .fill(accentColor.opacity(0.3))
+                        .frame(width: haloRadius * 2, height: haloRadius * 2)
+                        .position(x: currentX, y: geo.size.height / 2)
+
+                    Circle()
+                        .fill(accentColor)
+                        .frame(width: dotRadius * 2, height: dotRadius * 2)
+                        .position(x: currentX, y: geo.size.height / 2)
+                }
+
+                // Destination terminal dot
+                Circle()
+                    .strokeBorder(isArrived ? accentColor : Color.secondary.opacity(0.4), lineWidth: 2)
+                    .background(Circle().fill(isArrived ? accentColor : Color(.systemBackground)))
+                    .frame(width: dotRadius * 2, height: dotRadius * 2)
+                    .position(x: w - dotRadius, y: geo.size.height / 2)
+            }
+        }
+        .frame(height: 12)
+    }
+}
+
+// MARK: - Timeline Provider
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(date: Date(), trains: [
-            WidgetTrainData(number: "2010", description: "Milano Centrale", delayText: "In orario", delayColor: .green, category: "Regionale", lastStation: "Magenta", detectionTime: "12:15"),
-            WidgetTrainData(number: "24555", description: "Treviglio", delayText: "Ritardo 5 min", delayColor: .red, category: "S5", lastStation: "Rho Fiera", detectionTime: "12:20")
+            WidgetTrainData(
+                number: "2017",
+                description: "Torino P.N. - Milano C.le",
+                delayText: "Ritardo 4 min",
+                delayColor: .red,
+                category: "Regionale",
+                departureTime: "12:28",
+                arrivalTime: "13:12",
+                originStation: "Torino P.N.",
+                destinationStation: "Milano C.le",
+                lastStation: "Novara",
+                detectionTime: "12:55",
+                isDeparted: true,
+                isArrived: false,
+                isCancelled: false,
+                progress: 0.65
+            ),
+            WidgetTrainData(
+                number: "9616",
+                description: "Napoli C.le - Firenze S.M.N.",
+                delayText: "Ritardo 12 min",
+                delayColor: .red,
+                category: "FR",
+                departureTime: "14:08",
+                arrivalTime: "17:00",
+                originStation: "Napoli C.le",
+                destinationStation: "Firenze S.M.N.",
+                lastStation: "Roma Termini",
+                detectionTime: "15:17",
+                isDeparted: true,
+                isArrived: false,
+                isCancelled: false,
+                progress: 0.42
+            )
         ])
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
         let trains = getFavorites()
         let placeholderData = trains.isEmpty ? placeholder(in: context).trains : trains.map {
-            let (fbDelay, fbColor) = fallbackStatus(for: $0)
-            return WidgetTrainData(
-                number: $0.number,
-                description: $0.description,
-                delayText: fbDelay,
-                delayColor: fbColor,
-                category: $0.category,
-                departureTime: $0.departureTime,
-                lastStation: nil,
-                detectionTime: nil
-            )
+            fallbackTrain(for: $0)
         }
         let entry = SimpleEntry(date: Date(), trains: placeholderData)
         completion(entry)
@@ -104,17 +292,8 @@ struct Provider: TimelineProvider {
             
             for train in savedTrains {
                 let fb = fallbackStatus(for: train)
-                let (delay, color, lastStation, cat, detTime) = await fetchTrainStatusWithDetails(number: train.number, description: train.description, fallback: fb)
-                widgetData.append(WidgetTrainData(
-                    number: train.number,
-                    description: train.description,
-                    delayText: delay,
-                    delayColor: color,
-                    category: cat ?? train.category,
-                    departureTime: train.departureTime,
-                    lastStation: lastStation,
-                    detectionTime: detTime
-                ))
+                let item = await fetchTrainStatusWithDetails(train: train, fallback: fb)
+                widgetData.append(item)
             }
             
             let entry = SimpleEntry(date: Date(), trains: widgetData)
@@ -122,6 +301,45 @@ struct Provider: TimelineProvider {
             let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
             completion(timeline)
         }
+    }
+    
+    private func fallbackTrain(for train: WidgetSavedTrain) -> WidgetTrainData {
+        let (fbDelay, fbColor) = fallbackStatus(for: train)
+        let orig = originFromDesc(train.description)
+        let dest = destFromDesc(train.description)
+        return WidgetTrainData(
+            number: train.number,
+            description: train.description,
+            delayText: fbDelay,
+            delayColor: fbColor,
+            category: train.category,
+            departureTime: train.departureTime,
+            arrivalTime: train.arrivalTime,
+            originStation: orig,
+            destinationStation: dest,
+            lastStation: nil,
+            detectionTime: nil,
+            isDeparted: false,
+            isArrived: false,
+            isCancelled: false,
+            progress: 0.0
+        )
+    }
+
+    private func originFromDesc(_ desc: String) -> String? {
+        let parts = desc.components(separatedBy: " - ")
+        if parts.count >= 2 {
+            return compactStationName(parts[0])
+        }
+        return nil
+    }
+
+    private func destFromDesc(_ desc: String) -> String {
+        let parts = desc.components(separatedBy: " - ")
+        if parts.count >= 2 {
+            return compactStationName(parts[1])
+        }
+        return compactStationName(desc)
     }
     
     private func getFavorites() -> [WidgetSavedTrain] {
@@ -218,9 +436,9 @@ struct Provider: TimelineProvider {
         return ("In orario", .green)
     }
     
-    private func fetchTrainStatusWithDetails(number: String, description: String, fallback: (String, Color)) async -> (String, Color, String?, String?, String?) {
-        let cleanNumber = number.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanNumber.isEmpty else { return (fallback.0, fallback.1, nil, nil, nil) }
+    private func fetchTrainStatusWithDetails(train: WidgetSavedTrain, fallback: (String, Color)) async -> WidgetTrainData {
+        let cleanNumber = train.number.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanNumber.isEmpty else { return fallbackTrain(for: train) }
         
         let sessionConfig = URLSessionConfiguration.default
         sessionConfig.timeoutIntervalForRequest = 8.0
@@ -251,13 +469,13 @@ struct Provider: TimelineProvider {
         }
         
         guard let responseStr = responseStr else {
-            return (fallback.0, fallback.1, nil, nil, nil)
+            return fallbackTrain(for: train)
         }
         
         let lines = responseStr.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
         var targets = lines.filter { $0.contains("|\(cleanNumber)-") }
         if targets.isEmpty, let firstLine = lines.first { targets = [firstLine] }
-        if targets.isEmpty { return (fallback.0, fallback.1, nil, nil, nil) }
+        if targets.isEmpty { return fallbackTrain(for: train) }
         
         // 2. Scarica andamento treno per i target
         let results: [(String, [String: Any])] = await withTaskGroup(of: (String, [String: Any])?.self) { group in
@@ -300,13 +518,13 @@ struct Provider: TimelineProvider {
             return collected
         }
         
-        guard !results.isEmpty else { return (fallback.0, fallback.1, nil, nil, nil) }
+        guard !results.isEmpty else { return fallbackTrain(for: train) }
         
         // 3. Seleziona la corsa migliore
         let nowTs = Date().timeIntervalSince1970 * 1000.0
         var bestJson: [String: Any]? = nil
         var bestScore: Double = -999999.0
-        let cleanDest = description.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanDest = train.description.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
         for (targetLine, json) in results {
             let pipes = targetLine.components(separatedBy: "|")
@@ -355,15 +573,17 @@ struct Provider: TimelineProvider {
             }
         }
         
-        guard let json = bestJson ?? results.first?.1 else { return (fallback.0, fallback.1, nil, nil, nil) }
+        guard let json = bestJson ?? results.first?.1 else { return fallbackTrain(for: train) }
         
         // Estrazione dettagli aggiuntivi
         let rawCategory = (json["categoria"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedCategory = (rawCategory?.isEmpty == false ? rawCategory : train.category)
+        
         var rawStation = (json["stazioneUltimoRilevamento"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         if rawStation == "--" || rawStation?.isEmpty == true {
             rawStation = nil
         }
-        let lastStation = rawStation?.capitalized
+        let lastStation = rawStation.flatMap { compactStationName($0) }
         
         var detectionTime: String? = nil
         if let compOra = json["compOraUltimoRilevamento"] as? String, !compOra.isEmpty {
@@ -378,60 +598,134 @@ struct Provider: TimelineProvider {
             detectionTime = String(oraStr.prefix(5))
         }
         
-        // 4. Parsing affidabile dello stato
-        // 4a. Treno soppresso
-        if let provv = json["provvedimento"] as? Int, provv != 0 {
-            return ("Soppresso", .red, lastStation, rawCategory, detectionTime)
+        // Stazioni origine e destinazione
+        let rawOrigin = (json["origine"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawDest = (json["destinazione"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let originStation = (rawOrigin?.isEmpty == false ? compactStationName(rawOrigin!) : originFromDesc(train.description)) ?? "Partenza"
+        let destStation = (rawDest?.isEmpty == false ? compactStationName(rawDest!) : destFromDesc(train.description))
+        
+        // Orari partenza e arrivo
+        var depTime: String? = nil
+        if let origTimeStr = (json["compOrarioPartenza"] as? String) ?? (json["orarioPartenza"] as? String), !origTimeStr.isEmpty {
+            depTime = String(origTimeStr.suffix(5))
+        } else {
+            depTime = train.departureTime
+        }
+        
+        var arrTime: String? = nil
+        if let destTimeStr = (json["compOrarioArrivo"] as? String) ?? (json["orarioArrivo"] as? String), !destTimeStr.isEmpty {
+            arrTime = String(destTimeStr.suffix(5))
+        } else {
+            arrTime = train.arrivalTime
         }
         
         let isNonPartito = (json["nonPartito"] as? Bool) ?? false
+        let isDeparted = !isNonPartito
         let isArrived = (json["arrivato"] as? Bool) ?? false
-        let ritardoMin = json["ritardo"] as? Int
+        let isCancelled = (json["provvedimento"] as? Int ?? 0) != 0
         
-        var compRitardoStr: String? = nil
-        if let compRitardi = json["compRitardo"] as? [String], let first = compRitardi.first, !first.trimmingCharacters(in: .whitespaces).isEmpty {
-            compRitardoStr = first
-        }
-        
-        if let r = ritardoMin {
-            if r > 0 {
-                return ("Ritardo \(r) min", .red, lastStation, rawCategory, detectionTime)
-            } else if r < 0 {
-                return ("Anticipo \(abs(r)) min", .green, lastStation, rawCategory, detectionTime)
-            } else {
-                if isArrived {
-                    return ("Arrivato", .secondary, lastStation, rawCategory, detectionTime)
-                }
-                return ("In orario", .green, lastStation, rawCategory, detectionTime)
-            }
-        }
-        
-        if let ritardoText = compRitardoStr {
-            if ritardoText.localizedCaseInsensitiveContains("soppresso") {
-                return ("Soppresso", .red, lastStation, rawCategory, detectionTime)
-            } else if ritardoText.localizedCaseInsensitiveContains("ritardo") {
-                if let min = extractMinutes(from: ritardoText) {
-                    return ("Ritardo \(min) min", .red, lastStation, rawCategory, detectionTime)
-                }
-                return ("In ritardo", .red, lastStation, rawCategory, detectionTime)
-            } else if ritardoText.localizedCaseInsensitiveContains("anticipo") {
-                if let min = extractMinutes(from: ritardoText) {
-                    return ("Anticipo \(min) min", .green, lastStation, rawCategory, detectionTime)
-                }
-                return ("In anticipo", .green, lastStation, rawCategory, detectionTime)
-            } else if ritardoText.localizedCaseInsensitiveContains("in orario") {
-                return ("In orario", .green, lastStation, rawCategory, detectionTime)
-            }
-        }
-        
+        // Calcolo progresso percorso
+        var progress: Double = 0.0
         if isArrived {
-            return ("Arrivato", .secondary, lastStation, rawCategory, detectionTime)
-        }
-        if isNonPartito {
-            return ("In orario", .green, lastStation, rawCategory, detectionTime)
+            progress = 1.0
+        } else if isDeparted {
+            if let fermate = json["fermate"] as? [[String: Any]], fermate.count > 1 {
+                let passedCount = fermate.filter { ($0["effettiva"] as? Int ?? 0) > 0 }.count
+                if passedCount > 0 {
+                    progress = Double(passedCount) / Double(fermate.count - 1)
+                } else if let last = lastStation?.lowercased() {
+                    if let idx = fermate.firstIndex(where: { (($0["stazione"] as? String) ?? "").lowercased().contains(last) || last.contains((($0["stazione"] as? String) ?? "").lowercased()) }) {
+                        progress = Double(idx) / Double(fermate.count - 1)
+                    } else {
+                        progress = 0.4
+                    }
+                } else {
+                    progress = 0.35
+                }
+            } else {
+                progress = 0.4
+            }
+            progress = min(0.92, max(0.08, progress))
         }
         
-        return (fallback.0, fallback.1, lastStation, rawCategory, detectionTime)
+        // Parsing dello stato e ritardo
+        var delayText = fallback.0
+        var delayColor = fallback.1
+        
+        if isCancelled {
+            delayText = "Soppresso"
+            delayColor = .red
+        } else {
+            let ritardoMin = json["ritardo"] as? Int
+            var compRitardoStr: String? = nil
+            if let compRitardi = json["compRitardo"] as? [String], let first = compRitardi.first, !first.trimmingCharacters(in: .whitespaces).isEmpty {
+                compRitardoStr = first
+            }
+            
+            if let r = ritardoMin {
+                if r > 0 {
+                    delayText = "Ritardo \(r) min"
+                    delayColor = .red
+                } else if r < 0 {
+                    delayText = "Anticipo \(abs(r)) min"
+                    delayColor = .green
+                } else {
+                    if isArrived {
+                        delayText = "Arrivato"
+                        delayColor = .secondary
+                    } else {
+                        delayText = "In orario"
+                        delayColor = .green
+                    }
+                }
+            } else if let ritardoText = compRitardoStr {
+                if ritardoText.localizedCaseInsensitiveContains("soppresso") {
+                    delayText = "Soppresso"
+                    delayColor = .red
+                } else if ritardoText.localizedCaseInsensitiveContains("ritardo") {
+                    if let min = extractMinutes(from: ritardoText) {
+                        delayText = "Ritardo \(min) min"
+                    } else {
+                        delayText = "In ritardo"
+                    }
+                    delayColor = .red
+                } else if ritardoText.localizedCaseInsensitiveContains("anticipo") {
+                    if let min = extractMinutes(from: ritardoText) {
+                        delayText = "Anticipo \(min) min"
+                    } else {
+                        delayText = "In anticipo"
+                    }
+                    delayColor = .green
+                } else if ritardoText.localizedCaseInsensitiveContains("in orario") {
+                    delayText = "In orario"
+                    delayColor = .green
+                }
+            } else if isArrived {
+                delayText = "Arrivato"
+                delayColor = .secondary
+            } else if isNonPartito {
+                delayText = "In orario"
+                delayColor = .green
+            }
+        }
+        
+        return WidgetTrainData(
+            number: cleanNumber,
+            description: train.description,
+            delayText: delayText,
+            delayColor: delayColor,
+            category: resolvedCategory,
+            departureTime: depTime,
+            arrivalTime: arrTime,
+            originStation: originStation,
+            destinationStation: destStation,
+            lastStation: lastStation,
+            detectionTime: detectionTime,
+            isDeparted: isDeparted,
+            isArrived: isArrived,
+            isCancelled: isCancelled,
+            progress: progress
+        )
     }
     
     private func extractMinutes(from str: String) -> String? {
@@ -445,10 +739,14 @@ struct Provider: TimelineProvider {
     }
 }
 
+// MARK: - Timeline Entry
+
 struct SimpleEntry: TimelineEntry {
     let date: Date
     let trains: [WidgetTrainData]
 }
+
+// MARK: - Widget Entry View
 
 struct TrainWidgetEntryView : View {
     var entry: Provider.Entry
@@ -472,21 +770,18 @@ struct TrainWidgetEntryView : View {
     @ViewBuilder
     private var circularWidgetBody: some View {
         if !isUnlocked || entry.trains.isEmpty {
-            Image(systemName: "train.side.front.car")
+            Image(systemName: "tram.fill")
         } else {
             let train = entry.trains[0]
-            let shortDelay = train.delayText
-                .replacingOccurrences(of: "Ritardo ", with: "+")
-                .replacingOccurrences(of: "Anticipo ", with: "-")
-                .replacingOccurrences(of: " min", with: "'")
+            let shortDelay = train.shortDelayBadge
                 .replacingOccurrences(of: "In orario", with: "0'")
                 .replacingOccurrences(of: "In attesa", with: "--")
             
             VStack(spacing: 2) {
-                Image(systemName: "train.side.front.car")
+                Image(systemName: "tram.fill")
                     .font(.system(size: 12))
                 Text(shortDelay)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
             }
         }
     }
@@ -503,21 +798,13 @@ struct TrainWidgetEntryView : View {
             }
         } else {
             let train = entry.trains[0]
-            let shortDelay: String = {
-                if train.delayText.localizedCaseInsensitiveContains("soppresso") {
-                    return "Soppr."
-                }
-                return train.delayText
-                    .replacingOccurrences(of: "Ritardo ", with: "+")
-                    .replacingOccurrences(of: "Anticipo ", with: "-")
-                    .replacingOccurrences(of: " min", with: "'")
-                    .replacingOccurrences(of: "In orario", with: "0'")
-                    .replacingOccurrences(of: "In attesa", with: "--")
-            }()
+            let shortDelay = train.shortDelayBadge
             
             let subtitleText: String = {
                 if let st = train.lastStation, !st.isEmpty, st != "--" {
                     return "Visto a \(st)"
+                } else if let dest = train.destinationStation, !dest.isEmpty {
+                    return "Per \(dest)"
                 } else if !train.description.isEmpty {
                     return "Per \(train.description)"
                 } else {
@@ -546,7 +833,7 @@ struct TrainWidgetEntryView : View {
                             .foregroundColor(.secondary)
                     }
                     Text(shortDelay)
-                        .font(.system(size: 19, weight: .heavy))
+                        .font(.system(size: 18, weight: .heavy))
                         .minimumScaleFactor(0.8)
                         .lineLimit(1)
                 }
@@ -555,152 +842,147 @@ struct TrainWidgetEntryView : View {
     }
 
     private var systemWidgetBody: some View {
-        VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 5) {
-            if !isUnlocked {
-                VStack(spacing: 8) {
-                    Spacer()
-                    Image(systemName: "lock.fill")
-                        .foregroundColor(.orange)
-                        .font(.title2)
-                    Text("Widget Bloccato")
-                        .font(.headline)
-                    Text("Diventa Sostenitore nelle impostazioni per sbloccare il widget.")
-                        .font(.system(size: 10))
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-            } else {
-                HStack(spacing: 5) {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                        .font(.system(size: family == .systemSmall ? 10 : 12))
-                    Text(family == .systemSmall ? "Preferiti" : "Treni Preferiti")
-                        .font(.system(size: family == .systemSmall ? 12 : 13, weight: .bold))
-                        .foregroundColor(.primary)
-                    Spacer()
-                    if #available(iOS 17.0, *) {
-                        Button(intent: RefreshWidgetIntent()) {
-                            Image(systemName: "arrow.clockwise.circle.fill")
-                                .foregroundColor(.gray.opacity(0.6))
-                                .font(.system(size: family == .systemSmall ? 13 : 15))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.bottom, family == .systemSmall ? 1 : 2)
+        VStack(alignment: .leading, spacing: 6) {
+            // Widget Header
+            HStack(spacing: 6) {
+                Image(systemName: "tram.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 18, height: 18)
+                    .background(Color.orange)
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
 
-                if entry.trains.isEmpty {
-                    VStack {
-                        Spacer()
-                        Text("Nessun treno salvato.")
-                            .font(.system(size: 11))
+                Text(family == .systemSmall ? "Preferiti" : "Treni Preferiti")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                if #available(iOS 17.0, *) {
+                    Button(intent: RefreshWidgetIntent()) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                        Spacer()
+                            .frame(width: 20, height: 20)
+                            .background(Color.secondary.opacity(0.12))
+                            .clipShape(Circle())
                     }
-                } else {
-                    let displayCount = family == .systemLarge ? 6 : 3
-                    VStack(spacing: family == .systemSmall ? 3 : 4) {
-                        ForEach(entry.trains.prefix(displayCount)) { train in
-                            trainRowView(train: train)
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.bottom, 2)
+
+            if entry.trains.isEmpty {
+                VStack {
+                    Spacer()
+                    Text("Nessun treno salvato")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Spacer()
+                }
+            } else {
+                let maxTrains = family == .systemSmall ? 1 : (family == .systemLarge ? 4 : 2)
+                let trainsToShow = Array(entry.trains.prefix(maxTrains))
+
+                VStack(spacing: family == .systemMedium ? 6 : 8) {
+                    ForEach(Array(trainsToShow.enumerated()), id: \.element.id) { index, train in
+                        if index > 0 {
+                            Divider().opacity(0.35)
+                        }
+                        Link(destination: URL(string: "inorario://\(train.number)")!) {
+                            richTrainCard(train: train, isCompact: family == .systemSmall)
                         }
                     }
                 }
-                Spacer(minLength: 0)
             }
+
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, family == .systemSmall ? 2 : 4)
     }
     
-    @ViewBuilder
-    private func trainRowView(train: WidgetTrainData) -> some View {
-        Link(destination: URL(string: "inorario://\(train.number)")!) {
-            if family == .systemSmall {
-                smallTrainRow(train: train)
-            } else {
-                mediumTrainRow(train: train)
-            }
-        }
-    }
-    
-    private func smallTrainRow(train: WidgetTrainData) -> some View {
-        let shortDelay = train.delayText
-            .replacingOccurrences(of: "Ritardo ", with: "+")
-            .replacingOccurrences(of: "Anticipo ", with: "-")
-            .replacingOccurrences(of: " min", with: "'")
-            .replacingOccurrences(of: "In orario", with: "0'")
-            .replacingOccurrences(of: "In attesa", with: "--")
-            .replacingOccurrences(of: "Soppresso", with: "Soppr.")
-        
-        return HStack(spacing: 4) {
-            Circle()
-                .fill(train.delayColor)
-                .frame(width: 5, height: 5)
-            
-            Text(train.displayTitle)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.primary)
-                .lineLimit(1)
-            
-            Spacer(minLength: 2)
-            
-            Text(shortDelay)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(train.delayColor)
-                .lineLimit(1)
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 6)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(6)
-    }
-    
-    private func mediumTrainRow(train: WidgetTrainData) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: "train.side.front.car")
-                .foregroundColor(.blue)
-                .font(.system(size: 12))
-            
-            VStack(alignment: .leading, spacing: 1) {
+    private func richTrainCard(train: WidgetTrainData, isCompact: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // Line 1: Header (Category + Number ... Delay badge)
+            HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 4) {
-                    Text(train.displayTitle)
-                        .font(.system(size: 12, weight: .bold))
+                    Text(train.shortCategoryText)
+                        .font(.system(size: isCompact ? 11 : 13, weight: .black))
+                        .foregroundColor(train.categoryThemeColor)
+
+                    Text(train.number)
+                        .font(.system(size: isCompact ? 11 : 13, weight: .bold))
                         .foregroundColor(.primary)
-                        .lineLimit(1)
-                    
-                    if let time = train.departureTime, !time.isEmpty, time != "--:--" {
-                        Text("• \(time)")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
                 }
-                
-                Text(train.description)
-                    .font(.system(size: 10))
+
+                Spacer(minLength: 4)
+
+                Text(train.shortDelayBadge)
+                    .font(.system(size: isCompact ? 10 : 12, weight: .heavy))
+                    .foregroundColor(train.delayColor)
+            }
+
+            // Line 2: Station Names
+            HStack(alignment: .center) {
+                Text(train.originStation ?? "Partenza")
+                    .font(.system(size: isCompact ? 9 : 10, weight: .medium))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-            }
-            
-            Spacer(minLength: 4)
-            
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(train.delayColor)
-                    .frame(width: 6, height: 6)
-                
-                Text(train.delayText)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(train.delayColor)
+                    .minimumScaleFactor(0.85)
+
+                Spacer(minLength: 4)
+
+                if let mid = train.middleStationToDisplay {
+                    Text(mid)
+                        .font(.system(size: isCompact ? 9 : 10, weight: .bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: 4)
+                }
+
+                Text(train.destinationStation ?? train.description)
+                    .font(.system(size: isCompact ? 9 : 10, weight: .medium))
+                    .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+
+            // Line 3: Progress track
+            TrainProgressBar(
+                progress: train.progress,
+                isDeparted: train.isDeparted,
+                isArrived: train.isArrived,
+                accentColor: train.categoryThemeColor
+            )
+
+            // Line 4: Times
+            HStack(alignment: .center) {
+                Text(train.departureTime ?? "--:--")
+                    .font(.system(size: isCompact ? 9 : 10, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if train.middleStationToDisplay != nil, let det = train.detectionTime {
+                    Text(det)
+                        .font(.system(size: isCompact ? 9 : 10, weight: .heavy))
+                        .foregroundColor(train.categoryThemeColor)
+
+                    Spacer()
+                }
+
+                Text(train.arrivalTime ?? "--:--")
+                    .font(.system(size: isCompact ? 9 : 10, weight: .semibold))
+                    .foregroundColor(train.isDelayed ? .red : .secondary)
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(7)
     }
 }
+
+// MARK: - Widget Definition
 
 struct TrainWidget: Widget {
     let kind: String = "TrainWidget"
@@ -717,7 +999,7 @@ struct TrainWidget: Widget {
             }
         }
         .configurationDisplayName("Treni Preferiti")
-        .description("Accedi rapidamente ai tuoi treni preferiti.")
+        .description("Visualizza lo stato in tempo reale e il percorso dei tuoi treni preferiti.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
     }
 }

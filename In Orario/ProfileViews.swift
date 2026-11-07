@@ -1773,8 +1773,20 @@ struct SmartSuggestionsSettingsView: View {
     @EnvironmentObject var guessingEngine: TrainGuessingEngine
     @State private var showDeleteConfirmation = false
     @State private var showResetIgnoredConfirmation = false
+    @State private var selectedSlotIndex: Int = {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 6..<12: return 0
+        case 12..<18: return 1
+        case 18..<24: return 2
+        default: return 3
+        }
+    }()
 
     var body: some View {
+        let habits = usageTracker.learnedHabitsByTimeSlot()
+        let hasAnyData = habits.contains { !$0.isEmpty }
+
         List {
             Section(header: Text("Stato")) {
                 Toggle(isOn: $usageTracker.smartSuggestionsEnabled) {
@@ -1783,7 +1795,116 @@ struct SmartSuggestionsSettingsView: View {
                 }
             }
 
-            
+            Section(
+                header: Text("Abitudini apprese"),
+                footer: Text("I dati sono memorizzati solo sul dispositivo per suggerirti stazioni e treni pertinenti al momento giusto.")
+            ) {
+                if !hasAnyData {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "brain.head.profile")
+                                .font(.title3)
+                                .foregroundColor(.accentColor)
+                            Text("Nessuna abitudine registrata")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        Text("L'app impara man mano che consulti orari e stazioni nelle diverse ore della giornata. Continuando a usare l'app, vedrai apparire qui i tuoi schemi abituali.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                } else {
+                    Picker("Fascia oraria", selection: $selectedSlotIndex) {
+                        Text("Mattina").tag(0)
+                        Text("Pomeriggio").tag(1)
+                        Text("Sera").tag(2)
+                        Text("Notte").tag(3)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.vertical, 4)
+
+                    if selectedSlotIndex < habits.count {
+                        let slot = habits[selectedSlotIndex]
+
+                        HStack(spacing: 6) {
+                            Image(systemName: slot.icon)
+                                .foregroundColor(slot.color)
+                            Text("\(slot.title) (\(slot.timeRange))")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 2)
+
+                        if slot.isEmpty {
+                            Text("Nessuna attività registrata in questa fascia oraria.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 4)
+                        } else {
+                            if !slot.stations.isEmpty {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("STAZIONI PIÙ CERCATE")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(.secondary)
+
+                                    ForEach(slot.stations) { st in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "building.2.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.blue)
+                                                .frame(width: 20)
+                                            Text(st.name)
+                                                .font(.subheadline)
+                                            Spacer()
+                                            Text("\(st.count) \(st.count == 1 ? "visita" : "visite")")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .padding(.vertical, 2)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+
+                            if !slot.trains.isEmpty {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("TRENI PIÙ CONSULTATI")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(.secondary)
+
+                                    ForEach(slot.trains) { tr in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "tram.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.orange)
+                                                .frame(width: 20)
+                                            VStack(alignment: .leading, spacing: 1) {
+                                                Text("\(tr.category) \(tr.number)")
+                                                    .font(.subheadline)
+                                                    .fontWeight(.semibold)
+                                                if !tr.destination.isEmpty {
+                                                    Text("Per \(tr.destination)")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                            Spacer()
+                                            Text("\(tr.count) \(tr.count == 1 ? "volta" : "volte")")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .padding(.vertical, 2)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                    }
+                }
+            }
+
             let totalIgnored = usageTracker.ignoredStationNames.count + usageTracker.ignoredTrainNumbers.count + usageTracker.ignoredRouteKeys.count
             if totalIgnored > 0 {
                 Section(
@@ -1796,7 +1917,7 @@ struct SmartSuggestionsSettingsView: View {
                         Text("\(totalIgnored)")
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Button(role: .destructive) {
                         showResetIgnoredConfirmation = true
                     } label: {
@@ -1804,16 +1925,16 @@ struct SmartSuggestionsSettingsView: View {
                     }
                 }
             }
-            
+
             Section(header: Text("Dati raccolti")) {
                 Text("L'app apprende le tue abitudini (stazioni cercate, treni consultati, tratte preferite) per mostrarti informazioni personalizzate nella home al momento opportuno. I dati sono salvati esclusivamente in locale sul tuo dispositivo.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
                 } label: {
-                    Label("Cancella preferenze apprese", systemImage: "trash")
+                    Label("Cancella abitudini apprese", systemImage: "trash")
                         .foregroundColor(.red)
                 }
             }

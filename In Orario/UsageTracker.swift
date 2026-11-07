@@ -471,4 +471,79 @@ class UsageTracker: ObservableObject {
             .prefix(2)
             .map { $0.suggestion }
     }
+    
+    // MARK: - Learned Habits by Time Slot
+    
+    func learnedHabitsByTimeSlot() -> [TimeSlotHabit] {
+        let slotsConfig: [(title: String, range: String, icon: String, color: Color, hours: Range<Int>)] = [
+            ("Mattina", "06:00 - 12:00", "sun.and.horizon.fill", .orange, 6..<12),
+            ("Pomeriggio", "12:00 - 18:00", "sun.max.fill", .yellow, 12..<18),
+            ("Sera", "18:00 - 24:00", "sunset.fill", .indigo, 18..<24),
+            ("Notte", "00:00 - 06:00", "moon.stars.fill", .purple, 0..<6)
+        ]
+        
+        return slotsConfig.map { cfg in
+            let filteredVisits = stationVisits.filter {
+                cfg.hours.contains($0.hour) && !isStationIgnored($0.stationName)
+            }
+            let stationCounts = Dictionary(grouping: filteredVisits, by: { $0.stationName.capitalized })
+                .map { name, visits in LearnedStationHabit(name: name, count: visits.count) }
+                .sorted { $0.count > $1.count }
+            
+            let filteredTrains = trainChecks.filter {
+                cfg.hours.contains($0.hour) && !isTrainIgnored($0.trainNumber)
+            }
+            let trainCounts = Dictionary(grouping: filteredTrains, by: { $0.trainNumber })
+                .compactMap { number, checks -> LearnedTrainHabit? in
+                    guard let first = checks.first else { return nil }
+                    return LearnedTrainHabit(
+                        number: number,
+                        category: first.category,
+                        destination: first.destination,
+                        count: checks.count
+                    )
+                }
+                .sorted { $0.count > $1.count }
+            
+            return TimeSlotHabit(
+                title: cfg.title,
+                timeRange: cfg.range,
+                icon: cfg.icon,
+                color: cfg.color,
+                stations: Array(stationCounts.prefix(4)),
+                trains: Array(trainCounts.prefix(4))
+            )
+        }
+    }
 }
+
+// MARK: - Learned Habits Models
+
+struct LearnedStationHabit: Identifiable, Equatable {
+    var id: String { name }
+    let name: String
+    let count: Int
+}
+
+struct LearnedTrainHabit: Identifiable, Equatable {
+    var id: String { "\(category) \(number)" }
+    let number: String
+    let category: String
+    let destination: String
+    let count: Int
+}
+
+struct TimeSlotHabit: Identifiable, Equatable {
+    var id: String { title }
+    let title: String
+    let timeRange: String
+    let icon: String
+    let color: Color
+    let stations: [LearnedStationHabit]
+    let trains: [LearnedTrainHabit]
+    
+    var isEmpty: Bool {
+        stations.isEmpty && trains.isEmpty
+    }
+}
+
