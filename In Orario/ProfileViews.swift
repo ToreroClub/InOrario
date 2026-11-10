@@ -348,87 +348,76 @@ struct ProfileView: View {
 
     @StateObject private var tipManager = TipManager()
     @ObservedObject private var updateManager = AppUpdateManager.shared
+    @State private var showPaywallSheet = false
+    @State private var showManageSubscriptions = false
     
     var body: some View {
         NavigationStack {
             List {
                 if !manager.hasSupport() {
-                    Section(header: Text("Sostieni In Orario")) {
-                        if tipManager.isLoadingProducts {
-                            HStack {
+                    Section(header: Text("In Orario Pro")) {
+                        Button {
+                            Haptics.play(.light)
+                            showPaywallSheet = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.blue, .indigo],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 38, height: 38)
+                                    Image(systemName: "sparkles")
+                                        .font(.subheadline.bold())
+                                        .foregroundColor(.white)
+                                }
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Passa a In Orario Pro")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                    Text("IA su server, notifiche scioperi, 10 treni e Live Activities ad alta frequenza.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                }
+
                                 Spacer()
-                                ProgressView("Caricamento offerte...")
-                                    .padding()
-                                Spacer()
-                            }
-                        } else if tipManager.products.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Le offerte non sono al momento disponibili.")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 4)
-                        } else {
-                            ForEach(tipManager.products, id: \.id) { product in
-                                let isYearly = product.id == TipManager.yearlySubscriptionID
-                                Button(action: {
-                                    Task {
-                                        await tipManager.purchase(product)
-                                    }
-                                }) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 3) {
-                                            Text(defaultName(for: product.id))
-                                                .font(.headline)
-                                                .foregroundColor(.primary)
-                                            Text(defaultDescription(for: product.id))
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                                .multilineTextAlignment(.leading)
-                                        }
-                                        Spacer()
-                                        if tipManager.purchaseState == .purchasing {
-                                            ProgressView()
-                                        } else {
-                                            VStack(alignment: .trailing, spacing: 1) {
-                                                Text(product.displayPrice)
-                                                    .font(.subheadline.bold())
-                                                    .foregroundColor(.white)
-                                                Text(isYearly ? "all'anno" : "una tantum")
-                                                    .font(.system(size: 9))
-                                                    .foregroundColor(.white.opacity(0.9))
-                                            }
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(isYearly ? Color.green : Color.orange)
-                                            .cornerRadius(8)
-                                        }
-                                    }
-                                }
-                                .disabled(tipManager.purchaseState == .purchasing)
-                            }
-                            
-                            Button(action: {
-                                Haptics.play(.medium)
-                                Task {
-                                    do {
-                                        try await AppStore.sync()
-                                        await tipManager.updatePurchases()
-                                    } catch {
-                                        print("Errore ripristino acquisti: \(error)")
-                                    }
-                                }
-                            }) {
-                                HStack {
-                                    Spacer()
-                                    Text("Ripristina Acquisti")
-                                        .font(.subheadline)
-                                        .foregroundColor(.blue)
-                                    Spacer()
-                                }
+
+                                Text("Piani")
+                                    .font(.caption.bold())
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.blue.opacity(0.12))
+                                    .foregroundColor(.blue)
+                                    .clipShape(Capsule())
                             }
                             .padding(.vertical, 4)
                         }
+
+                        Button {
+                            Task {
+                                await tipManager.restorePurchases()
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Spacer()
+                                if tipManager.isRestoringPurchases {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                }
+                                Text("Ripristina Acquisti")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                Spacer()
+                            }
+                        }
+                        .disabled(tipManager.isRestoringPurchases)
+                        .padding(.vertical, 2)
                     }
                 }
 
@@ -500,7 +489,7 @@ struct ProfileView: View {
                 }
                 
                 if manager.hasSupport() {
-                    Section {
+                    Section(header: Text("In Orario Pro")) {
                         HStack(spacing: 12) {
                             Image(systemName: "crown.fill")
                                 .font(.title2)
@@ -509,13 +498,29 @@ struct ProfileView: View {
                                 Text(supporterRoleTitle)
                                     .font(.headline)
                                     .foregroundColor(.primary)
-                                Text("Grazie ❤️")
+                                Text("Tutte le funzionalità avanzate sono sbloccate.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
                         }
                         .padding(.vertical, 4)
+
+                        Button {
+                            showPaywallSheet = true
+                        } label: {
+                            Label("Dettagli Piano e Termini", systemImage: "doc.text.fill")
+                                .foregroundColor(.blue)
+                        }
+
+                        if tipManager.activeProductType == .yearly {
+                            Button {
+                                showManageSubscriptions = true
+                            } label: {
+                                Label("Gestisci Abbonamento", systemImage: "gearshape.fill")
+                                    .foregroundColor(.blue)
+                            }
+                        }
                     }
                 }
 
@@ -572,13 +577,33 @@ struct ProfileView: View {
             .task {
                 await tipManager.fetchProducts()
             }
-            .alert("Grazie di cuore! ❤️", isPresented: Binding(
+            .sheet(isPresented: $showPaywallSheet) {
+                SupportPaywallSheet()
+                    .environmentObject(manager)
+            }
+            .manageSubscriptionsSheet(
+                isPresented: $showManageSubscriptions,
+                subscriptionGroupID: tipManager.activeSubscriptionGroupID
+            )
+            .alert("Piano Attivato", isPresented: Binding(
                 get: { tipManager.purchaseState == .success },
                 set: { if !$0 { tipManager.resetState() } }
             )) {
-                Button("Prego!", role: .cancel) {}
+                Button("OK", role: .cancel) {}
             } message: {
-                Text("Il tuo supporto è fondamentale per coprire i costi di gestione e sostenere il futuro di In Orario. Buon viaggio!")
+                Text("Il tuo piano In Orario Pro è attivo e tutte le funzionalità avanzate sono ora sbloccate.")
+            }
+            .alert("Ripristino Acquisti", isPresented: Binding(
+                get: { tipManager.restoreOutcome != nil },
+                set: { if !$0 { tipManager.restoreOutcome = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                if tipManager.restoreOutcome == .restored {
+                    Text("I tuoi acquisti precedenti sono stati ripristinati con successo.")
+                } else {
+                    Text("Nessun acquisto precedente da ripristinare per questo account Apple.")
+                }
             }
             .alert("Errore", isPresented: Binding(
                 get: {
@@ -596,30 +621,12 @@ struct ProfileView: View {
         }
     }
     
-    private var supporterRoleTitle: String {
+    private var supporterRoleTitle: LocalizedStringKey {
         switch tipManager.activeProductType {
         case .yearly:
-            return "Sostenitore annuale"
+            return "In Orario Pro · Piano Annuale"
         case .lifetime, .legacy, .none:
-            return "Sostenitore a vita"
-        }
-    }
-    
-    private func defaultName(for id: String) -> String {
-        switch id {
-        case TipManager.yearlySubscriptionID: return "Sostenitore Annuale"
-        case TipManager.lifetimeProductID: return "Sostenitore per Sempre"
-        case TipManager.legacyProductID: return "Sostenitore a vita"
-        default: return "Supporto al progetto"
-        }
-    }
-    
-    private func defaultDescription(for id: String) -> String {
-        switch id {
-        case TipManager.yearlySubscriptionID: return "Accesso completo per 1 anno con rinnovo annuale."
-        case TipManager.lifetimeProductID: return "Accesso completo per sempre con un unico pagamento."
-        case TipManager.legacyProductID: return "Grazie per aver supportato In Orario!"
-        default: return "Sostieni lo sviluppo dell'app."
+            return "In Orario Pro · Piano a Vita"
         }
     }
 }
@@ -640,7 +647,7 @@ struct AboutProjectView: View {
                     .foregroundColor(.primary)
                     .lineSpacing(4)
                 
-                Text("Se In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, puoi sostenere il progetto con un abbonamento annuale o un acquisto a vita.")
+                Text("Se In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, puoi attivare In Orario Pro con un abbonamento annuale o un acquisto a vita per sbloccare tutte le funzionalità avanzate.")
                     .font(.body)
                     .foregroundColor(.primary)
                     .lineSpacing(4)
@@ -706,12 +713,20 @@ struct AboutProjectView: View {
 
 struct FeedbackFormView: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var manager: TrainManager
     @State private var category = "Bug"
     @State private var message = ""
     @State private var contact = ""
+    @State private var includeDiagnostics = true
+    @State private var showLogsSheet = false
     @State private var isSending = false
     @State private var showSuccessAlert = false
     @State private var showErrorAlert = false
+    
+    private var isPushActive: Bool {
+        let token = manager.apnsToken ?? UserDefaults.standard.string(forKey: "apnsTokenKey_v1")
+        return token != nil && !token!.isEmpty && manager.remoteNotificationsEnabled
+    }
     
     var body: some View {
         NavigationStack {
@@ -727,7 +742,7 @@ struct FeedbackFormView: View {
                 
                 Section(header: Text("Dettagli")) {
                     TextEditor(text: $message)
-                        .frame(height: 150)
+                        .frame(height: 140)
                         .overlay(
                             Group {
                                 if message.isEmpty {
@@ -742,11 +757,68 @@ struct FeedbackFormView: View {
                         )
                 }
                 
-                Section(header: Text("Contatto (Opzionale)"), footer: Text("Inserisci un'email se desideri essere ricontattato.")) {
-                    TextField("Tua email", text: $contact)
+                Section(header: Text("Contatto & Notifiche"), footer: Text("Inserisci un'email opzionale se desideri essere ricontattato via posta, oppure attiva le notifiche push per ricevere la risposta direttamente qui sull'app.")) {
+                    TextField("Tua email (opzionale)", text: $contact)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    
+                    if isPushActive {
+                        HStack(spacing: 10) {
+                            Image(systemName: "bell.badge.fill")
+                                .foregroundColor(.green)
+                            Text("Notifiche push attive: lo sviluppatore potrà inviarti una risposta direttamente sul tuo dispositivo.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "bell.badge")
+                                    .foregroundColor(.orange)
+                                Text("Vuoi ricevere una risposta direttamente qui?")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            }
+                            
+                            Text("Abilitando le notifiche push, lo sviluppatore potrà notificarti quando il problema sarà risolto.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: requestPushPermission) {
+                                Label("Abilita Notifiche Push", systemImage: "bell.fill")
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(.borderless)
+                            .padding(.top, 2)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                
+                Section(header: Text("Diagnostica e Risoluzione Problemi"), footer: Text("I dati diagnostici includono modello dispositivo, versione iOS e gli ultimi errori o timeout rilevati dall'app. Non contengono dati personali né credenziali.")) {
+                    Toggle("Allega diagnostica e log recenti", isOn: $includeDiagnostics)
+                    
+                    if includeDiagnostics {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Dispositivo: \(manager.getDeviceModelName()) • iOS \(UIDevice.current.systemVersion)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: { showLogsSheet = true }) {
+                                HStack {
+                                    Image(systemName: "doc.text.magnifyingglass")
+                                    Text("Visualizza dettagli e log che verranno inviati")
+                                }
+                                .font(.caption.bold())
+                                .foregroundColor(.blue)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        .padding(.vertical, 2)
+                    }
                 }
                 
                 Section {
@@ -780,12 +852,33 @@ struct FeedbackFormView: View {
                     dismiss()
                 }
             } message: {
-                Text("La tua segnalazione è stata inviata con successo direttamente agli sviluppatori.")
+                Text(isPushActive ? "La tua segnalazione è stata inviata con successo. Riceverai un riscontro non appena lo sviluppatore risponderà!" : "La tua segnalazione è stata inviata con successo direttamente agli sviluppatori.")
             }
             .alert("Errore di Invio", isPresented: $showErrorAlert) {
                 Button("Riprova", role: .cancel) {}
             } message: {
                 Text("Non è stato possibile inviare il feedback. Verifica la tua connessione internet o riprova più tardi.")
+            }
+            .sheet(isPresented: $showLogsSheet) {
+                DiagnosticLogsPreviewSheet(
+                    deviceInfo: "\(manager.getDeviceModelName()) • iOS \(UIDevice.current.systemVersion) • App v\(AppUpdateManager.shared.currentVersion) (\(AppUpdateManager.shared.currentBuild))",
+                    logs: AppLogger.getRecentLogs()
+                )
+            }
+        }
+    }
+    
+    private func requestPushPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            DispatchQueue.main.async {
+                if granted {
+                    self.manager.remoteNotificationsEnabled = true
+                    UIApplication.shared.registerForRemoteNotifications()
+                    self.manager.syncRemoteNotifications()
+                    Haptics.notify(.success)
+                } else {
+                    Haptics.notify(.warning)
+                }
             }
         }
     }
@@ -795,10 +888,20 @@ struct FeedbackFormView: View {
         isSending = true
         Haptics.play(.medium)
         
-        let payload: [String: String] = [
+        let token = manager.apnsToken ?? (UserDefaults.standard.string(forKey: "apnsTokenKey_v1") ?? "")
+        let payload: [String: Any] = [
             "category": category,
             "message": message,
-            "contact": contact
+            "contact": contact,
+            "email": contact,
+            "device_id": manager.getEffectiveDeviceToken(),
+            "device_token": token,
+            "device_model": manager.getDeviceModelName(),
+            "os_version": UIDevice.current.systemVersion,
+            "app_version": AppUpdateManager.shared.currentVersion,
+            "app_build": AppUpdateManager.shared.currentBuild,
+            "notifications_enabled": manager.remoteNotificationsEnabled,
+            "logs": includeDiagnostics ? AppLogger.getRecentLogs() : ""
         ]
         
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/feedback") else {
@@ -809,7 +912,10 @@ struct FeedbackFormView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 10.0
+        if !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "X-Device-Token")
+        }
+        request.timeoutInterval = 15.0
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -835,6 +941,65 @@ struct FeedbackFormView: View {
                 isSending = false
                 showErrorAlert = true
                 Haptics.notify(.error)
+            }
+        }
+    }
+}
+
+struct DiagnosticLogsPreviewSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let deviceInfo: String
+    let logs: String
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Dispositivo")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        Text(deviceInfo)
+                            .font(.subheadline)
+                            .bold()
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(12)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Log ed Errori Recenti")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        Text(logs)
+                            .font(.system(size: 11.5, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                    }
+                    
+                    Text("Nota: questi dati sono anonimi e non contengono token APNs, header di autenticazione o informazioni di navigazione personale.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                }
+                .padding()
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+            .navigationTitle("Dati Diagnostici Allegati")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Chiudi") {
+                        dismiss()
+                    }
+                }
             }
         }
     }
@@ -1677,7 +1842,7 @@ struct DaySelectorView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 if isDisabled {
-                    Text("(Solo Sostenitori)")
+                    Text("(Solo Pro)")
                         .font(.caption2)
                         .foregroundColor(.orange)
                 }
@@ -1707,7 +1872,7 @@ struct DaySelectorView: View {
             }
             
             if isDisabled {
-                Text("La scelta dei giorni della settimana è riservata a chi sostiene il progetto In Orario.")
+                Text("La scelta dei giorni della settimana è inclusa nel piano In Orario Pro.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .padding(.top, 2)

@@ -79,6 +79,7 @@ struct ContentView: View {
     
     @StateObject private var commuteManager = SupporterCommuteManager.shared
     @ObservedObject private var updateManager = AppUpdateManager.shared
+    @ObservedObject private var developerReplyManager = DeveloperReplyManager.shared
     @State private var showCommuteSetupSheet = false
     @State private var showPlanBDetailSheet = false
     
@@ -546,6 +547,11 @@ struct ContentView: View {
             .sheet(isPresented: $updateManager.showUpdatePrompt) {
                 AppUpdatePromptSheet()
             }
+            .sheet(isPresented: $developerReplyManager.showReplyModal) {
+                if let reply = developerReplyManager.activeReply {
+                    DeveloperReplySheet(reply: reply)
+                }
+            }
             .alert(
                 updateManager.activeRemoteAlert?.title ?? "Avviso",
                 isPresented: $updateManager.showRemoteAlert,
@@ -789,7 +795,7 @@ struct ContentView: View {
                 set: { if !$0 { manager.notificationLimitError = nil } }
             )) {
                 if !manager.hasSupport() {
-                    Button("Sostieni il progetto") {
+                    Button("Passa a In Orario Pro") {
                         manager.notificationLimitError = nil
                         manager.showPaywallSheet = true
                     }

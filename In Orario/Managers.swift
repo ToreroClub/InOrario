@@ -1743,7 +1743,7 @@ struct Haptics {
                             if self.hasSupport() {
                                 self.notificationLimitError = "Puoi monitorare al massimo \(limit) treni alla volta per il tuo livello."
                             } else {
-                                self.notificationLimitError = "Hai raggiunto il limite di monitoraggio per la versione gratuita. Sostieni il progetto per sbloccare fino a 10 treni in tempo reale, Live Activity senza limiti e avvisi scioperi dedicati."
+                                self.notificationLimitError = "Hai raggiunto il limite di monitoraggio per la versione gratuita. Passa a In Orario Pro per sbloccare fino a 10 treni simultanei, Live Activities ad alta frequenza e notifiche scioperi dedicate."
                             }
                         }
                     }
@@ -3226,12 +3226,20 @@ enum TipError: Error {
     case unverified
 }
 
+enum RestoreOutcome: Equatable {
+    case restored
+    case noneFound
+}
+
 @MainActor
 class TipManager: ObservableObject {
     @Published var products: [Product] = []
     @Published var isLoadingProducts: Bool = true
     @Published var purchaseState: PurchaseState = .idle
     @Published var activeProductType: SupporterTierType? = nil
+    @Published var introOfferEligibility: [String: Bool] = [:]
+    @Published var isRestoringPurchases: Bool = false
+    @Published var restoreOutcome: RestoreOutcome? = nil
     
     enum SupporterTierType: String {
         case legacy = "legacy"
@@ -3242,6 +3250,12 @@ class TipManager: ObservableObject {
     static let legacyProductID = "tip.colazionee"
     static let yearlySubscriptionID = "sub.supporter.yearly"
     static let lifetimeProductID = "tip.supporter.lifetime"
+    static let subscriptionGroupID = "22552666"
+
+    var activeSubscriptionGroupID: String {
+        products.first(where: { $0.subscription != nil })?.subscription?.subscriptionGroupID
+            ?? Self.subscriptionGroupID
+    }
     
     // In vendita per i nuovi utenti: abbonamento annuale e acquisto una tantum
     private let productIDs = [yearlySubscriptionID, lifetimeProductID]
@@ -3306,12 +3320,51 @@ class TipManager: ObservableObject {
         await updatePurchases()
         do {
             let storeProducts = try await Product.products(for: productIDs)
-            // Mostra prima l'annuale a 3,99 € e poi il lifetime a 9,99 €
-            self.products = storeProducts.sorted(by: { $0.price < $1.price })
+            // Mostra prima gli abbonamenti auto-rinnovabili e poi gli acquisti una tantum
+            let sorted = storeProducts.sorted { lhs, rhs in
+                if (lhs.subscription != nil) != (rhs.subscription != nil) {
+                    return lhs.subscription != nil
+                }
+                return lhs.price < rhs.price
+            }
+            var eligibility: [String: Bool] = [:]
+            for product in sorted {
+                if let subscription = product.subscription {
+                    eligibility[product.id] = await subscription.isEligibleForIntroOffer
+                }
+            }
+            self.products = sorted
+            self.introOfferEligibility = eligibility
             self.isLoadingProducts = false
         } catch {
             print("Errore nel caricamento dei prodotti da StoreKit: \(error)")
             self.isLoadingProducts = false
+        }
+    }
+
+    func isEligibleForIntroOffer(_ product: Product) -> Bool {
+        introOfferEligibility[product.id] ?? false
+    }
+
+    func restorePurchases() async {
+        isRestoringPurchases = true
+        restoreOutcome = nil
+        Haptics.play(.medium)
+        defer { isRestoringPurchases = false }
+
+        do {
+            try await AppStore.sync()
+            await updatePurchases()
+            if activeProductType != nil || UserDefaults.standard.bool(forKey: "tip.colazionee") {
+                restoreOutcome = .restored
+                Haptics.notify(.success)
+            } else {
+                restoreOutcome = .noneFound
+                Haptics.notify(.warning)
+            }
+        } catch {
+            purchaseState = .error(error.localizedDescription)
+            Haptics.notify(.error)
         }
     }
     

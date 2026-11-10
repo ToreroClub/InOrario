@@ -91,6 +91,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     // Mostra le notifiche anche ad app aperta
     @MainActor
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        let userInfo = notification.request.content.userInfo
+        let category = notification.request.content.categoryIdentifier
+        if category == "DEVELOPER_REPLY" || userInfo["type"] as? String == "developer_reply" {
+            let title = notification.request.content.title
+            let body = notification.request.content.body
+            DeveloperReplyManager.shared.handleIncomingReply(userInfo: userInfo, title: title, body: body)
+        }
         completionHandler([.banner, .sound, .badge])
     }
     
@@ -100,7 +107,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let category = response.notification.request.content.categoryIdentifier
         let userInfo = response.notification.request.content.userInfo
         
-        if action == "IGNORE_STRIKE" {
+        if category == "DEVELOPER_REPLY" || userInfo["type"] as? String == "developer_reply" {
+            let title = response.notification.request.content.title
+            let body = response.notification.request.content.body
+            DeveloperReplyManager.shared.handleIncomingReply(userInfo: userInfo, title: title, body: body)
+        } else if action == "IGNORE_STRIKE" {
             if let strikeId = userInfo["strike_id"] as? String {
                 manager?.ignoreStrike(strikeId: strikeId)
             }

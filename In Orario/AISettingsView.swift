@@ -165,7 +165,7 @@ struct AISettingsView: View {
             // MARK: Sezione 2: Funzionalità IA
             Section(
                 header: Text("Funzionalità IA"),
-                footer: Text("Le funzionalità avanzate contrassegnate per Sostenitori richiedono il supporto al progetto.")
+                footer: Text("Le funzionalità avanzate contrassegnate con Pro sono incluse nel piano In Orario Pro.")
             ) {
                 // 1. Notizie e Scioperi
                 AIFeatureRow(
@@ -248,7 +248,7 @@ struct AISettingsView: View {
         if manager.hasSupport() {
             return "Attivo"
         } else {
-            return "Sostenitori"
+            return "Pro"
         }
     }
     
@@ -343,7 +343,7 @@ private struct AIFeatureRow: View {
                             .clipShape(Capsule())
                     case .supporter:
                         HStack(spacing: 3) {
-                            Text("Sostenitori")
+                            Text("Pro")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.red)
                             Image(systemName: "lock.fill")

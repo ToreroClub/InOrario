@@ -650,7 +650,7 @@ struct StationBoardWidgetEntryView: View {
                 .font(.title2)
             Text("Widget Bloccato")
                 .font(.headline)
-            Text("Diventa Sostenitore nelle impostazioni dell'app per sbloccare il tabellone partenze.")
+            Text("Attiva In Orario Pro nelle impostazioni dell'app per sbloccare il tabellone partenze.")
                 .font(.system(size: 11))
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)

@@ -456,12 +456,12 @@ struct TrainStopsView: View {
             }
         }
         .alert("Live Activity Attiva! 🚆", isPresented: $showFreeLiveActivityAlert) {
-            Button("Diventa Sostenitore") {
+            Button("Passa a In Orario Pro") {
                 showPaywallSheet = true
             }
             Button("Ho capito", role: .cancel) { }
         } message: {
-            Text("Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ogni minuto anche a telefono bloccato? Sostieni il progetto per sbloccarli!")
+            Text("Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ad alta frequenza (ogni 30–60 secondi) anche a telefono bloccato? Attiva In Orario Pro per sbloccarli!")
         }
         .alert("Attenzione", isPresented: $showReplaceLiveActivityAlert) {
             Button("OK") {

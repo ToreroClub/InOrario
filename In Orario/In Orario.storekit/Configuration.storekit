@@ -36,9 +36,14 @@
       "internalID" : "F5EE1044",
       "localizations" : [
         {
-          "description" : "Accesso completo a vita con un unico acquisto, senza scadenze.",
-          "displayName" : "Sostenitore per Sempre",
+          "description" : "Acquisto singolo una tantum con accesso permanente a tutte le funzionalità avanzate di In Orario Pro.",
+          "displayName" : "In Orario Pro a Vita",
           "locale" : "it"
+        },
+        {
+          "description" : "One-time purchase with lifetime access to all In Orario Pro advanced features.",
+          "displayName" : "In Orario Pro Lifetime",
+          "locale" : "en_US"
         }
       ],
       "productID" : "tip.supporter.lifetime",
@@ -65,12 +70,17 @@
   ],
   "subscriptionGroups" : [
     {
-      "id" : "2147483647",
+      "id" : "22552666",
       "localizations" : [
         {
-          "description" : "Supporto continuativo a In Orario",
-          "displayName" : "In Orario Sostenitore",
+          "description" : "Funzionalità avanzate di monitoraggio ferroviario, notifiche push e IA su server",
+          "displayName" : "In Orario Pro",
           "locale" : "it"
+        },
+        {
+          "description" : "Advanced train tracking, push notifications, and server-side AI features",
+          "displayName" : "In Orario Pro",
+          "locale" : "en_US"
         }
       ],
       "name" : "In Orario Sostenitore",
@@ -113,15 +123,20 @@
           ],
           "localizations" : [
             {
-              "description" : "3 giorni di prova gratuita, poi tutte le funzioni per 1 anno con supporto continuativo.",
-              "displayName" : "Sostenitore Annuale",
+              "description" : "3 giorni di prova gratuita, poi rinnovo annuale. Sblocca IA su server per scioperi e lavori, notifiche push scioperi, fino a 10 treni, Live Activities ogni 30–60 secondi e accesso prioritario alle nuove funzioni.",
+              "displayName" : "In Orario Pro Annuale",
               "locale" : "it"
+            },
+            {
+              "description" : "3-day free trial, then renews yearly. Unlocks server AI for strikes and works, strike push notifications, up to 10 trains, Live Activities every 30–60s, and priority access to new features.",
+              "displayName" : "In Orario Pro Annual",
+              "locale" : "en_US"
             }
           ],
           "productID" : "sub.supporter.yearly",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Sostenitore Annuale",
-          "subscriptionGroupID" : "2147483647",
+          "subscriptionGroupID" : "22552666",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 

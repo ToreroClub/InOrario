@@ -51,6 +51,9 @@
         }
       }
     },
+    "·" : {
+
+    },
     "· %@" : {
 
     },
@@ -70,8 +73,25 @@
     "(%lld)" : {
 
     },
-    "(Solo Sostenitori)" : {
-
+    "(Solo Pro)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(Pro Only)"
+          }
+        }
+      }
+    },
+    "/ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ %@"
+          }
+        }
+      }
     },
     "%@" : {
       "localizations" : {
@@ -168,6 +188,16 @@
         }
       }
     },
+    "%@ gratis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ free"
+          }
+        }
+      }
+    },
     "%@ per %@" : {
       "localizations" : {
         "en" : {
@@ -204,11 +234,41 @@
         }
       }
     },
+    "%lld anni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld years"
+          }
+        }
+      }
+    },
     "%lld cambi" : {
 
     },
     "%lld fermate" : {
 
+    },
+    "%lld giorni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld days"
+          }
+        }
+      }
+    },
+    "%lld mesi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld months"
+          }
+        }
+      }
     },
     "%lld min a piedi" : {
 
@@ -221,6 +281,16 @@
     },
     "%lld preferite" : {
 
+    },
+    "%lld settimane" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld weeks"
+          }
+        }
+      }
     },
     "•" : {
       "localizations" : {
@@ -325,6 +395,46 @@
         }
       }
     },
+    "1 anno" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 year"
+          }
+        }
+      }
+    },
+    "1 giorno" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 day"
+          }
+        }
+      }
+    },
+    "1 mese" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 month"
+          }
+        }
+      }
+    },
+    "1 settimana" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 week"
+          }
+        }
+      }
+    },
     "15 min stimati" : {
       "localizations" : {
         "en" : {
@@ -365,8 +475,45 @@
         }
       }
     },
-    "Abbonamento Annuale" : {
-
+    "Abbonamento %@ · %@ gratis, poi %@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ Subscription · %2$@ free, then %3$@/%4$@"
+          }
+        }
+      }
+    },
+    "Abbonamento %@ · %@ per %@, poi %@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ Subscription · %2$@ for %3$@, then %4$@/%5$@"
+          }
+        }
+      }
+    },
+    "Abbonamento %@ · Rinnovo automatico ogni %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ Subscription · Auto-renews every %2$@"
+          }
+        }
+      }
+    },
+    "Abbonati · %@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribe · %1$@/%2$@"
+          }
+        }
+      }
     },
     "Abilita la visualizzazione del Passante e delle linee suburbane nella schermata principale per consultarne partenze e stato della rete." : {
 
@@ -381,7 +528,13 @@
         }
       }
     },
+    "Abilita Notifiche Push" : {
+
+    },
     "Abilita posizione per stazioni vicine" : {
+
+    },
+    "Abilitando le notifiche push, lo sviluppatore potrà notificarti quando il problema sarà risolto." : {
 
     },
     "Abilitare le notifiche?" : {
@@ -407,11 +560,45 @@
     "Abitudini di viaggio 💖" : {
 
     },
-    "Accesso completo per 1 anno" : {
-
+    "Accesso prioritario a tutte le nuove funzionalità avanzate introdotte nei prossimi aggiornamenti." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority access to all new advanced features introduced in upcoming updates."
+          }
+        }
+      }
     },
-    "Accesso completo per sempre" : {
-
+    "Accesso prioritario alle novità" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority access to new features"
+          }
+        }
+      }
+    },
+    "Acquista a vita · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy Lifetime · %@"
+          }
+        }
+      }
+    },
+    "Acquisto singolo · Accesso permanente, nessun rinnovo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-time purchase · Lifetime access, no renewal"
+          }
+        }
+      }
     },
     "Affollamento" : {
       "extractionState" : "stale",
@@ -438,9 +625,6 @@
 
     },
     "Aggiorna ora su App Store" : {
-
-    },
-    "Aggiornamenti automatici in tempo reale inviati direttamente dal server ogni minuto a schermo bloccato." : {
 
     },
     "Aggiungi" : {
@@ -559,12 +743,6 @@
     "Aggiunto" : {
 
     },
-    "Aiuta un singolo sviluppatore a sostenere i costi continuativi dell'app, mantenendola gratuita per tutti e senza alcuna pubblicità." : {
-
-    },
-    "all'anno" : {
-
-    },
     "alle %@" : {
       "localizations" : {
         "en" : {
@@ -574,6 +752,9 @@
           }
         }
       }
+    },
+    "Allega diagnostica e log recenti" : {
+
     },
     "Alternative di viaggio" : {
 
@@ -613,6 +794,26 @@
     },
     "Andata:" : {
 
+    },
+    "anno" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "year"
+          }
+        }
+      }
+    },
+    "Annuale" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annual"
+          }
+        }
+      }
     },
     "Annulla" : {
       "localizations" : {
@@ -721,6 +922,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "WARNING: Qwen is an experimental in-app model. It may cause crashes due to running out of memory (RAM) or high battery consumption on some devices."
+          }
+        }
+      }
+    },
+    "Attiva In Orario Pro nelle impostazioni dell'app per sbloccare il tabellone partenze." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activate In Orario Pro in the app settings to unlock the departure board."
           }
         }
       }
@@ -871,9 +1083,6 @@
     "Cancella abitudini apprese" : {
 
     },
-    "Cancella cronologia ricerche" : {
-
-    },
     "Cancella preferenze apprese" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -885,9 +1094,6 @@
         }
       }
     },
-    "Cancellare la cronologia?" : {
-
-    },
     "CANCELLATO" : {
       "localizations" : {
         "en" : {
@@ -897,9 +1103,6 @@
           }
         }
       }
-    },
-    "Capisci al volo cosa succede durante un'agitazione con riassunti automatici, chiari e semplici." : {
-
     },
     "Capolinea" : {
       "localizations" : {
@@ -912,11 +1115,22 @@
       }
     },
     "Caricamento offerte..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading offers..."
+          }
+        }
+      }
+    },
+    "Caricamento piani..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading plans..."
           }
         }
       }
@@ -1165,6 +1379,17 @@
         }
       }
     },
+    "Con il piano gratuito puoi attivare la notifica o la Live Activity per 1 treno alla volta. Passando a In Orario Pro sblocchi il monitoraggio simultaneo fino a 10 treni, Live Activities ad alta frequenza, notifiche push dedicate per gli scioperi e la selezione dei giorni della settimana." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With the free plan you can enable notifications or a Live Activity for 1 train at a time. Upgrading to In Orario Pro unlocks simultaneous tracking of up to 10 trains, high-frequency Live Activities, dedicated strike push notifications, and weekday selection."
+          }
+        }
+      }
+    },
     "Conferma di essere a bordo" : {
 
     },
@@ -1240,6 +1465,7 @@
 
     },
     "Contatto (Opzionale)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1248,6 +1474,9 @@
           }
         }
       }
+    },
+    "Contatto & Notifiche" : {
+
     },
     "Continua" : {
       "localizations" : {
@@ -1358,7 +1587,7 @@
         }
       }
     },
-    "Dati e sincronizzazione" : {
+    "Dati Diagnostici Allegati" : {
 
     },
     "Dati in tempo reale da tabelloni RFI" : {
@@ -1411,6 +1640,16 @@
         }
       }
     },
+    "Dettagli Piano e Termini" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan Details & Terms"
+          }
+        }
+      }
+    },
     "Dettagli Viaggio" : {
       "localizations" : {
         "en" : {
@@ -1420,6 +1659,9 @@
           }
         }
       }
+    },
+    "Diagnostica e Risoluzione Problemi" : {
+
     },
     "Digita il nome di una stazione per cercarla." : {
       "extractionState" : "stale",
@@ -1494,8 +1736,18 @@
     "Disattivo" : {
 
     },
-    "Diventa Sostenitore" : {
+    "Dispositivo" : {
 
+    },
+    "Dispositivo: %@ • iOS %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Dispositivo: %1$@ • iOS %2$@"
+          }
+        }
+      }
     },
     "Domande Frequenti" : {
 
@@ -1580,7 +1832,14 @@
       }
     },
     "Errore Acquisto" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase Error"
+          }
+        }
+      }
     },
     "Errore di Invio" : {
       "localizations" : {
@@ -1790,6 +2049,26 @@
     "Generali e notifiche" : {
 
     },
+    "Gestisci Abbonamento" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Subscription"
+          }
+        }
+      }
+    },
+    "Giornaliero" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily"
+          }
+        }
+      }
+    },
     "Giorni attivi:" : {
       "localizations" : {
         "en" : {
@@ -1803,13 +2082,21 @@
     "Giorni di viaggio" : {
 
     },
-    "Grazie ❤️" : {
-
+    "giorno" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "day"
+          }
+        }
+      }
     },
     "Grazie davvero ❤️" : {
 
     },
     "Grazie di cuore! ❤️" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1843,7 +2130,21 @@
     "Hai già una Live Activity attiva, verrà sostituita." : {
 
     },
+    "Hai raggiunto il limite di monitoraggio per la versione gratuita. Passa a In Orario Pro per sbloccare fino a 10 treni simultanei, Live Activities ad alta frequenza e notifiche scioperi dedicate." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've reached the free plan monitoring limit. Upgrade to In Orario Pro to unlock up to 10 simultaneous trains, high-frequency Live Activities, and dedicated strike notifications."
+          }
+        }
+      }
+    },
     "Ho capito" : {
+
+    },
+    "Ho capito, grazie! ❤️" : {
 
     },
     "Ho creato In Orario per rendere un po’ più semplice la vita di chi prende il treno ogni giorno. L’app mostra le stesse informazioni presenti sui tabelloni in stazione, aggiornate in tempo reale." : {
@@ -1859,6 +2160,9 @@
           }
         }
       }
+    },
+    "I dati diagnostici includono modello dispositivo, versione iOS e gli ultimi errori o timeout rilevati dall'app. Non contengono dati personali né credenziali." : {
+
     },
     "I miei Treni" : {
       "localizations" : {
@@ -1892,6 +2196,16 @@
         }
       }
     },
+    "I piani di abbonamento non sono al momento disponibili." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscription plans are currently unavailable."
+          }
+        }
+      }
+    },
     "I treni e le stazioni che aprirai appariranno qui automaticamente." : {
       "localizations" : {
         "en" : {
@@ -1905,10 +2219,17 @@
     "I treni per la tua destinazione partono dalle altre stazioni configurate." : {
 
     },
-    "I widget mostrano fino a un massimo di 3 treni contemporaneamente nei formati Piccolo e Medio. Se la rotazione è attiva, i treni ruotano durante la giornata mostrando in alto quelli in partenza a breve o in viaggio." : {
-
+    "I tuoi acquisti precedenti sono stati ripristinati con successo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your previous purchases have been successfully restored."
+          }
+        }
+      }
     },
-    "IA Cloud a pagamento" : {
+    "I widget mostrano fino a un massimo di 3 treni contemporaneamente nei formati Piccolo e Medio. Se la rotazione è attiva, i treni ruotano durante la giornata mostrando in alto quelli in partenza a breve o in viaggio." : {
 
     },
     "IA Locale (Offline - Beta)" : {
@@ -1918,6 +2239,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Local AI (Offline – Beta)"
+          }
+        }
+      }
+    },
+    "IA su server (In Orario Pro)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server AI (In Orario Pro)"
+          }
+        }
+      }
+    },
+    "IA su server per il riepilogo intelligente di scioperi e lavori programmati." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart summaries of strikes and scheduled works processed on our servers."
+          }
+        }
+      }
+    },
+    "IA su server per scioperi e lavori" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server-side AI for strikes and works"
+          }
+        }
+      }
+    },
+    "IA su server, notifiche scioperi, 10 treni e Live Activities ad alta frequenza." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server AI, strike alerts, 10 trains & high-frequency Live Activities."
           }
         }
       }
@@ -1967,7 +2328,18 @@
         }
       }
     },
+    "Il tuo piano In Orario Pro è attivo e tutte le funzionalità avanzate sono ora sbloccate." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your In Orario Pro plan is active and all advanced features are now unlocked."
+          }
+        }
+      }
+    },
     "Il tuo supporto è fondamentale per coprire i costi di gestione e sostenere il futuro di In Orario. Buon viaggio!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1976,9 +2348,6 @@
           }
         }
       }
-    },
-    "Il tuo supporto è stato registrato ed hai sbloccato tutte le funzioni per sostenitori." : {
-
     },
     "Impostazioni" : {
       "localizations" : {
@@ -2031,6 +2400,36 @@
     },
     "In Orario monitora ritardi e tabelloni dei treni. Per approfondire scioperi del trasporto pubblico, cantieri stradali e deviazioni a Milano, scopri l'app LavoraMi." : {
 
+    },
+    "In Orario Pro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Orario Pro"
+          }
+        }
+      }
+    },
+    "In Orario Pro · Piano a Vita" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Orario Pro · Lifetime Plan"
+          }
+        }
+      }
+    },
+    "In Orario Pro · Piano Annuale" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Orario Pro · Annual Plan"
+          }
+        }
+      }
     },
     "In Orario supporta il monitoraggio continuo, le notifiche e le Live Activity solo per i treni Trenitalia e Trenord.\n\nPer i treni Italo puoi consultare orari, fermate e binari in tempo reale direttamente nell'app." : {
 
@@ -2116,6 +2515,16 @@
         }
       }
     },
+    "Inizia" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get Started"
+          }
+        }
+      }
+    },
     "Inizia a digitare nella barra in alto per cercare qualsiasi stazione ferroviaria." : {
 
     },
@@ -2133,7 +2542,11 @@
     "Inserisci il numero di un treno (es. 9604) oppure il nome di una stazione (es. Bologna Centrale)." : {
 
     },
+    "Inserisci un'email opzionale se desideri essere ricontattato via posta, oppure attiva le notifiche push per ricevere la risposta direttamente qui sull'app." : {
+
+    },
     "Inserisci un'email se desideri essere ricontattato." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2222,14 +2635,29 @@
         }
       }
     },
-    "L'elaborazione tramite server Cloud è riservata a chi sostiene il progetto In Orario per coprire i costi di calcolo." : {
+    "L'elaborazione intelligente su server dedicati è inclusa in In Orario Pro." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smart processing on dedicated servers is included in In Orario Pro."
+          }
+        }
+      }
+    },
+    "L'elaborazione intelligente su server dedicati è inclusa nel piano In Orario Pro." : {
 
     },
-    "La scelta dei giorni della settimana è riservata a chi sostiene il progetto In Orario." : {
-
-    },
-    "La sincronizzazione iCloud mantiene aggiornati i tuoi treni e stazioni preferite su tutti i tuoi dispositivi Apple." : {
-
+    "La scelta dei giorni della settimana è inclusa nel piano In Orario Pro." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weekday selection is included in the In Orario Pro plan."
+          }
+        }
+      }
     },
     "La sviluppo e la mantengo da solo, nel mio tempo libero. Ho scelto di offrirla gratuitamente e senza pubblicità, ma mantenerla attiva comporta alcuni costi." : {
 
@@ -2254,6 +2682,9 @@
           }
         }
       }
+    },
+    "La tua segnalazione è stata inviata con successo. Riceverai un riscontro non appena lo sviluppatore risponderà!" : {
+
     },
     "LavoraMi" : {
 
@@ -2291,8 +2722,15 @@
         }
       }
     },
-    "Le funzionalità avanzate contrassegnate per Sostenitori richiedono il supporto al progetto." : {
-
+    "Le funzionalità avanzate contrassegnate con Pro sono incluse nel piano In Orario Pro." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced features marked with Pro are included in the In Orario Pro plan."
+          }
+        }
+      }
     },
     "Le Mie Stazioni" : {
       "localizations" : {
@@ -2325,12 +2763,6 @@
       }
     },
     "Le notifiche e le Live Activity non sono disponibili per i treni Italo: In Orario supporta il monitoraggio in background solo per Trenitalia e Trenord." : {
-
-    },
-    "Le offerte donazione non sono al momento disponibili." : {
-
-    },
-    "Le offerte non sono al momento disponibili." : {
 
     },
     "Legale e Privacy" : {
@@ -2387,8 +2819,36 @@
         }
       }
     },
-    "Live Activity & Notifiche insieme" : {
-
+    "Live Activities ad alta frequenza" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High-frequency Live Activities"
+          }
+        }
+      }
+    },
+    "Live Activities ad alta frequenza con aggiornamenti automatici ogni 30–60 secondi su schermata di blocco e Isola Dinamica." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High-frequency Live Activities with automatic updates every 30–60 seconds on Lock Screen and Dynamic Island."
+          }
+        }
+      }
+    },
+    "Live Activities ad alta frequenza con aggiornamento ogni secondo su schermata di blocco e Isola Dinamica." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High-frequency Live Activities updating every second on Lock Screen and Dynamic Island."
+          }
+        }
+      }
     },
     "Live Activity Attiva" : {
       "extractionState" : "stale",
@@ -2404,7 +2864,7 @@
     "Live Activity Attiva! 🚆" : {
 
     },
-    "Live Activity con push al minuto" : {
+    "Log ed Errori Recenti" : {
 
     },
     "Mappa" : {
@@ -2456,6 +2916,26 @@
     "Mattina" : {
 
     },
+    "Mensile" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly"
+          }
+        }
+      }
+    },
+    "mese" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "month"
+          }
+        }
+      }
+    },
     "Metro" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2498,9 +2978,6 @@
         }
       }
     },
-    "Monitora fino a 10 treni contemporaneamente e attiva Notifiche Push e Live Activity senza limitazioni." : {
-
-    },
     "Monitora lo stato del Passante di Milano e del relativo Tunnel sotterraneo in un'unica schermata." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2508,6 +2985,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Monitor the status of the Milan Passante suburban railway and its underground tunnel in one screen."
+          }
+        }
+      }
+    },
+    "Monitoraggio fino a 10 treni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track up to 10 trains simultaneously"
+          }
+        }
+      }
+    },
+    "Monitoraggio simultaneo fino a 10 treni con notifiche push e giorni attivi personalizzati." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitor up to 10 trains at once with push notifications and custom active days."
           }
         }
       }
@@ -2610,6 +3107,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In the app settings you can configure each station to show departures, arrivals or both."
+          }
+        }
+      }
+    },
+    "Nessun acquisto precedente da ripristinare per questo account Apple." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No previous purchases found to restore for this Apple Account."
           }
         }
       }
@@ -2969,6 +3476,9 @@
         }
       }
     },
+    "Nota: questi dati sono anonimi e non contengono token APNs, header di autenticazione o informazioni di navigazione personale." : {
+
+    },
     "Notifica al passaggio in stazione" : {
       "localizations" : {
         "en" : {
@@ -3057,6 +3567,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications disabled"
+          }
+        }
+      }
+    },
+    "Notifiche push attive: lo sviluppatore potrà inviarti una risposta direttamente sul tuo dispositivo." : {
+
+    },
+    "Notifiche push dedicate per gli scioperi e le variazioni della circolazione ferroviaria." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dedicated push notifications for strikes and rail service disruptions."
+          }
+        }
+      }
+    },
+    "Notifiche push per scioperi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dedicated strike push notifications"
           }
         }
       }
@@ -3219,6 +3752,16 @@
         }
       }
     },
+    "Passa a In Orario Pro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade to In Orario Pro"
+          }
+        }
+      }
+    },
     "Passante & Tunnel" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3325,6 +3868,16 @@
         }
       }
     },
+    "Piani" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plans"
+          }
+        }
+      }
+    },
     "Pianifica un Viaggio" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3332,6 +3885,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plan a Journey"
+          }
+        }
+      }
+    },
+    "Piano Attivato" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan Activated"
+          }
+        }
+      }
+    },
+    "Piano: %@ · Durata: %@ · Offerta iniziale %@ per %@, poi %@/%@ con rinnovo automatico salvo annullamento almeno 24 ore prima della scadenza." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan: %1$@ · Duration: %2$@ · Intro offer %3$@ for %4$@, then %5$@/%6$@ auto-renewing unless canceled at least 24 hours before the end of the period."
+          }
+        }
+      }
+    },
+    "Piano: %@ · Durata: %@ · Prezzo: %@/%@. Dopo %@ di prova gratuita, l'abbonamento si rinnova automaticamente salvo annullamento almeno 24 ore prima della scadenza." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan: %1$@ · Duration: %2$@ · Price: %3$@/%4$@. After the %5$@ free trial, the subscription automatically renews unless canceled at least 24 hours before the end of the period."
+          }
+        }
+      }
+    },
+    "Piano: %@ · Durata: %@ · Prezzo: %@/%@. L'abbonamento si rinnova automaticamente salvo annullamento almeno 24 ore prima della scadenza." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan: %1$@ · Duration: %2$@ · Price: %3$@/%4$@. The subscription automatically renews unless canceled at least 24 hours before the end of the period."
           }
         }
       }
@@ -3401,6 +3994,7 @@
       }
     },
     "Prego!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3423,6 +4017,26 @@
     },
     "Previsione Ritardi" : {
 
+    },
+    "Pro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        }
+      }
+    },
+    "Prodotto: %@ · Acquisto una tantum · Prezzo: %@. Pagamento singolo senza rinnovo automatico." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product: %1$@ · One-time purchase · Price: %2$@. Single payment with no automatic renewal."
+          }
+        }
+      }
     },
     "Profilo" : {
       "extractionState" : "stale",
@@ -3458,11 +4072,28 @@
     "Prova a cambiare orario di partenza." : {
 
     },
+    "Prova gratis %@ · poi %@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start %1$@ free trial · then %2$@/%3$@"
+          }
+        }
+      }
+    },
     "Prova In Orario: l'app per seguire i treni e i ritardi in tutta Italia!" : {
 
     },
-    "Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ogni minuto anche a telefono bloccato? Sostieni il progetto per sbloccarli!" : {
-
+    "Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ad alta frequenza (ogni 30–60 secondi) anche a telefono bloccato? Attiva In Orario Pro per sbloccarli!" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can refresh the train status anytime by tapping the 🔄 button on the Lock Screen or reopening the app.\n\nPrefer automatic high-frequency updates (every 30–60 seconds) even while locked? Upgrade to In Orario Pro to unlock them!"
+          }
+        }
+      }
     },
     "Puoi ignorare singoli elementi con un tocco prolungato su di essi nella sezione 'Per te'." : {
 
@@ -3476,6 +4107,9 @@
           }
         }
       }
+    },
+    "Questa risposta è stata inviata direttamente al tuo dispositivo in riferimento al tuo feedback." : {
+
     },
     "Recenti:" : {
       "localizations" : {
@@ -3541,9 +4175,6 @@
           }
         }
       }
-    },
-    "Ricevi itinerari e soluzioni di viaggio alternative su misura se il tuo treno subisce forti ritardi o cancellazioni." : {
-
     },
     "Ricevi notifiche ed avvisi elaborati su scioperi e ritardi improvvisi." : {
       "extractionState" : "stale",
@@ -3675,6 +4306,16 @@
     "Ripristina suggerimenti ignorati" : {
 
     },
+    "Ripristino Acquisti" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Purchases"
+          }
+        }
+      }
+    },
     "Riproduci Tutorial Iniziale" : {
       "localizations" : {
         "en" : {
@@ -3714,6 +4355,9 @@
           }
         }
       }
+    },
+    "Rispondi via email" : {
+
     },
     "Risultati Ricerca" : {
 
@@ -3867,8 +4511,15 @@
     "Salvato" : {
 
     },
-    "Sblocca tutte le funzionalità avanzate e aiuta a coprire i costi dei server di calcolo per mantenere l'app attiva ed indipendente." : {
-
+    "Sblocca tutte le funzionalità avanzate di monitoraggio in tempo reale, notifiche scioperi e intelligenza artificiale su server." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock all advanced features for real-time train tracking, strike alerts, and server-side AI."
+          }
+        }
+      }
     },
     "Sbrigati" : {
       "extractionState" : "stale",
@@ -3905,6 +4556,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Download a compact model for offline summaries on your device."
+          }
+        }
+      }
+    },
+    "Scegli il tuo piano" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your plan"
           }
         }
       }
@@ -3975,8 +4636,15 @@
         }
       }
     },
-    "Se In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, puoi sostenere il progetto con un abbonamento annuale o un acquisto a vita." : {
-
+    "Se In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, puoi attivare In Orario Pro con un abbonamento annuale o un acquisto a vita per sbloccare tutte le funzionalità avanzate." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If In Orario helps you travel with peace of mind and avoid unnecessary waits, you can upgrade to In Orario Pro with an annual subscription or a lifetime purchase to unlock all advanced features."
+          }
+        }
+      }
     },
     "Segnala" : {
       "localizations" : {
@@ -4160,6 +4828,26 @@
         }
       }
     },
+    "settimana" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "week"
+          }
+        }
+      }
+    },
+    "Settimanale" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weekly"
+          }
+        }
+      }
+    },
     "Sezione" : {
 
     },
@@ -4199,13 +4887,7 @@
     "Sfrutta l'IA integrata nel tuo dispositivo senza inviare dati all'esterno." : {
 
     },
-    "Sincronizzazione iCloud" : {
-
-    },
     "Sintesi Notizie e Scioperi" : {
-
-    },
-    "Sintesi Scioperi con IA" : {
 
     },
     "Smart Routes" : {
@@ -4223,9 +4905,6 @@
 
     },
     "Soluzioni alternative" : {
-
-    },
-    "Soluzioni alternative per ritardi e cancellazioni" : {
 
     },
     "Soluzioni Disponibili (%lld)" : {
@@ -4252,10 +4931,8 @@
         }
       }
     },
-    "Sostenitore per Sempre" : {
-
-    },
     "Sostenitori" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4264,18 +4941,6 @@
           }
         }
       }
-    },
-    "Sostieni il progetto" : {
-
-    },
-    "Sostieni il progetto per sbloccare" : {
-
-    },
-    "Sostieni In Orario" : {
-
-    },
-    "Sostieni InOrario" : {
-
     },
     "Spazio insufficiente (richiesti %@ GB liberi)" : {
       "extractionState" : "stale",
@@ -4537,9 +5202,6 @@
         }
       }
     },
-    "Supporto allo Sviluppatore" : {
-
-    },
     "Supporto e Info" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4564,6 +5226,9 @@
         }
       }
     },
+    "Team di Sviluppo In Orario" : {
+
+    },
     "Tempo ampiamente sufficiente." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4577,6 +5242,16 @@
     },
     "Termina viaggio a bordo" : {
 
+    },
+    "Termini d'Uso (EULA)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use (EULA)"
+          }
+        }
+      }
     },
     "Tieni premuto per segnalare" : {
       "localizations" : {
@@ -4861,6 +5536,7 @@
       }
     },
     "Tua email" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4870,8 +5546,21 @@
         }
       }
     },
+    "Tua email (opzionale)" : {
+
+    },
     "Tutte" : {
 
+    },
+    "Tutte le funzionalità avanzate sono sbloccate." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All advanced features are unlocked."
+          }
+        }
+      }
     },
     "Tutte le Stazioni" : {
       "localizations" : {
@@ -4931,7 +5620,24 @@
 
     },
     "una tantum" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "one-time"
+          }
+        }
+      }
+    },
+    "Una tantum" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-time"
+          }
+        }
+      }
     },
     "Una tratta è un percorso tra due stazioni: salvala per consultare con un tocco tutte le partenze disponibili." : {
 
@@ -4979,9 +5685,6 @@
     "Verifica le stazioni impostate o riprova a verificare tra qualche minuto." : {
 
     },
-    "Verranno rimossi i treni e le stazioni recenti dalla cronologia delle ricerche." : {
-
-    },
     "Viaggi" : {
 
     },
@@ -5019,6 +5722,9 @@
         }
       }
     },
+    "Visualizza dettagli e log che verranno inviati" : {
+
+    },
     "Visualizza lo stato dei tuoi treni senza aprire l'app." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5041,6 +5747,9 @@
       }
     },
     "Visualizzazione sulla Dashboard" : {
+
+    },
+    "Vuoi ricevere una risposta direttamente qui?" : {
 
     },
     "Widget" : {

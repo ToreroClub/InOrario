@@ -16,6 +16,7 @@ struct FAQSectionData: Identifiable {
 
 struct FAQView: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var manager: TrainManager
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @State private var showFeedbackSheet = false
     @State private var expandedItemIDs: Set<UUID> = []
@@ -47,7 +48,7 @@ struct FAQView: View {
             items: [
                 FAQItem(
                     question: "Quanti treni posso monitorare contemporaneamente?",
-                    answer: "Senza donazione ogni utente può attivare la notifica o la Live Activity per 1 treno alla volta. Per mantenere l'app gratuita per tutti e senza pubblicità evitando costi eccessivi di server, chi sceglie di sostenere il progetto sblocca il monitoraggio di più treni contemporaneamente e la selezione dei giorni della settimana."
+                    answer: "Con il piano gratuito puoi attivare la notifica o la Live Activity per 1 treno alla volta. Passando a In Orario Pro sblocchi il monitoraggio simultaneo fino a 10 treni, Live Activities ad alta frequenza, notifiche push dedicate per gli scioperi e la selezione dei giorni della settimana."
                 ),
                 FAQItem(
                     question: "Perché le notifiche o la Live Activity non si aggiornano?",
@@ -77,7 +78,7 @@ struct FAQView: View {
             items: [
                 FAQItem(
                     question: "Qual è la differenza tra IA Locale e Cloud In Orario?",
-                    answer: "IA Locale (Apple Intelligence) elabora le informazioni direttamente sul tuo iPhone in modo completamente gratuito, privato e offline.\n\nCloud In Orario utilizza invece server cloud avanzati ad alte prestazioni. Poiché l'uso del cloud comporta costi di elaborazione, questa opzione è disponibile per chi sostiene il progetto."
+                    answer: "IA Locale (Apple Intelligence) elabora le informazioni direttamente sul tuo iPhone in modo completamente gratuito, privato e offline.\n\nCloud In Orario utilizza invece server dedicati ad alte prestazioni per il riepilogo intelligente di scioperi e lavori programmati ed è inclusa nel piano In Orario Pro."
                 )
             ]
         ),
@@ -88,7 +89,7 @@ struct FAQView: View {
             items: [
                 FAQItem(
                     question: "L'app In Orario è davvero gratuita?",
-                    answer: "Sì! In Orario è un progetto indipendente sviluppato nel tempo libero per rendere la vita dei pendolari più semplice. È completamente priva di pubblicità. Se ti è utile, puoi sostenere il progetto diventando Sostenitore :)"
+                    answer: "Sì! In Orario è un progetto indipendente sviluppato nel tempo libero per rendere la vita dei pendolari più semplice, senza pubblicità. Per accedere alle funzionalità avanzate (IA su server, notifiche push scioperi, monitoraggio fino a 10 treni e Live Activities ad alta frequenza) puoi attivare In Orario Pro."
                 )
             ]
         )
@@ -155,9 +156,21 @@ struct FAQView: View {
                 .font(.subheadline.bold())
                 .foregroundColor(.green)
             ) {
-                Link(destination: URL(string: "https://inorario.toreroclub.com")!) {
+                Link(destination: URL(string: "https://inorario.toreroclub.com/#privacy")!) {
                     HStack {
                         Label("Informativa sulla Privacy", systemImage: "lock.shield.fill")
+                            .foregroundColor(.primary)
+                            .font(.body.weight(.medium))
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+                    HStack {
+                        Label("Termini d'Uso (EULA)", systemImage: "doc.text.fill")
                             .foregroundColor(.primary)
                             .font(.body.weight(.medium))
                         Spacer()
@@ -172,6 +185,7 @@ struct FAQView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showFeedbackSheet) {
             FeedbackFormView()
+                .environmentObject(manager)
         }
     }
 }
