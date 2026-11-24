@@ -18,7 +18,6 @@ struct FAQView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var manager: TrainManager
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
-    @State private var showFeedbackSheet = false
     @State private var expandedItemIDs: Set<UUID> = []
     
     private let faqSections: [FAQSectionData] = [
@@ -97,30 +96,6 @@ struct FAQView: View {
 
     var body: some View {
         List {
-            Section(header: Label("Supporto ed Azioni", systemImage: "wrench.and.screwdriver.fill")
-                .font(.subheadline.bold())
-                .foregroundColor(.blue)
-            ) {
-                Button(action: {
-                    Haptics.play(.medium)
-                    showFeedbackSheet = true
-                }) {
-                    Label("Segnala Bug o Feedback", systemImage: "ladybug.fill")
-                        .foregroundColor(.red)
-                        .font(.body.weight(.medium))
-                }
-                
-                Button(action: {
-                    Haptics.play(.medium)
-                    hasCompletedOnboarding = false
-                    dismiss()
-                }) {
-                    Label("Riproduci Tutorial Iniziale", systemImage: "graduationcap.fill")
-                        .foregroundColor(.blue)
-                        .font(.body.weight(.medium))
-                }
-            }
-            
             ForEach(faqSections) { section in
                 Section(header: Label(section.title, systemImage: section.icon)
                     .font(.subheadline.bold())
@@ -147,6 +122,18 @@ struct FAQView: View {
                             Text(item.question)
                                 .font(.body.weight(.medium))
                                 .foregroundColor(.primary)
+                        }
+                    }
+
+                    if section.title == "Trucchi e Funzionalità Utili" {
+                        Button(action: {
+                            Haptics.play(.medium)
+                            hasCompletedOnboarding = false
+                            dismiss()
+                        }) {
+                            Label("Riproduci Tutorial Iniziale", systemImage: "graduationcap.fill")
+                                .foregroundColor(.blue)
+                                .font(.body.weight(.medium))
                         }
                     }
                 }
@@ -183,9 +170,5 @@ struct FAQView: View {
         }
         .navigationTitle("Domande Frequenti")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showFeedbackSheet) {
-            FeedbackFormView()
-                .environmentObject(manager)
-        }
     }
 }

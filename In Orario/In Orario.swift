@@ -6,6 +6,22 @@ import WidgetKit
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     var manager: TrainManager?
+    var pendingDeepLinkTrain: Train?
+
+    private func extractTrainNumber(from userInfo: [AnyHashable: Any]) -> String? {
+        if let s = userInfo["train_number"] as? String, !s.isEmpty { return s }
+        if let n = userInfo["train_number"] as? NSNumber { return n.stringValue }
+        return nil
+    }
+
+    @MainActor
+    private func setDeepLinkTrain(_ train: Train) {
+        if let manager = self.manager {
+            manager.deepLinkTrain = train
+        } else {
+            self.pendingDeepLinkTrain = train
+        }
+    }
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
@@ -117,7 +133,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
         } else if action == "CONFIRM_TRAIN_GUESS" || (action == UNNotificationDefaultActionIdentifier && category == "TRAIN_GUESS_CATEGORY") {
             NotificationCenter.default.post(name: NSNotification.Name("ConfirmTrainGuessNotification"), object: nil, userInfo: userInfo)
-            if let trainNumber = userInfo["train_number"] as? String {
+            if let trainNumber = extractTrainNumber(from: userInfo) {
                 let cat = userInfo["train_category"] as? String ?? "Treno"
                 let dest = userInfo["train_destination"] as? String ?? "Destinazione"
                 let time = userInfo["train_time"] as? String ?? "--:--"
@@ -125,7 +141,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 let platform = userInfo["train_platform"] as? String ?? "--"
                 
                 let t = Train(category: cat, number: trainNumber, destination: dest, time: time, delay: delay, platform: platform)
-                self.manager?.deepLinkTrain = t
+                setDeepLinkTrain(t)
             }
         } else if action == "DISMISS_TRAIN_GUESS" {
             NotificationCenter.default.post(name: NSNotification.Name("DismissTrainGuessNotification"), object: nil)
@@ -133,12 +149,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             if let planData = userInfo["plan_b"] as? [String: Any],
                let jsonData = try? JSONSerialization.data(withJSONObject: planData),
                let plan = try? JSONDecoder().decode(PlanBReportDTO.self, from: jsonData) {
-                SupporterCommuteManager.shared.activePlanB = plan
-                NotificationCenter.default.post(name: NSNotification.Name("OpenCommutePlanB"), object: nil)
+                SupporterCommuteManager.shared.chosenAlternativeId = nil
+                SupporterCommuteManager.shared.unpinPlanB()
+                if plan.incident_type == "summary_ok" {
+                    SupporterCommuteManager.shared.activePlanB = nil
+                    SupporterCommuteManager.shared.pendingOpenPlanBSheet = false
+                } else {
+                    SupporterCommuteManager.shared.activePlanB = plan
+                    SupporterCommuteManager.shared.pendingOpenPlanBSheet = true
+                    NotificationCenter.default.post(name: NSNotification.Name("OpenCommutePlanB"), object: nil)
+                }
             }
         } else {
-            if let trainNumber = userInfo["train_number"] as? String {
-                self.manager?.deepLinkTrain = Train(category: "Treno", number: trainNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
+            if let trainNumber = extractTrainNumber(from: userInfo) {
+                let t = Train(category: "Treno", number: trainNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
+                setDeepLinkTrain(t)
             }
         }
         completionHandler()
@@ -172,6 +197,10 @@ struct InOrario: App {
                 .environment(\.locale, Locale(identifier: appLanguage))
                 .onAppear {
                     appDelegate.manager = manager
+                    if let pending = appDelegate.pendingDeepLinkTrain {
+                        manager.deepLinkTrain = pending
+                        appDelegate.pendingDeepLinkTrain = nil
+                    }
                     if let savedToken = UserDefaults.standard.string(forKey: "apnsTokenKey_v1"), !savedToken.isEmpty {
                         if manager.apnsToken != savedToken {
                             manager.apnsToken = savedToken

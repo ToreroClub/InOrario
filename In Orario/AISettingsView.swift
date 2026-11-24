@@ -19,6 +19,7 @@ struct AISettingsView: View {
                     Haptics.play(.light)
                     aiManager.aiModeChoice = .none
                     aiManager.preferLocalAI = false
+                    manager.syncRemoteNotifications()
                 } label: {
                     HStack(spacing: 12) {
                         ZStack {
@@ -58,6 +59,7 @@ struct AISettingsView: View {
                     aiManager.aiModeChoice = .local
                     aiManager.selectedModelID = "apple_intelligence"
                     aiManager.preferLocalAI = true
+                    manager.syncRemoteNotifications()
                 } label: {
                     HStack(spacing: 12) {
                         ZStack {
@@ -86,7 +88,7 @@ struct AISettingsView: View {
                             
                             Text(aiManager.isAppleIntelligenceAvailable
                                  ? "Elaborazione privata e integrata direttamente sul tuo iPhone."
-                                 : "Richiede un dispositivo Apple compatibile con Apple Intelligence.")
+                                 : "Richiede un dispositivo Apple compatibile con Apple Intelligence e iOS 26 o successivo.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -110,6 +112,7 @@ struct AISettingsView: View {
                         Haptics.play(.medium)
                         aiManager.aiModeChoice = .cloud
                         aiManager.preferLocalAI = false
+                        manager.syncRemoteNotifications()
                     } else {
                         Haptics.play(.light)
                         showPaywallSheet = true
@@ -220,16 +223,37 @@ struct AISettingsView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                
-                // 5. Previsione Ritardi
+            }
+
+            // MARK: Sezione 3: Assistente di ricerca
+            Section(header: Text("Assistente di ricerca")) {
                 AIFeatureRow(
-                    icon: "chart.line.uptrend.xyaxis",
-                    iconColor: .blue,
-                    iconBg: Color.blue.opacity(0.12),
-                    title: "Previsione Ritardi",
-                    description: "Stima preventiva della puntualità e delle tendenze basata sullo storico delle corse.",
-                    status: .upcoming
+                    icon: "waveform.and.magnifyingglass",
+                    iconColor: .purple,
+                    iconBg: Color.purple.opacity(0.12),
+                    title: "Assistente di ricerca",
+                    description: "Cerca treni, tratte, orari e tabelloni scrivendo o parlando in linguaggio naturale con dati ferroviari reali.",
+                    status: assistantSearchStatus,
+                    showBetaBadge: true
                 )
+
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 2)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Privacy e conservazione query")
+                            .font(.caption.bold())
+                            .foregroundColor(.primary)
+                        Text("Le registrazioni vocali non vengono conservate: la voce viene convertita in testo sul momento. Le query testuali possono essere salvate in forma completamente anonima (scollegate da te e dal tuo dispositivo) per un periodo massimo di 30 giorni per migliorare il servizio.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.vertical, 4)
             }
         }
         .listStyle(.insetGrouped)
@@ -244,6 +268,17 @@ struct AISettingsView: View {
         }
     }
     
+    private var assistantSearchStatus: AIFeatureStatus {
+        if (aiManager.aiModeChoice == .cloud && manager.hasSupport()) ||
+           (aiManager.aiModeChoice == .local && aiManager.isAppleIntelligenceAvailable) {
+            return .active
+        }
+        if aiManager.isAppleIntelligenceAvailable || manager.hasSupport() {
+            return .disabled
+        }
+        return .supporter
+    }
+
     private var cloudBadgeText: String {
         if manager.hasSupport() {
             return "Attivo"
@@ -304,6 +339,7 @@ private struct AIFeatureRow: View {
     let title: LocalizedStringKey
     let description: LocalizedStringKey
     let status: AIFeatureStatus
+    var showBetaBadge: Bool = false
     
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -321,6 +357,10 @@ private struct AIFeatureRow: View {
                     Text(title)
                         .font(.subheadline.bold())
                         .foregroundColor(status == .disabled ? .secondary : .primary)
+
+                    if showBetaBadge {
+                        BetaBadgeView()
+                    }
                     
                     Spacer()
                     

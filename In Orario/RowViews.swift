@@ -236,6 +236,8 @@ struct TrainRowView: View {
     let train: Train
     var showPassanteTag: Bool = false
     var stationName: String? = nil
+    var commuteMatch: CommuteTrainMatch? = nil
+    var commuteTarget: CommuteTargetFilter? = nil
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
     
@@ -246,84 +248,108 @@ struct TrainRowView: View {
         let isDelayed = !train.delay.contains("In orario") && !train.delay.contains("0'") && !train.delay.isEmpty
         let isCancelled = train.delay.lowercased().contains("cancellato") || train.delay.lowercased().contains("soppresso")
         
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(train.category)
-                        .font(.system(size: 10, weight: .bold))
-                        .padding(4)
-                        .background(categoryColor(train.category))
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                    
-                    Text(fullCategoryName(train.category, dest: train.destination))
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
-                    
-                    Text(train.number)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(train.category)
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(4)
+                            .background(categoryColor(train.category))
+                            .foregroundColor(.white)
+                            .cornerRadius(4)
+                        
+                        Text(fullCategoryName(train.category, dest: train.destination))
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        Text(train.number)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    HStack(alignment: .center, spacing: 6) {
+                        Text(SharedFormatters.formatDestination(train.destination))
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        
+                        if showPassanteTag, let branch = passanteManager.getPassanteBranch(for: train) {
+                            let bColor: Color = (branch == "Bovisa" || branch == "Rogoredo") ? .red : .orange
+                            Text(branch.uppercased())
+                                .font(.system(size: 9, weight: .black, design: .rounded))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(bColor.opacity(0.15))
+                                .foregroundColor(bColor)
+                                .cornerRadius(4)
+                        }
+                    }
                 }
-                HStack(alignment: .center, spacing: 6) {
-                    Text(SharedFormatters.formatDestination(train.destination))
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                    
-                    if showPassanteTag, let branch = passanteManager.getPassanteBranch(for: train) {
-                        let bColor: Color = (branch == "Bovisa" || branch == "Rogoredo") ? .red : .orange
-                        Text(branch.uppercased())
-                            .font(.system(size: 9, weight: .black, design: .rounded))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(bColor.opacity(0.15))
-                            .foregroundColor(bColor)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(train.time).font(.title3).bold()
+                    HStack {
+                        HStack(spacing: 3) {
+                            Text(train.delay)
+                                .foregroundColor(train.delay.contains("In orario") ? .green : .red)
+                                .scaleEffect(isDelayed ? pulseScale : 1.0)
+                                .opacity(isDelayed ? pulseOpacity : 1.0)
+                            
+                            // Badge "?" quando RFI e VT differiscono di oltre 15 min
+                            if train.isDelayUncertain {
+                                Text("?")
+                                    .font(.system(size: 9, weight: .black))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange)
+                                    .cornerRadius(3)
+                            }
+                        }
+                            
+                        let displayPlatform: String = {
+                            if let station = stationName {
+                                return passanteManager.resolvedPlatform(for: station, train: train)
+                            }
+                            return train.platform
+                        }()
+                        
+                        Text(String(format: String(localized: "Bin. %@"), displayPlatform))
+                            .padding(.horizontal, 4)
+                            .background(Color.black.opacity(0.8))
+                            .foregroundColor(.yellow)
                             .cornerRadius(4)
                     }
+                    .font(.caption).bold()
                 }
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(train.time).font(.title3).bold()
-                HStack {
-                    HStack(spacing: 3) {
-                        Text(train.delay)
-                            .foregroundColor(train.delay.contains("In orario") ? .green : .red)
-                            .scaleEffect(isDelayed ? pulseScale : 1.0)
-                            .opacity(isDelayed ? pulseOpacity : 1.0)
-                        
-                        // Badge "?" quando RFI e VT differiscono di oltre 15 min
-                        if train.isDelayUncertain {
-                            Text("?")
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-                                .background(Color.orange)
-                                .cornerRadius(3)
+
+            if let match = commuteMatch, let target = commuteTarget {
+                let candidates = CommuteArrivalFormatter.displayCandidates(
+                    stationName: match.matchedTargetStation,
+                    arrivalTime: match.estimatedArrivalTime
+                )
+                HStack(spacing: 4) {
+                    Image(systemName: target.iconName)
+                        .font(.system(size: 10, weight: .bold))
+                    ViewThatFits(in: .horizontal) {
+                        ForEach(candidates, id: \.self) { candidate in
+                            Text(candidate)
+                                .fixedSize(horizontal: true, vertical: false)
                         }
+                        Text(candidates.last ?? "")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
                     }
-                        
-                    let displayPlatform: String = {
-                        if let station = stationName {
-                            return passanteManager.resolvedPlatform(for: station, train: train)
-                        }
-                        return train.platform
-                    }()
-                    
-                    Text(String(format: String(localized: "Bin. %@"), displayPlatform))
-                        .padding(.horizontal, 4)
-                        .background(Color.black.opacity(0.8))
-                        .foregroundColor(.yellow)
-                        .cornerRadius(4)
                 }
-                .font(.caption).bold()
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(target == .home ? .blue : .green)
             }
         }
         .padding(.vertical, 6)
-        .padding(.horizontal, manager.isHomeFilterActive && (isDelayed || isCancelled) ? 8 : 0)
-        .background(manager.isHomeFilterActive && isCancelled ? Color.red.opacity(0.15) : (manager.isHomeFilterActive && isDelayed ? Color.orange.opacity(0.08) : Color.clear))
+        .padding(.horizontal, commuteTarget != nil && (isDelayed || isCancelled) ? 8 : 0)
+        .background(commuteTarget != nil && isCancelled ? Color.red.opacity(0.15) : (commuteTarget != nil && isDelayed ? Color.orange.opacity(0.08) : Color.clear))
         .cornerRadius(8)
         .onAppear {
             if isDelayed {

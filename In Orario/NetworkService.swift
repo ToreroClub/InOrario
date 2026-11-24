@@ -101,9 +101,10 @@ class NetworkService {
     
     private func injectDeviceTokenIfNeeded(to request: inout URLRequest) {
         if let urlString = request.url?.absoluteString, urlString.contains("gestioneinorario.toreroclub.com") {
-            if let token = UserDefaults.standard.string(forKey: "apnsTokenKey_v1") {
+            if let token = UserDefaults.standard.string(forKey: "apnsTokenKey_v1"), !token.isEmpty {
                 request.setValue(token, forHTTPHeaderField: "X-Device-Token")
             }
+            request.setValue(DeviceIdentityManager.shared.deviceID, forHTTPHeaderField: "X-Device-ID")
         }
     }
     

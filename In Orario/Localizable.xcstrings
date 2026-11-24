@@ -103,6 +103,16 @@
         }
       }
     },
+    "%@  •  %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@  •  %2$@"
+          }
+        }
+      }
+    },
     "%@ - %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -126,6 +136,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ – %2$@"
+          }
+        }
+      }
+    },
+    "%@ (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (%lld)"
           }
         }
       }
@@ -168,6 +188,26 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ → %2$@"
+          }
+        }
+      }
+    },
+    "%@ → %@ • %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ → %2$@ • %3$@"
+          }
+        }
+      }
+    },
+    "%@ ↔ %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ↔ %2$@"
           }
         }
       }
@@ -282,6 +322,26 @@
     "%lld preferite" : {
 
     },
+    "%lld selezionate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld selected"
+          }
+        }
+      }
+    },
+    "%lld selezionati" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld selected"
+          }
+        }
+      }
+    },
     "%lld settimane" : {
       "localizations" : {
         "en" : {
@@ -319,11 +379,22 @@
       }
     },
     "← Bovisa/Rho" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "← Bovisa/Rho"
+          }
+        }
+      }
+    },
+    "← Ovest" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "← West"
           }
         }
       }
@@ -435,6 +506,12 @@
         }
       }
     },
+    "10 min prima" : {
+
+    },
+    "15 min prima" : {
+
+    },
     "15 min stimati" : {
       "localizations" : {
         "en" : {
@@ -444,6 +521,15 @@
           }
         }
       }
+    },
+    "30 min prima" : {
+
+    },
+    "45 min prima" : {
+
+    },
+    "60 min prima" : {
+
     },
     "A" : {
       "localizations" : {
@@ -518,6 +604,9 @@
     "Abilita la visualizzazione del Passante e delle linee suburbane nella schermata principale per consultarne partenze e stato della rete." : {
 
     },
+    "Abilita Metro Milano Beta" : {
+
+    },
     "Abilita Notifiche" : {
       "localizations" : {
         "en" : {
@@ -532,6 +621,9 @@
 
     },
     "Abilita posizione per stazioni vicine" : {
+
+    },
+    "Abilita riepilogo programmato" : {
 
     },
     "Abilitando le notifiche push, lo sviluppatore potrà notificarti quando il problema sarà risolto." : {
@@ -756,6 +848,26 @@
     "Allega diagnostica e log recenti" : {
 
     },
+    "Alta Vel." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High Speed"
+          }
+        }
+      }
+    },
+    "Alta Velocità" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High Speed"
+          }
+        }
+      }
+    },
     "Alternative di viaggio" : {
 
     },
@@ -779,6 +891,19 @@
         }
       }
     },
+    "Altri" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        }
+      }
+    },
+    "Altri treni vicini in partenza" : {
+
+    },
     "Altro 💬" : {
       "localizations" : {
         "en" : {
@@ -792,7 +917,7 @@
     "Andata" : {
 
     },
-    "Andata:" : {
+    "Andata e Ritorno" : {
 
     },
     "anno" : {
@@ -838,6 +963,9 @@
     "Anticipa stazioni, treni e tratte frequenti mostrandoli nella schermata Home al momento opportuno." : {
 
     },
+    "Anticipo" : {
+
+    },
     "Aperture tabellone" : {
 
     },
@@ -858,7 +986,6 @@
 
     },
     "Apri Impostazioni" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -867,6 +994,21 @@
           }
         }
       }
+    },
+    "Apri nella scheda Soluzioni" : {
+
+    },
+    "Apri queste %lld soluzioni nella scheda Soluzioni" : {
+
+    },
+    "Apri tabellone completo %@" : {
+
+    },
+    "Apri tabellone live (%@)" : {
+
+    },
+    "Arrivi Stazione" : {
+
     },
     "Arrivo" : {
       "localizations" : {
@@ -881,6 +1023,16 @@
     "ARRIVO" : {
 
     },
+    "Arrivo a %@ alle %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrives at %@ at %@"
+          }
+        }
+      }
+    },
     "Arrivo treno: %@" : {
       "localizations" : {
         "en" : {
@@ -891,6 +1043,12 @@
         }
       }
     },
+    "Assistente" : {
+
+    },
+    "Assistente di ricerca" : {
+
+    },
     "Assistente IA" : {
       "localizations" : {
         "en" : {
@@ -900,6 +1058,9 @@
           }
         }
       }
+    },
+    "Assistente intelligente" : {
+
     },
     "Attenzione" : {
 
@@ -961,6 +1122,9 @@
         }
       }
     },
+    "Avvisami" : {
+
+    },
     "Avvisi di Servizio" : {
       "localizations" : {
         "en" : {
@@ -991,6 +1155,26 @@
         }
       }
     },
+    "Azzera" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        }
+      }
+    },
+    "Azzera tutti i filtri" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all filters"
+          }
+        }
+      }
+    },
     "Benvenuto su In Orario" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1014,7 +1198,14 @@
       }
     },
     "BETA" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BETA"
+          }
+        }
+      }
     },
     "Bin. %@" : {
       "localizations" : {
@@ -1094,6 +1285,9 @@
         }
       }
     },
+    "Cancella ricerca" : {
+
+    },
     "CANCELLATO" : {
       "localizations" : {
         "en" : {
@@ -1152,6 +1346,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading..."
+          }
+        }
+      }
+    },
+    "Casa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
           }
         }
       }
@@ -1232,6 +1436,16 @@
         }
       }
     },
+    "Cerca soluzioni con cambi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search connections with transfers"
+          }
+        }
+      }
+    },
     "Cerca Stazione" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1277,6 +1491,9 @@
     "Cerca Treni o Stazioni" : {
 
     },
+    "Cerca treni, tratte, orari e tabelloni scrivendo o parlando in linguaggio naturale con dati ferroviari reali." : {
+
+    },
     "Cerca Treno" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1312,6 +1529,35 @@
 
     },
     "Cerca Viaggio" : {
+
+    },
+    "Cerco i treni verso Casa…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding trains to Home…"
+          }
+        }
+      }
+    },
+    "Cerco i treni verso Lavoro…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding trains to Work…"
+          }
+        }
+      }
+    },
+    "Chiedi ${requestText}" : {
+
+    },
+    "Chiedi a In Orario" : {
+
+    },
+    "Chiedi all'Assistente" : {
 
     },
     "Chiudi" : {
@@ -1379,6 +1625,17 @@
         }
       }
     },
+    "Con binario" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With platform"
+          }
+        }
+      }
+    },
     "Con il piano gratuito puoi attivare la notifica o la Live Activity per 1 treno alla volta. Passando a In Orario Pro sblocchi il monitoraggio simultaneo fino a 10 treni, Live Activities ad alta frequenza, notifiche push dedicate per gli scioperi e la selezione dei giorni della settimana." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1399,6 +1656,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm deletion"
+          }
+        }
+      }
+    },
+    "Configura Abitudini di Viaggio" : {
+
+    },
+    "Configura Casa e Lavoro…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set up Home & Work…"
           }
         }
       }
@@ -1587,6 +1857,9 @@
         }
       }
     },
+    "Data: %@" : {
+
+    },
     "Dati Diagnostici Allegati" : {
 
     },
@@ -1629,6 +1902,9 @@
           }
         }
       }
+    },
+    "Detta richiesta" : {
+
     },
     "Dettagli" : {
       "localizations" : {
@@ -1897,6 +2173,9 @@
         }
       }
     },
+    "Esempi di richieste" : {
+
+    },
     "Espandi" : {
       "localizations" : {
         "en" : {
@@ -1914,6 +2193,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Explore integrated timetables of Italy's main metro networks."
+          }
+        }
+      }
+    },
+    "Est →" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "East →"
           }
         }
       }
@@ -1941,7 +2230,13 @@
         }
       }
     },
+    "Fai una domanda sui treni e ottieni dati reali da ViaggiaTreno e Trenitalia." : {
+
+    },
     "FAQ e supporto" : {
+
+    },
+    "Fasce" : {
 
     },
     "Fascia oraria" : {
@@ -1956,6 +2251,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Done"
+          }
+        }
+      }
+    },
+    "Ferma a %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stops at %@"
           }
         }
       }
@@ -1978,6 +2283,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stops"
+          }
+        }
+      }
+    },
+    "Filtra treni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter trains"
           }
         }
       }
@@ -2207,6 +2522,7 @@
       }
     },
     "I treni e le stazioni che aprirai appariranno qui automaticamente." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2217,6 +2533,9 @@
       }
     },
     "I treni per la tua destinazione partono dalle altre stazioni configurate." : {
+
+    },
+    "I treni, le stazioni e le ricerche recenti appariranno qui automaticamente." : {
 
     },
     "I tuoi acquisti precedenti sono stati ripristinati con successo." : {
@@ -2293,7 +2612,7 @@
         }
       }
     },
-    "Il server monitora la tua tratta abituale e in caso di cancellazioni o gravi ritardi riceverai un'alternativa." : {
+    "Il server monitora la tua tratta abituale in caso di cancellazioni o gravi ritardi e riceverai un'alternativa. Personalizza le tue stazioni di partenza, arrivo e viceversa e gli orari per ogni singolo giorno." : {
 
     },
     "Il treno non ha ancora lasciato la stazione di partenza." : {
@@ -2349,6 +2668,9 @@
         }
       }
     },
+    "Imposta stazioni e orari per attivare il riepilogo." : {
+
+    },
     "Impostazioni" : {
       "localizations" : {
         "en" : {
@@ -2373,7 +2695,14 @@
 
     },
     "In orario" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On time"
+          }
+        }
+      }
     },
     "In Orario" : {
 
@@ -2578,6 +2907,16 @@
         }
       }
     },
+    "Intercity" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intercity"
+          }
+        }
+      }
+    },
     "Interscambi treno-metropolitana calcolati al secondo in base alla conformazione di ciascuna stazione." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2686,8 +3025,21 @@
     "La tua segnalazione è stata inviata con successo. Riceverai un riscontro non appena lo sviluppatore risponderà!" : {
 
     },
+    "La visualizzazione metropolitana di Milano è accessibile dal menu in alto a sinistra accedendo a Metropolitana. Per tornare nella sezione treno, premi lo stesso identico menu (i tre puntini in alto a sinistra) e premi su Treni. Se disattivata, l'opzione non comparirà nel menu." : {
+
+    },
     "LavoraMi" : {
 
+    },
+    "Lavoro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Work"
+          }
+        }
+      }
     },
     "Le donazioni non sono al momento disponibili." : {
       "extractionState" : "stale",
@@ -2765,6 +3117,9 @@
     "Le notifiche e le Live Activity non sono disponibili per i treni Italo: In Orario supporta il monitoraggio in background solo per Trenitalia e Trenord." : {
 
     },
+    "Le registrazioni vocali non vengono conservate: la voce viene convertita in testo sul momento. Le query testuali possono essere salvate in forma completamente anonima (scollegate da te e dal tuo dispositivo) per un periodo massimo di 30 giorni per migliorare il servizio." : {
+
+    },
     "Legale e Privacy" : {
 
     },
@@ -2794,6 +3149,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Line %@"
+          }
+        }
+      }
+    },
+    "Linea Suburbana" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suburban Line"
           }
         }
       }
@@ -2866,6 +3231,16 @@
     },
     "Log ed Errori Recenti" : {
 
+    },
+    "Malpensa Express" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Malpensa Express"
+          }
+        }
+      }
     },
     "Mappa" : {
       "extractionState" : "stale",
@@ -2946,6 +3321,9 @@
           }
         }
       }
+    },
+    "Metro Milano Beta" : {
+
     },
     "Metropolitana" : {
       "localizations" : {
@@ -3060,7 +3438,18 @@
     "Mostra tutte le stazioni" : {
 
     },
+    "Mostra tutti i treni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show all trains"
+          }
+        }
+      }
+    },
     "Mostra Vista Speciale Passante" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3070,8 +3459,21 @@
         }
       }
     },
+    "MXP" : {
+
+    },
     "Nascondi" : {
 
+    },
+    "Nascondi cancellati" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide cancelled"
+          }
+        }
+      }
     },
     "Nascondi da Per te" : {
 
@@ -3167,12 +3569,32 @@
         }
       }
     },
+    "Nessun treno corrisponde ai filtri attivi." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No trains match the active filters."
+          }
+        }
+      }
+    },
     "Nessun treno da %@ in tempo reale." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No live trains from %@."
+          }
+        }
+      }
+    },
+    "Nessun treno diretto in partenza verso %@ al momento." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No direct departing trains to %@ right now."
           }
         }
       }
@@ -3239,6 +3661,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No trains found right now"
+          }
+        }
+      }
+    },
+    "Nessun treno trovato in partenza da %@ intorno alle %@." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nessun treno trovato in partenza da %1$@ intorno alle %2$@."
           }
         }
       }
@@ -3347,6 +3779,9 @@
         }
       }
     },
+    "Nessuna soluzione reale trovata per questa richiesta." : {
+
+    },
     "Nessuna soluzione trovata in questo orario. Riprova con un'altra data o orario." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3429,6 +3864,20 @@
     "News" : {
 
     },
+    "No cancellati" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No cancelled"
+          }
+        }
+      }
+    },
+    "Non attivo" : {
+
+    },
     "Non ce la fai" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3466,17 +3915,20 @@
         }
       }
     },
-    "Nota: Il passante è interamente monitorato (S1, S2, S5, S6, S12, S13) a livello di stazioni e tratte per rilevare anomalie e treni fermi globalmente." : {
+    "Nota: questi dati sono anonimi e non contengono token APNs, header di autenticazione o informazioni di navigazione personale." : {
+
+    },
+    "Nota: Questi sono alcuni treni di esempio attualmente nel tunnel del Passante (direzione Est e Ovest). Ti aiutano a capire subito come va la circolazione: se noti soppressioni, deviazioni o forti ritardi, potrebbe esserci un problema anche per il tuo treno; se è tutto verde, tendenzialmente va tutto bene." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Note: The passante is fully monitored (S1, S2, S5, S6, S12, S13) at station and route level to detect anomalies and stopped trains globally."
+            "value" : "Note: These are a few sample trains currently in the Passante tunnel (Eastbound and Westbound). They help you tell at a glance how service is running: if you see cancellations, diversions, or heavy delays, your train may be affected too; if everything is green, traffic is generally running smoothly."
           }
         }
       }
     },
-    "Nota: questi dati sono anonimi e non contengono token APNs, header di autenticazione o informazioni di navigazione personale." : {
+    "Notifica a un orario specifico" : {
 
     },
     "Notifica al passaggio in stazione" : {
@@ -3658,6 +4110,9 @@
     "Opzioni disponibili" : {
 
     },
+    "Ora: %@" : {
+
+    },
     "Orari di viaggio" : {
 
     },
@@ -3671,6 +4126,12 @@
           }
         }
       }
+    },
+    "Orario (es. 11:34)" : {
+
+    },
+    "Orario notifica:" : {
+
     },
     "Ordinamento e Rotazione" : {
 
@@ -3694,6 +4155,9 @@
           }
         }
       }
+    },
+    "Parla con l'assistente" : {
+
     },
     "Part. %@" : {
       "localizations" : {
@@ -3728,6 +4192,32 @@
         }
       }
     },
+    "Partenza da %@ (%@)" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Partenza da %1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "Partenza prevista da %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled departure from %1$@ (%2$@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Partenza prevista da %1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "Partenza prevista: %@" : {
       "localizations" : {
         "en" : {
@@ -3751,6 +4241,9 @@
           }
         }
       }
+    },
+    "Partenze Stazione" : {
+
     },
     "Passa a In Orario Pro" : {
       "localizations" : {
@@ -3854,6 +4347,9 @@
     "Personalizza per singolo giorno" : {
 
     },
+    "Personalizza stazioni e giorni" : {
+
+    },
     "Personalizza Widget" : {
 
     },
@@ -3938,6 +4434,26 @@
     "Pomeriggio" : {
 
     },
+    "Portami a Casa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take me Home"
+          }
+        }
+      }
+    },
+    "Portami al Lavoro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take me to Work"
+          }
+        }
+      }
+    },
     "Posizione non disponibile" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4015,7 +4531,16 @@
         }
       }
     },
-    "Previsione Ritardi" : {
+    "Primo treno da ${originStation} a ${destinationStation}" : {
+
+    },
+    "Primo treno tra due stazioni" : {
+
+    },
+    "PRIMO TRENO UTILE" : {
+
+    },
+    "Privacy e conservazione query" : {
 
     },
     "Pro" : {
@@ -4069,7 +4594,13 @@
         }
       }
     },
+    "Prossimo treno" : {
+
+    },
     "Prova a cambiare orario di partenza." : {
+
+    },
+    "Prova a cambiare orario o verifica i nomi delle stazioni nella scheda Soluzioni." : {
 
     },
     "Prova gratis %@ · poi %@/%@" : {
@@ -4099,6 +4630,7 @@
 
     },
     "Quando attivo, il passante raggruppa le partenze in Ovest ed Est. Se disattivato, vedrai la lista classica Arrivi/Partenze." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4117,6 +4649,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recents:"
+          }
+        }
+      }
+    },
+    "Regionali" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regional"
           }
         }
       }
@@ -4165,6 +4707,9 @@
         }
       }
     },
+    "Ricerche recenti" : {
+
+    },
     "Ricerche Recenti" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4175,6 +4720,9 @@
           }
         }
       }
+    },
+    "Riceverai un riepilogo sullo stato del treno (in orario, ritardo o soppressione) all'orario scelto." : {
+
     },
     "Ricevi notifiche ed avvisi elaborati su scioperi e ritardi improvvisi." : {
       "extractionState" : "stale",
@@ -4187,7 +4735,19 @@
         }
       }
     },
-    "Richiede un dispositivo Apple compatibile con Apple Intelligence." : {
+    "Ricevi un punto situazione automatico sulla tua tratta abituale prima della tua fascia oraria di viaggio nei giorni scelti, basato sullo stato reale della linea e dei treni." : {
+
+    },
+    "Richiede un dispositivo Apple compatibile con Apple Intelligence e iOS 26 o successivo." : {
+
+    },
+    "Richiesta" : {
+
+    },
+    "Richiesta Complessa" : {
+
+    },
+    "Richiesta Interpretata" : {
 
     },
     "Ricorda stato Passante" : {
@@ -4229,6 +4789,9 @@
     "Riepilogo Info Lavori" : {
 
     },
+    "Riepilogo Programmato" : {
+
+    },
     "Riepilogo Scioperi" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4239,6 +4802,12 @@
           }
         }
       }
+    },
+    "Riepilogo sulle abitudini di viaggio" : {
+
+    },
+    "Riepilogo Tratta" : {
+
     },
     "Rilevata dal GPS: %@" : {
 
@@ -4269,6 +4838,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove from Favourites"
+          }
+        }
+      }
+    },
+    "Rimuovi filtri" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear filters"
           }
         }
       }
@@ -4304,6 +4883,9 @@
 
     },
     "Ripristina suggerimenti ignorati" : {
+
+    },
+    "Ripristina tutte le stazioni" : {
 
     },
     "Ripristino Acquisti" : {
@@ -4445,10 +5027,8 @@
     "Ritorno" : {
 
     },
-    "Ritorno:" : {
-
-    },
     "Rogoredo/Forlanini →" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4509,6 +5089,9 @@
 
     },
     "Salvato" : {
+
+    },
+    "Sblocca In Orario Pro" : {
 
     },
     "Sblocca tutte le funzionalità avanzate di monitoraggio in tempo reale, notifiche scioperi e intelligenza artificiale su server." : {
@@ -4749,6 +5332,48 @@
         }
       }
     },
+    "Sei già a Casa (in pausa)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already at Home (paused)"
+          }
+        }
+      }
+    },
+    "Sei già al Lavoro (in pausa)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already at Work (paused)"
+          }
+        }
+      }
+    },
+    "Sei già nella tua stazione di %@." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are already at your %@ station."
+          }
+        }
+      }
+    },
+    "Sei già qui" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are already here"
+          }
+        }
+      }
+    },
     "Sei sicuro di voler eliminare tutte le preferenze e le abitudini apprese finora? Questa operazione non può essere annullata." : {
       "localizations" : {
         "en" : {
@@ -4806,6 +5431,9 @@
       }
     },
     "Sera" : {
+
+    },
+    "Serve comprensione avanzata" : {
 
     },
     "Servizio non attivo o dati non disponibili" : {
@@ -4901,6 +5529,48 @@
         }
       }
     },
+    "Solo Andata" : {
+
+    },
+    "Solo con binario" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With platform only"
+          }
+        }
+      }
+    },
+    "Solo in orario" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On time only"
+          }
+        }
+      }
+    },
+    "Solo preferiti" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorites only"
+          }
+        }
+      }
+    },
+    "Solo Pro" : {
+
+    },
+    "Solo Ritorno" : {
+
+    },
+    "SOLUZIONE MIGLIORE" : {
+
+    },
     "Soluzioni" : {
 
     },
@@ -4985,6 +5655,16 @@
         }
       }
     },
+    "Stato e preferenze" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status & preferences"
+          }
+        }
+      }
+    },
     "Stato Passante" : {
       "localizations" : {
         "en" : {
@@ -5004,6 +5684,12 @@
           }
         }
       }
+    },
+    "Stato Treno Reale" : {
+
+    },
+    "Stazione di arrivo" : {
+
     },
     "Stazione di Arrivo" : {
       "extractionState" : "stale",
@@ -5096,10 +5782,27 @@
     "STAZIONI AGGIUNTE" : {
 
     },
-    "Stazioni di arrivo" : {
-
+    "Stazioni di arrivo (Lavoro)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrival stations (Work)"
+          }
+        }
+      }
     },
-    "Stazioni di partenza" : {
+    "Stazioni di partenza (Casa)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Departure stations (Home)"
+          }
+        }
+      }
+    },
+    "Stazioni personalizzate" : {
 
     },
     "STAZIONI PIÙ CONSULTATE" : {
@@ -5149,8 +5852,15 @@
         }
       }
     },
-    "Stima preventiva della puntualità e delle tendenze basata sullo storico delle corse." : {
-
+    "Suburbani" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suburban"
+          }
+        }
+      }
     },
     "Suggerimenti e IA" : {
 
@@ -5213,9 +5923,6 @@
         }
       }
     },
-    "Supporto ed Azioni" : {
-
-    },
     "Tabellone — seleziona stazione" : {
       "localizations" : {
         "en" : {
@@ -5252,6 +5959,9 @@
           }
         }
       }
+    },
+    "Ti ascolto, tocca Cerca quando hai finito" : {
+
     },
     "Tieni premuto per segnalare" : {
       "localizations" : {
@@ -5294,6 +6004,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Report Type"
+          }
+        }
+      }
+    },
+    "Tipo di treno" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Train type"
           }
         }
       }
@@ -5341,6 +6061,16 @@
     },
     "Tocca una tratta per vedere tutte le partenze disponibili." : {
 
+    },
+    "Tragitto abituale" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regular commute"
+          }
+        }
+      }
     },
     "Trascina la home verso il basso per caricare i dati." : {
       "localizations" : {
@@ -5472,6 +6202,12 @@
         }
       }
     },
+    "Treno a un orario" : {
+
+    },
+    "Treno ad un orario" : {
+
+    },
     "Treno Affollato" : {
       "localizations" : {
         "en" : {
@@ -5481,6 +6217,9 @@
           }
         }
       }
+    },
+    "Treno delle ${timeString} da ${stationName}" : {
+
     },
     "Treno Fermo" : {
       "localizations" : {
@@ -5524,6 +6263,12 @@
         }
       }
     },
+    "Trova il prossimo treno o percorso reale tra partenza e arrivo." : {
+
+    },
+    "Trova il treno reale in partenza da una stazione a un determinato orario." : {
+
+    },
     "Trova le migliori coincidenze tra treni e metropolitane." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5562,6 +6307,9 @@
         }
       }
     },
+    "Tutte le stazioni" : {
+
+    },
     "Tutte le Stazioni" : {
       "localizations" : {
         "en" : {
@@ -5582,6 +6330,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Everything you need for a stress-free journey:"
+          }
+        }
+      }
+    },
+    "Ultimo ril.: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last detected: %@"
           }
         }
       }
@@ -5673,6 +6431,29 @@
         }
       }
     },
+    "Usa scheda Soluzioni" : {
+
+    },
+    "Usate anche per il filtro \"Portami a Casa\" nei tabelloni stazione." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also used for the \"Take me Home\" filter in station boards."
+          }
+        }
+      }
+    },
+    "Usate anche per il filtro \"Portami al Lavoro\" nei tabelloni stazione." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also used for the \"Take me to Work\" filter in station boards."
+          }
+        }
+      }
+    },
     "Valuta In Orario su App Store" : {
 
     },
@@ -5682,8 +6463,31 @@
     "Verifica alternative adesso" : {
 
     },
+    "Verifica automatica della linea prima della tua fascia di andata e ritorno (tutto regolare o eventuali disservizi)." : {
+
+    },
     "Verifica le stazioni impostate o riprova a verificare tra qualche minuto." : {
 
+    },
+    "Verso Casa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To Home"
+          }
+        }
+      }
+    },
+    "Verso Lavoro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To Work"
+          }
+        }
+      }
     },
     "Viaggi" : {
 
@@ -5713,6 +6517,7 @@
       }
     },
     "Vista Speciale Stazioni" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

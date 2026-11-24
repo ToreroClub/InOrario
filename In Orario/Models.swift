@@ -77,6 +77,7 @@ struct SharedFormatters {
         }
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "Europe/Rome")
         Thread.current.threadDictionary["timeFormatter"] = f
         return f
@@ -306,6 +307,8 @@ struct SavedTrain: Codable, Identifiable, Equatable {
     var lastNotifiedPlatform: String? = nil
     var notifyPlatformChange: Bool? = false
     var platformChangeStationName: String? = nil
+    var notifyScheduledTime: Bool? = false
+    var scheduledNotificationTime: String? = nil
     
     var lastDelayText: String? = nil
     var lastDelayColorName: String? = nil
@@ -552,6 +555,7 @@ struct Stop: Identifiable, Sendable {
     let estimatedTime: String?
     let plannedPlatform: String?
     let actualPlatform: String?
+    var isSuppressed: Bool = false
 }
 
 struct Station: Identifiable, Codable, Hashable {

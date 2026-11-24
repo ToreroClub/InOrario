@@ -30,8 +30,12 @@ import SwiftUI
     @Published var isUsingLocalEngine: Bool = false
     @Published var isServerHealthOffline: Bool = false
     @Published var isLocalUpdating: Bool = false
+    private(set) var isTunnelDetailOpen: Bool = false
     var lastLocalUpdateTimestamp: TimeInterval = 0
+    private var lastLocalAverageDelay: Int = 0
     private var inFlightFetchTask: Task<Bool, Never>?
+    private var tunnelDetailFetchTask: Task<Bool, Never>?
+    private var activeTunnelDetailTaskID = UUID()
     private var lastPassanteFetchTimestamp: TimeInterval = 0
     private var pendingRefreshNeeds: (force: Bool, includePositions: Bool)?
     
@@ -41,15 +45,10 @@ import SwiftUI
     @Published var passanteTunnelEastHealthColor: String = "#009640"
     @Published var passanteTunnelTrains: [Train] = []
     
-    @Published var useSpecialPassanteView: Bool = false {
-        didSet { UserDefaults.standard.set(useSpecialPassanteView, forKey: useSpecialPassanteViewKey) }
-    }
-    
     private let selectedSuburbanLinesKey = "selectedSuburbanLines_v1"
     private let hiddenSuburbanStationsKey = "hiddenSuburbanStations_v1"
     private let favoriteSuburbanStationsKey = "favoriteSuburbanStations_v1"
     private let selectedPassanteStationKey = "selectedPassanteStation_v1"
-    private let useSpecialPassanteViewKey = "useSpecialPassanteView_v1"
     
     init() {
         let selectedLinesData = UserDefaults.standard.data(forKey: selectedSuburbanLinesKey)
@@ -67,8 +66,6 @@ import SwiftUI
         let selectedStationData = UserDefaults.standard.data(forKey: selectedPassanteStationKey)
         let decodedStation = selectedStationData.flatMap { try? JSONDecoder().decode(Station.self, from: $0) } ?? Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01649", lat: 45.4746, lon: 9.2052)
         self._selectedPassanteStation = Published(initialValue: decodedStation)
-        
-        self.useSpecialPassanteView = UserDefaults.standard.bool(forKey: useSpecialPassanteViewKey)
     }
     
     func save() {
@@ -86,6 +83,18 @@ import SwiftUI
         }
     }
     
+    func setTunnelDetailOpen(_ isOpen: Bool) {
+        self.isTunnelDetailOpen = isOpen
+        if !isOpen {
+            self.activeTunnelDetailTaskID = UUID()
+            self.tunnelDetailFetchTask?.cancel()
+            self.tunnelDetailFetchTask = nil
+            if self.isLocalUpdating {
+                self.isLocalUpdating = false
+            }
+        }
+    }
+
     @discardableResult
     func fetchPassanteLive(manager: TrainManager, includePositions: Bool = false, force: Bool = false) async -> Bool {
         let now = Date().timeIntervalSince1970
@@ -110,29 +119,25 @@ import SwiftUI
                 self.pendingRefreshNeeds = nil
             }
             
-            var currentForce = force
             var currentIncludePositions = includePositions
             var overallSuccess = false
             
             while true {
                 var cycleSuccess = false
+                let shouldIncludePositions = currentIncludePositions && self.isTunnelDetailOpen
                 
-                let trainsFetched = await manager.fetchTrainsForStation(station: self.selectedPassanteStation)
+                async let trainsTask = manager.fetchTrainsForStation(station: self.selectedPassanteStation)
+                async let healthTask = self.fetchTunnelHealth(manager: manager, includePositions: shouldIncludePositions)
+                let (trainsFetched, healthSuccess) = await (trainsTask, healthTask)
                 guard !Task.isCancelled else { return false }
+                
                 if !trainsFetched.isEmpty {
-                    self.passanteTrains = trainsFetched
+                    if self.passanteTrains != trainsFetched {
+                        self.passanteTrains = trainsFetched
+                    }
                     cycleSuccess = true
                 }
-                
-                let healthSuccess = await self.fetchTunnelHealth(manager: manager, includePositions: currentIncludePositions)
-                guard !Task.isCancelled else { return false }
                 if healthSuccess {
-                    cycleSuccess = true
-                }
-                
-                let allTrainsSuccess = await self.fetchAllPassanteTrains(manager: manager, force: currentForce)
-                guard !Task.isCancelled else { return false }
-                if allTrainsSuccess {
                     cycleSuccess = true
                 }
                 
@@ -145,7 +150,6 @@ import SwiftUI
                 // If another caller requested a forced or position-bearing refresh while we were running, run another pass
                 if let pending = self.pendingRefreshNeeds {
                     self.pendingRefreshNeeds = nil
-                    currentForce = pending.force
                     currentIncludePositions = pending.includePositions
                 } else {
                     break
@@ -157,22 +161,64 @@ import SwiftUI
         return await task.value
     }
     
+    @discardableResult
+    func fetchTunnelDetailData(manager: TrainManager, force: Bool = false) async -> Bool {
+        guard isTunnelDetailOpen else { return false }
+        if let ongoing = tunnelDetailFetchTask, !force {
+            return await withTaskCancellationHandler {
+                await ongoing.value
+            } onCancel: {
+                ongoing.cancel()
+            }
+        }
+        if force {
+            tunnelDetailFetchTask?.cancel()
+        }
+        let taskID = UUID()
+        self.activeTunnelDetailTaskID = taskID
+        
+        let task = Task<Bool, Never> { [weak self] in
+            guard let self = self else { return false }
+            defer {
+                if self.activeTunnelDetailTaskID == taskID {
+                    self.tunnelDetailFetchTask = nil
+                }
+            }
+            guard self.isTunnelDetailOpen, !Task.isCancelled else { return false }
+            async let healthTask = self.fetchTunnelHealth(manager: manager, includePositions: true)
+            async let localTask = self.fetchAllPassanteTrains(manager: manager, force: force)
+            let (healthSuccess, localSuccess) = await (healthTask, localTask)
+            
+            guard self.isTunnelDetailOpen, !Task.isCancelled else { return false }
+            if !healthSuccess && localSuccess && self.isServerHealthOffline {
+                self.applyLocalEngineHealthFallback(avgDelay: self.lastLocalAverageDelay)
+            }
+            return healthSuccess || localSuccess
+        }
+        self.tunnelDetailFetchTask = task
+        return await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
+    }
+    
     func forceLocalUpdate(manager: TrainManager) async {
+        guard isTunnelDetailOpen else { return }
         let now = Date().timeIntervalSince1970
         guard now - lastLocalUpdateTimestamp >= 10 else { return }
         self.lastLocalUpdateTimestamp = now
         
-        await MainActor.run { self.isLocalUpdating = true }
-        await fetchAllPassanteTrains(manager: manager, force: true)
-        await MainActor.run { self.isLocalUpdating = false }
+        _ = await fetchTunnelDetailData(manager: manager, force: true)
     }
     
     @discardableResult
     func fetchAllPassanteTrains(manager: TrainManager, force: Bool = false) async -> Bool {
+        guard isTunnelDetailOpen, !Task.isCancelled else { return false }
         let now = Date().timeIntervalSince1970
-        if !force {
-            // Rate limit: limit automatic background updates to once every 90 seconds
-            guard now - lastLocalUpdateTimestamp >= 90.0 else { return true }
+        if !force && !passanteTunnelTrains.isEmpty {
+            // Rate limit: avoid hammering ViaggiaTreno on rapid close/reopen within 15 seconds
+            guard now - lastLocalUpdateTimestamp >= 15.0 else { return true }
         }
         
         let venezia = Station(name: "Milano Porta Venezia", rfiID: nil, vtID: "S01649", lat: 45.4746, lon: 9.2052)
@@ -187,21 +233,26 @@ import SwiftUI
         let rep = await trainsRepubblica
         let lan = await trainsLancetti
         
+        guard isTunnelDetailOpen, !Task.isCancelled else { return false }
+        
         let (allTrains, avgDelay) = Self.processPassanteTrains(ven: ven, rep: rep, lan: lan)
         
         guard !allTrains.isEmpty else {
             return false
         }
         self.lastLocalUpdateTimestamp = now
+        self.lastLocalAverageDelay = avgDelay
         
-        // We only fetch live statuses for the first 8 trains (which is the max displayed in the detail sheet)
-        let trainsToFetch = Array(allTrains.prefix(8))
+        // We fetch live statuses for the 5 sample trains displayed in the detail sheet
+        let trainsToFetch = Array(allTrains.prefix(5))
         
         var statuses: [String: TrainStatus] = [:]
         await withTaskGroup(of: (String, TrainStatus)?.self) { group in
             for train in trainsToFetch {
                 group.addTask {
+                    guard !Task.isCancelled else { return nil }
                     let result = await manager.fetchLiveStops(for: train.number, destination: train.destination)
+                    guard !Task.isCancelled else { return nil }
                     if !result.stops.isEmpty || result.status.isDeparted {
                         return (train.number, result.status)
                     }
@@ -215,23 +266,52 @@ import SwiftUI
             }
         }
         
-        self.passanteTunnelTrains = allTrains
-        self.passanteLiveStatuses = statuses
-        self.passanteLastUpdatedTimestamp = Date().timeIntervalSince1970
+        guard self.isTunnelDetailOpen, !Task.isCancelled else {
+            return false
+        }
         
-        if self.isServerHealthOffline {
-            self.isUsingLocalEngine = true
+        if self.passanteTunnelTrains != allTrains {
+            self.passanteTunnelTrains = allTrains
+        }
+        if !statuses.isEmpty {
+            var merged = self.passanteLiveStatuses
+            for (num, status) in statuses {
+                merged[num] = status
+            }
+            self.passanteLiveStatuses = merged
+        }
+        self.passanteLastUpdatedTimestamp = Date().timeIntervalSince1970
+        return true
+    }
+
+    private func applyLocalEngineHealthFallback(avgDelay: Int) {
+        if self.passanteTunnelHealthMessage != "Motore Locale Attivo" {
             self.passanteTunnelHealthMessage = "Motore Locale Attivo"
-            self.passanteTunnelHealthColor = "#007AFF" // Blue for local engine
+        }
+        if self.passanteTunnelHealthColor != "#007AFF" {
+            self.passanteTunnelHealthColor = "#007AFF"
+        }
+        if self.passanteTunnelWestHealthMessage != "Ovest: Solo Live" {
             self.passanteTunnelWestHealthMessage = "Ovest: Solo Live"
+        }
+        if self.passanteTunnelWestHealthColor != "#007AFF" {
             self.passanteTunnelWestHealthColor = "#007AFF"
+        }
+        if self.passanteTunnelEastHealthMessage != "Est: Solo Live" {
             self.passanteTunnelEastHealthMessage = "Est: Solo Live"
+        }
+        if self.passanteTunnelEastHealthColor != "#007AFF" {
             self.passanteTunnelEastHealthColor = "#007AFF"
+        }
+        if self.passanteTunnelAverageDelay != avgDelay {
             self.passanteTunnelAverageDelay = avgDelay
         }
-        self.passanteSelectedLinesAlerts = []
-        self.serverStuckTrains = []
-        return true
+        if !self.passanteSelectedLinesAlerts.isEmpty {
+            self.passanteSelectedLinesAlerts = []
+        }
+        if !self.serverStuckTrains.isEmpty {
+            self.serverStuckTrains = []
+        }
     }
     
     struct ServerHealthResponse: Codable, Sendable {
@@ -261,10 +341,27 @@ import SwiftUI
         var allTrains: [Train] = []
         var existingNumbers = Set<String>()
         
-        for list in [ven, rep, lan].sorted(by: { $0.count > $1.count }) {
-            for t in list {
+        let sources: [(station: String, trains: [Train])] = [
+            ("Porta Venezia", ven),
+            ("Repubblica", rep),
+            ("Lancetti", lan)
+        ].sorted(by: { $0.trains.count > $1.trains.count })
+        
+        for source in sources {
+            for t in source.trains {
                 if !existingNumbers.contains(t.number) {
-                    allTrains.append(t)
+                    let resolvedOrigin = (t.origin?.isEmpty == false) ? t.origin : source.station
+                    let taggedTrain = Train(
+                        category: t.category,
+                        number: t.number,
+                        destination: t.destination,
+                        time: t.time,
+                        delay: t.delay,
+                        platform: t.platform,
+                        isDelayUncertain: t.isDelayUncertain,
+                        origin: resolvedOrigin
+                    )
+                    allTrains.append(taggedTrain)
                     existingNumbers.insert(t.number)
                 }
             }
@@ -293,33 +390,78 @@ import SwiftUI
         guard let url = URL(string: urlString) else { return false }
         do {
             let (data, _) = try await NetworkService.shared.get(url: url)
+            guard !Task.isCancelled else { return false }
             let decoded = try Self.decodeHealthResponse(from: data)
             
-            self.passanteTunnelHealthMessage = Self.sanitizePassanteMessage(decoded.healthMessage)
-            self.passanteTunnelHealthColor = decoded.healthColor
-            self.passanteTunnelAverageDelay = decoded.averageDelay
-            self.passanteTunnelWestHealthMessage = Self.sanitizePassanteMessage(decoded.westMessage)
-            self.passanteTunnelWestHealthColor = decoded.westColor
-            self.passanteTunnelEastHealthMessage = Self.sanitizePassanteMessage(decoded.eastMessage)
-            self.passanteTunnelEastHealthColor = decoded.eastColor
-            self.passanteSelectedLinesAlerts = decoded.alerts
-            if let serverTimestamp = decoded.lastUpdatedTimestamp {
+            let newHealthMessage = Self.sanitizePassanteMessage(decoded.healthMessage)
+            let newWestMessage = Self.sanitizePassanteMessage(decoded.westMessage)
+            let newEastMessage = Self.sanitizePassanteMessage(decoded.eastMessage)
+            
+            if self.passanteTunnelHealthMessage != newHealthMessage {
+                self.passanteTunnelHealthMessage = newHealthMessage
+            }
+            if self.passanteTunnelHealthColor != decoded.healthColor {
+                self.passanteTunnelHealthColor = decoded.healthColor
+            }
+            if self.passanteTunnelAverageDelay != decoded.averageDelay {
+                self.passanteTunnelAverageDelay = decoded.averageDelay
+            }
+            if self.passanteTunnelWestHealthMessage != newWestMessage {
+                self.passanteTunnelWestHealthMessage = newWestMessage
+            }
+            if self.passanteTunnelWestHealthColor != decoded.westColor {
+                self.passanteTunnelWestHealthColor = decoded.westColor
+            }
+            if self.passanteTunnelEastHealthMessage != newEastMessage {
+                self.passanteTunnelEastHealthMessage = newEastMessage
+            }
+            if self.passanteTunnelEastHealthColor != decoded.eastColor {
+                self.passanteTunnelEastHealthColor = decoded.eastColor
+            }
+            if self.passanteSelectedLinesAlerts != decoded.alerts {
+                self.passanteSelectedLinesAlerts = decoded.alerts
+            }
+            if let serverTimestamp = decoded.lastUpdatedTimestamp,
+               self.passanteLastUpdatedTimestamp != serverTimestamp {
                 self.passanteLastUpdatedTimestamp = serverTimestamp
             }
             
             if includePositions {
-                self.passanteLiveStatuses = decoded.statuses ?? [:]
-                if let sTrains = decoded.stuckTrains {
+                if let serverStatuses = decoded.statuses, !serverStatuses.isEmpty {
+                    var merged = self.passanteLiveStatuses
+                    for (num, serverStatus) in serverStatuses {
+                        if let existing = merged[num],
+                           !existing.lastStation.isEmpty,
+                           existing.lastStation != "--" {
+                            continue
+                        }
+                        merged[num] = serverStatus
+                    }
+                    self.passanteLiveStatuses = merged
+                }
+                if let sTrains = decoded.stuckTrains,
+                   !(self.serverStuckTrains.isEmpty && sTrains.isEmpty) {
                     self.serverStuckTrains = sTrains
                 }
-                self.isUsingLocalEngine = false
+                if self.isUsingLocalEngine {
+                    self.isUsingLocalEngine = false
+                }
             }
-            self.isServerHealthOffline = false
+            if self.isServerHealthOffline {
+                self.isServerHealthOffline = false
+            }
             return true
         } catch {
+            if error is CancellationError || (error as? AppNetworkError) == .cancelled || Task.isCancelled {
+                return false
+            }
             AppLogger.refreshFailed(target: "PassanteTunnelHealth", error: error)
-            self.isServerHealthOffline = true
-            self.isUsingLocalEngine = true
+            if !self.isServerHealthOffline {
+                self.isServerHealthOffline = true
+            }
+            if !self.isUsingLocalEngine {
+                self.isUsingLocalEngine = true
+            }
             return false
         }
     }
@@ -343,7 +485,10 @@ import SwiftUI
                d.contains("s.donato") || d.contains("san donato") ||
                d.contains("cremona") || d.contains("piacenza") ||
                d.contains("mantova") || d.contains("s.giuliano") ||
-               d.contains("san giuliano")
+               d.contains("san giuliano") || d.contains("tavazzano") ||
+               d.contains("pieve emanuele") || d.contains("villamaggiore") ||
+               d.contains("certosa di pavia") || d.contains("voghera") ||
+               d.contains("stradella") || d.contains("alessandria")
     }
     
     private func isBovisaDestination(_ dest: String) -> Bool {
@@ -357,7 +502,13 @@ import SwiftUI
                d.contains("meda") || d.contains("cabiate") ||
                d.contains("seregno") || d.contains("canzo") ||
                d.contains("asso") || d.contains("calolziocorte") ||
-               d.contains("molteno") || d.contains("lecco")
+               d.contains("molteno") || d.contains("lecco") ||
+               d.contains("novate") || d.contains("bollate") ||
+               d.contains("cesate") || d.contains("caronno") ||
+               d.contains("quarto oggiaro") || d.contains("bruzzano") ||
+               d.contains("paderno") || d.contains("palazzolo") ||
+               d.contains("varedo") || d.contains("bovisio") ||
+               d.contains("cusano")
     }
     
     private func isForlaniniDestination(_ dest: String) -> Bool {
@@ -365,6 +516,10 @@ import SwiftUI
         return d.contains("treviglio") || d.contains("pioltello") ||
                d.contains("segrate") || d.contains("melzo") ||
                d.contains("vignate") || d.contains("pozzuolo") ||
+               d.contains("trecella") || d.contains("cassano") ||
+               d.contains("brescia") || d.contains("bergamo") ||
+               d.contains("verona") || d.contains("porta vittoria") ||
+               d.contains("p. vittoria") ||
                (d.contains("forlanini") && !d.contains("rogoredo"))
     }
     
@@ -372,8 +527,17 @@ import SwiftUI
         let d = dest.lowercased()
         return d.contains("novara") || d.contains("varese") ||
                d.contains("gallarate") || d.contains("malpensa") ||
-               d.contains("rho") || d.contains("certosa") ||
-               d.contains("busto") || d.contains("casale")
+               d.contains("rho") || (d.contains("certosa") && !d.contains("pavia")) ||
+               d.contains("busto") || d.contains("casale") ||
+               d.contains("magenta") || d.contains("trecate") ||
+               d.contains("vittuone") || d.contains("corbetta") ||
+               d.contains("pregnana") || d.contains("legnano") ||
+               d.contains("parabiago") || d.contains("canegrate") ||
+               d.contains("vanzago") || d.contains("villapizzone") ||
+               d.contains("lancetti") || d.contains("arona") ||
+               d.contains("luino") || d.contains("porto ceresio") ||
+               d.contains("gazzada") || d.contains("castronno") ||
+               d.contains("albizzate") || d.contains("cavaria")
     }
 
     var passanteTrainsViaBovisa: [Train] {
@@ -428,10 +592,10 @@ import SwiftUI
             return isRogoredoDestination(dest) ? "Rogoredo" : "Bovisa"
         } else if cat == "S5" || cat == "S6" {
             return isForlaniniDestination(dest) ? "Forlanini" : "Rho"
-        } else if cat == "SUB" {
+        } else {
+            if isRogoredoDestination(dest) { return "Rogoredo" }
             if isForlaniniDestination(dest) { return "Forlanini" }
             if isRhoDestination(dest) { return "Rho" }
-            if isRogoredoDestination(dest) { return "Rogoredo" }
             if isBovisaDestination(dest) { return "Bovisa" }
         }
         return nil
@@ -453,23 +617,6 @@ import SwiftUI
             "porta vittoria"
         ]
         return tunnelStations.contains { name.contains($0) }
-    }
-    
-    func isPassanteDirectionalStation(_ stationName: String) -> Bool {
-        if !useSpecialPassanteView { return false }
-        
-        let name = stationName.lowercased()
-        
-        if name.contains("superficie") || name == "milano porta garibaldi" {
-            return false
-        }
-        
-        let passanteStations = [
-            "lancetti",
-            "garibaldi sotterranea", "garibaldi passante",
-            "repubblica", "porta venezia", "venezia", "dateo", "porta vittoria", "vittoria"
-        ]
-        return passanteStations.contains { name.contains($0) }
     }
     
     func getPassanteDirection(for train: Train) -> String? {

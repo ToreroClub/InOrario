@@ -63,6 +63,10 @@ actor StationRepository {
         let result = await getStationBoard(station: station, isDepartures: true, force: false)
         return result.trains
     }
+
+    func fetchVTDepartures(vtID: String, at date: Date) async -> [Train] {
+        return await performVTFetch(for: vtID, isDepartures: true, dateStr: makeVTDateString(for: date))
+    }
     
     func clearCache() {
         cache.removeAll()
@@ -412,12 +416,12 @@ actor StationRepository {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
-    private func makeVTDateString() -> String {
+    private func makeVTDateString(for date: Date = Date()) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "Europe/Rome")
         f.dateFormat = "EEE MMM dd yyyy HH:mm:ss 'GMT'ZZZ"
-        let str = f.string(from: Date()).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
+        let str = f.string(from: date).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""
         return str.replacingOccurrences(of: "+", with: "%2B")
     }
 }

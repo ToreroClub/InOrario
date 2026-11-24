@@ -847,13 +847,43 @@ struct SearchView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var locationManager: LocationManager
     @Environment(\.dismiss) var dismiss
+    @ObservedObject private var aiManager = AIFeatureManager.shared
     
     var isTravelOnly: Bool
+    var initialAssistantMode: Bool
+    var autoStartVoice: Bool
+    var initialQuery: String?
+    var initialOriginName: String?
+    var initialOriginID: String?
+    var initialDestName: String?
+    var initialDestID: String?
+    var autoSearchSolutions: Bool
     @State private var selectedTab: Int // 0: Treni e Stazioni, 1: Soluzioni
+    @State private var isAssistantMode: Bool
     
-    init(isTravelOnly: Bool = false, initialTab: Int = 0) {
+    init(
+        isTravelOnly: Bool = false,
+        initialTab: Int = 0,
+        initialAssistantMode: Bool = false,
+        autoStartVoice: Bool = false,
+        initialQuery: String? = nil,
+        initialOriginName: String? = nil,
+        initialOriginID: String? = nil,
+        initialDestName: String? = nil,
+        initialDestID: String? = nil,
+        autoSearchSolutions: Bool = false
+    ) {
         self.isTravelOnly = isTravelOnly
+        self.initialAssistantMode = initialAssistantMode
+        self.autoStartVoice = autoStartVoice
+        self.initialQuery = initialQuery
+        self.initialOriginName = initialOriginName
+        self.initialOriginID = initialOriginID
+        self.initialDestName = initialDestName
+        self.initialDestID = initialDestID
+        self.autoSearchSolutions = autoSearchSolutions
         _selectedTab = State(initialValue: isTravelOnly ? 1 : initialTab)
+        _isAssistantMode = State(initialValue: !isTravelOnly && (initialAssistantMode || !(initialQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
     }
     
     // TAB 0 State
@@ -865,6 +895,23 @@ struct SearchView: View {
     @State private var showOriginSearch = false
     @State private var showDestSearch = false
     @State private var hasSearchedSolutions = false
+    
+    // Assistant State
+    @StateObject private var voiceController = VoiceSearchController()
+    @State private var assistantQuery = ""
+    @State private var isAssistantRunning = false
+    @State private var assistantLoadingStep = "Interpreto la richiesta..."
+    @State private var assistantResult: SmartQueryExecutionResult? = nil
+    @State private var assistantParsed: SmartTrainQuery? = nil
+    @State private var assistantStatusMessage: String? = nil
+    @State private var assistantNeedsUpgradeMessage: String? = nil
+    @State private var showPaywallSheet = false
+    @State private var didHandleAutoVoice = false
+    @State private var didHandleInitialQuery = false
+    @State private var didHandleInitialRoute = false
+    @State private var assistantSearchTask: Task<Void, Never>? = nil
+    @State private var activeAssistantSearchID = UUID()
+    @FocusState private var isAssistantFieldFocused: Bool
     
     // TAB 1 State
     @State private var query = ""
@@ -901,27 +948,99 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if !isTravelOnly {
-                    Picker("Sezione", selection: $selectedTab.animation(.easeInOut(duration: 0.2))) {
-                        Text("Treni e Stazioni").tag(0)
-                        Text("Soluzioni").tag(1)
+                HStack(alignment: .center, spacing: 10) {
+                    Text(isTravelOnly ? "Cerca Viaggio" : (isAssistantMode ? "Assistente" : "Cerca"))
+                        .font(.largeTitle.bold())
+                        .foregroundColor(.primary)
+                    if !isTravelOnly && isAssistantMode {
+                        BetaBadgeView()
+                            .transition(.scale.combined(with: .opacity))
                     }
-                    .pickerStyle(.segmented)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 2)
+                .padding(.bottom, 6)
+                .background(Color(.systemGroupedBackground))
+
+                if !isTravelOnly {
+                    HStack(spacing: 10) {
+                        Picker("Sezione", selection: Binding(
+                            get: { isAssistantMode ? -1 : selectedTab },
+                            set: { newValue in
+                                Haptics.play(.light)
+                                guard newValue >= 0 else { return }
+                                isAssistantMode = false
+                                voiceController.stopListening(triggerFinal: false)
+                                selectedTab = newValue
+                                if newValue == 1 {
+                                    query = ""
+                                    manager.searchResults = []
+                                    manager.searchStationResults = []
+                                }
+                            }
+                        )) {
+                            Text("Treni e Stazioni").tag(0)
+                            Text("Soluzioni").tag(1)
+                        }
+                        .pickerStyle(.segmented)
+
+                        Button {
+                            Haptics.play(.medium)
+                            if isAssistantMode {
+                                if voiceController.isListening {
+                                    voiceController.stopListening(triggerFinal: true)
+                                } else {
+                                    startVoiceInput()
+                                }
+                            } else {
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                    isAssistantMode = true
+                                }
+                            }
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: voiceController.isListening
+                                                ? [.red, .pink, .orange]
+                                                : [.indigo, .purple, .cyan],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 34, height: 34)
+                                    .shadow(
+                                        color: (voiceController.isListening ? Color.pink : Color.purple).opacity(isAssistantMode ? 0.45 : 0.18),
+                                        radius: isAssistantMode ? 6 : 3
+                                    )
+
+                                Image(systemName: voiceController.isListening ? "waveform" : "sparkles")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .symbolEffect(.variableColor.iterative, isActive: voiceController.isListening)
+                            }
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.primary.opacity(isAssistantMode ? 0.28 : 0.08), lineWidth: isAssistantMode ? 1.5 : 0.5)
+                            )
+                        }
+                        .accessibilityLabel(isAssistantMode ? "Parla con l'assistente" : "Assistente intelligente")
+                    }
                     .padding(.horizontal)
                     .padding(.top, 8)
                     .padding(.bottom, 6)
                     .background(Color(.systemGroupedBackground))
-                    .onChange(of: selectedTab) { _, newValue in
-                        Haptics.play(.light)
-                        if newValue == 1 {
-                            query = ""
-                            manager.searchResults = []
-                            manager.searchStationResults = []
-                        }
-                    }
                 }
                 
-                if isTravelOnly || selectedTab == 1 {
+                if isTravelOnly {
+                    travelSolutionsTab
+                        .transition(.opacity)
+                } else if isAssistantMode {
+                    smartAssistantTab
+                        .transition(.opacity)
+                } else if selectedTab == 1 {
                     travelSolutionsTab
                         .transition(.opacity)
                 } else {
@@ -930,12 +1049,15 @@ struct SearchView: View {
                 }
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .navigationTitle(isTravelOnly ? "Cerca Viaggio" : "Cerca")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Chiudi") { dismiss() }
-                        .fontWeight(.bold)
+                    Button("Chiudi") {
+                        voiceController.stopListening(triggerFinal: false)
+                        dismiss()
+                    }
+                    .fontWeight(.bold)
                 }
             }
             .sheet(isPresented: $showOriginSearch) {
@@ -944,14 +1066,829 @@ struct SearchView: View {
             .sheet(isPresented: $showDestSearch) {
                 StationSelectionSheet(selectedName: $destName, selectedID: $destID, title: "Stazione di Arrivo")
             }
+            .sheet(isPresented: $showPaywallSheet) {
+                SupportPaywallSheet()
+                    .environmentObject(manager)
+            }
+            .onChange(of: voiceController.transcript) { _, newText in
+                if voiceController.isListening && !newText.isEmpty {
+                    assistantQuery = newText
+                }
+            }
             .onAppear {
-                if originID.isEmpty || destID.isEmpty {
+                if let initOrig = initialOriginName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   let initDest = initialDestName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !initOrig.isEmpty, !initDest.isEmpty,
+                   !didHandleInitialRoute {
+                    didHandleInitialRoute = true
+                    isAssistantMode = false
+                    selectedTab = 1
+                    let resolvedOrig = manager.resolveStation(name: initOrig, fallbackVtID: initialOriginID, fallbackRfiID: initialOriginID)
+                    let resolvedDest = manager.resolveStation(name: initDest, fallbackVtID: initialDestID, fallbackRfiID: initialDestID)
+                    originName = resolvedOrig.name
+                    originID = (initialOriginID?.isEmpty == false ? initialOriginID : nil) ?? resolvedOrig.rfiID ?? resolvedOrig.vtID ?? initOrig
+                    destName = resolvedDest.name
+                    destID = (initialDestID?.isEmpty == false ? initialDestID : nil) ?? resolvedDest.rfiID ?? resolvedDest.vtID ?? initDest
+                    searchDate = Date()
+                    if autoSearchSolutions {
+                        hasSearchedSolutions = true
+                        Task {
+                            await manager.searchTravelSolutions(
+                                originID: originID,
+                                destID: destID,
+                                date: searchDate,
+                                originName: originName,
+                                destName: destName,
+                                onResolvedIDs: { newOrig, newDest in
+                                    originID = newOrig
+                                    destID = newDest
+                                }
+                            )
+                        }
+                    }
+                } else if originID.isEmpty || destID.isEmpty {
                     manager.travelSolutions = []
                     hasSearchedSolutions = false
                 }
                 if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                     locationManager.requestLocation()
                 }
+                if let initQ = initialQuery?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !initQ.isEmpty,
+                   !didHandleInitialQuery {
+                    didHandleInitialQuery = true
+                    isAssistantMode = true
+                    assistantQuery = initQ
+                    runAssistantSearch(inputMode: "text")
+                } else if autoStartVoice && isAssistantMode && !didHandleAutoVoice {
+                    didHandleAutoVoice = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        startVoiceInput()
+                    }
+                }
+            }
+            .onDisappear {
+                voiceController.stopListening(triggerFinal: false)
+                assistantSearchTask?.cancel()
+            }
+        }
+    }
+
+    // MARK: - Smart Assistant Tab
+
+    private struct VoiceWaveView: View {
+        let audioLevel: CGFloat
+        @State private var phase: Double = 0
+
+        var body: some View {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                HStack(spacing: 4) {
+                    ForEach(0..<16, id: \.self) { idx in
+                        let norm = Double(idx) / 15.0
+                        let envelope = sin(norm * .pi)
+                        let wave = abs(sin(t * 7.5 + Double(idx) * 0.55))
+                        let levelBoost = max(0.18, Double(audioLevel))
+                        let height = max(8, min(42, 10 + CGFloat(wave * envelope * levelBoost * 34)))
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.indigo, .purple, .pink],
+                                    startPoint: .bottom,
+                                    endPoint: .top
+                                )
+                            )
+                            .frame(width: 4, height: height)
+                    }
+                }
+                .frame(height: 44)
+            }
+        }
+    }
+
+    private var assistantEngineLabel: String {
+        switch SmartQueryEnginePolicy.resolve(
+            hasSupport: manager.hasSupport(),
+            hasAppleIntelligence: aiManager.isAppleIntelligenceAvailable,
+            aiModeChoice: aiManager.aiModeChoice
+        ) {
+        case .geminiCloud: return "Cloud"
+        case .appleIntelligence: return "Apple Intelligence"
+        case .localExactOnly: return "Locale"
+        }
+    }
+
+    private let assistantExamples: [String] = [
+        "Voglio andare da Milano Cadorna a Novara alle 16:00 di domani",
+        "Treno delle 11:34 da Magenta",
+        "Primo treno da Rho Fiera a Torino",
+        "Partenze Milano Rogoredo",
+        "Portami a Milano Repubblica"
+    ]
+
+    private var smartAssistantTab: some View {
+        VStack(spacing: 0) {
+            // Barra di ricerca capsula in alto coerente con "Treni e Stazioni"
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.purple)
+                    .font(.system(size: 16, weight: .medium))
+
+                TextField("", text: $assistantQuery)
+                    .font(.system(size: 17))
+                    .submitLabel(.search)
+                    .textInputAutocapitalization(.sentences)
+                    .focused($isAssistantFieldFocused)
+                    .onSubmit {
+                        voiceController.stopListening(triggerFinal: false)
+                        runAssistantSearch()
+                    }
+
+                if !voiceController.isListening {
+                    if !assistantQuery.isEmpty {
+                        Button {
+                            clearAssistantState()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                                .font(.system(size: 18))
+                                .padding(4)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Cancella ricerca")
+                    }
+
+                    Button {
+                        Haptics.play(.medium)
+                        startVoiceInput()
+                    } label: {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.purple)
+                            .padding(4)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Detta richiesta")
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.secondarySystemFill))
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(voiceController.isListening ? Color.purple.opacity(0.65) : Color.clear, lineWidth: 1.5)
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            .padding(.bottom, 4)
+            .background(Color(.systemGroupedBackground))
+
+            HStack {
+                Text(assistantEngineLabel)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 6)
+            .background(Color(.systemGroupedBackground))
+
+            if voiceController.isListening {
+                VStack(spacing: 12) {
+                    VoiceWaveView(audioLevel: voiceController.audioLevel)
+                    Text("Ti ascolto, tocca Cerca quando hai finito")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    HStack(spacing: 12) {
+                        Button {
+                            Haptics.play(.light)
+                            voiceController.stopListening(triggerFinal: false)
+                        } label: {
+                            Label("Annulla", systemImage: "xmark")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 13)
+                                .background(Color(.tertiarySystemFill))
+                                .foregroundColor(.primary)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            Haptics.play(.medium)
+                            voiceController.stopListening(triggerFinal: true)
+                        } label: {
+                            Label("Cerca", systemImage: "magnifyingglass")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 13)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.indigo, .purple],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .background(Color(.systemGroupedBackground))
+                .transition(.opacity)
+            }
+
+            if let voiceErr = voiceController.errorMessage {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(voiceErr)
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    if voiceController.permissionDenied,
+                       let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                        Button("Apri Impostazioni") {
+                            UIApplication.shared.open(settingsURL)
+                        }
+                        .font(.caption.bold())
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 6)
+                .background(Color(.systemGroupedBackground))
+            }
+
+            List {
+                if isAssistantRunning {
+                    Section {
+                        HStack(spacing: 12) {
+                            ProgressView()
+                            Text(assistantLoadingStep)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+
+                if let upgradeMsg = assistantNeedsUpgradeMessage {
+                    Section(header: Text("Richiesta Complessa")) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Serve comprensione avanzata", systemImage: "sparkles")
+                                .font(.headline)
+                                .foregroundColor(.purple)
+                            Text(upgradeMsg)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 10) {
+                                Button {
+                                    showPaywallSheet = true
+                                } label: {
+                                    Label("Sblocca In Orario Pro", systemImage: "crown.fill")
+                                        .font(.caption.bold())
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.purple)
+                                        .foregroundColor(.white)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    isAssistantMode = false
+                                    selectedTab = 1
+                                } label: {
+                                    Text("Usa scheda Soluzioni")
+                                        .font(.caption.bold())
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color(.tertiarySystemFill))
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                } else if let statusMsg = assistantStatusMessage {
+                    Section {
+                        Label(statusMsg, systemImage: "info.circle")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 4)
+                    }
+                }
+
+                if let parsed = assistantParsed {
+                    Section(header: Text("Richiesta Interpretata")) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(parsed.displaySummary(fallbackQuery: assistantQuery))
+                                .font(.subheadline.bold())
+                                .foregroundColor(.primary)
+                            HStack(spacing: 8) {
+                                if let d = parsed.targetDate {
+                                    Text("Data: \(d)")
+                                }
+                                if let t = parsed.targetTime {
+                                    Text("Ora: \(t)")
+                                }
+                                if let eng = parsed.engineUsed {
+                                    Text("• \(engineDisplayName(eng))")
+                                }
+                            }
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+
+                if let result = assistantResult {
+                    assistantResultSections(result)
+                }
+
+                if !isAssistantRunning && assistantResult == nil && assistantNeedsUpgradeMessage == nil {
+                    if !manager.recentAssistantQueries.isEmpty {
+                        Section(header: HStack {
+                            Text("Ricerche recenti")
+                            Spacer()
+                            Button("Cancella") {
+                                manager.clearRecentAssistantQueries()
+                                Haptics.play(.medium)
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        }) {
+                            ForEach(Array(manager.recentAssistantQueries.prefix(4)), id: \.self) { recentQ in
+                                Button {
+                                    Haptics.play(.light)
+                                    assistantQuery = recentQ
+                                    runAssistantSearch()
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "clock.arrow.circlepath")
+                                            .foregroundColor(.secondary)
+                                        Text(recentQ)
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                            .multilineTextAlignment(.leading)
+                                        Spacer()
+                                        Image(systemName: "arrow.up.left")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.vertical, 2)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        manager.removeRecentAssistantQuery(recentQ)
+                                        Haptics.play(.light)
+                                    } label: {
+                                        Label("Elimina", systemImage: "trash.fill")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Section(header: Text("Esempi di richieste")) {
+                        ForEach(assistantExamples, id: \.self) { sample in
+                            Button {
+                                Haptics.play(.light)
+                                assistantQuery = sample
+                                runAssistantSearch()
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "text.bubble.fill")
+                                        .foregroundColor(.purple)
+                                    Text(sample)
+                                        .font(.subheadline)
+                                        .foregroundColor(.primary)
+                                        .multilineTextAlignment(.leading)
+                                    Spacer()
+                                    Image(systemName: "arrow.up.left")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollDismissesKeyboard(.interactively)
+        }
+    }
+
+    @ViewBuilder
+    private func assistantResultSections(_ result: SmartQueryExecutionResult) -> some View {
+        switch result {
+        case .trainAtTime(let train, let station, let sample, let requestedTime):
+            Section(header: Text("Partenza da \(station.name.formattedStationName) (\(requestedTime))")) {
+                if let matched = train {
+                    NavigationLink(destination: TrainStopsView(train: matched, showCloseButton: false)) {
+                        assistantTrainRow(matched, highlightBadge: "TROVATO")
+                    }
+                } else {
+                    Text("Nessun treno trovato in partenza da \(station.name.formattedStationName) intorno alle \(requestedTime).")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                NavigationLink(destination: SmartBoardView(station: station)) {
+                    Label("Apri tabellone completo \(station.name.formattedStationName)", systemImage: "list.bullet.rectangle.portrait")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.blue)
+                }
+            }
+
+            if !sample.isEmpty {
+                let others = sample.filter { $0.id != train?.id }.prefix(5)
+                if !others.isEmpty {
+                    Section(header: Text("Altri treni vicini in partenza")) {
+                        ForEach(Array(others)) { tr in
+                            NavigationLink(destination: TrainStopsView(train: tr, showCloseButton: false)) {
+                                assistantTrainRow(tr, highlightBadge: nil)
+                            }
+                        }
+                    }
+                }
+            }
+
+        case .trainStatus(let train):
+            Section(header: Text("Stato Treno Reale")) {
+                NavigationLink(destination: TrainStopsView(train: train, showCloseButton: false)) {
+                    assistantTrainRow(train, highlightBadge: nil)
+                }
+            }
+
+        case .stationBoard(let station, let isArrivals):
+            Section(header: Text(isArrivals ? "Arrivi Stazione" : "Partenze Stazione")) {
+                NavigationLink(destination: SmartBoardView(station: station)) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "building.2.crop.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(station.name.formattedStationName)
+                                .font(.headline)
+                            Text("Apri tabellone live (\(isArrivals ? "Arrivi" : "Partenze"))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
+        case .solutions(let solutions, let origin, let destination, let resolvedOrigID, let resolvedDestID, let searchDt):
+            Section(header: Text("\(origin.formattedStationName) → \(destination.formattedStationName) • \(assistantFormattedDate(searchDt))")) {
+                if solutions.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Nessuna soluzione reale trovata per questa richiesta.")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Prova a cambiare orario o verifica i nomi delle stazioni nella scheda Soluzioni.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button("Apri nella scheda Soluzioni") {
+                            applyToSolutionsTab(
+                                origin: origin,
+                                originID: resolvedOrigID,
+                                destination: destination,
+                                destID: resolvedDestID,
+                                date: searchDt,
+                                solutions: []
+                            )
+                        }
+                        .font(.subheadline.bold())
+                    }
+                    .padding(.vertical, 6)
+                } else {
+                    Button {
+                        applyToSolutionsTab(
+                            origin: origin,
+                            originID: resolvedOrigID,
+                            destination: destination,
+                            destID: resolvedDestID,
+                            date: searchDt,
+                            solutions: solutions
+                        )
+                    } label: {
+                        Label("Apri queste \(solutions.count) soluzioni nella scheda Soluzioni", systemImage: "arrow.right.doc.on.clipboard")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.blue)
+                    }
+
+                    ForEach(Array(solutions.enumerated()), id: \.element.id) { index, solution in
+                        NavigationLink(destination: TravelSolutionDetailsView(solution: solution)) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                if index == 0 {
+                                    let isFirstRequested = assistantQuery.lowercased().contains("primo") || assistantQuery.lowercased().contains("prossimo")
+                                    Text(isFirstRequested ? "PRIMO TRENO UTILE" : "SOLUZIONE MIGLIORE")
+                                        .font(.caption2.bold())
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(Color.green.opacity(0.15))
+                                        .foregroundColor(.green)
+                                        .clipShape(Capsule())
+                                }
+                                TravelSolutionRow(solution: solution)
+                            }
+                        }
+                    }
+                }
+            }
+
+        case .message(let text):
+            Section {
+                Label(text, systemImage: "info.circle")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func assistantTrainRow(_ train: Train, highlightBadge: String?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let badge = highlightBadge {
+                Text(badge)
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.blue.opacity(0.14))
+                    .foregroundColor(.blue)
+                    .clipShape(Capsule())
+            }
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(train.category.isEmpty ? "Treno" : train.category) \(train.number)")
+                        .font(.headline)
+                    Text("Dir. \(train.destination.formattedStationName)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(train.time)
+                        .font(.title3.bold().monospacedDigit())
+                    HStack(spacing: 6) {
+                        if !train.delay.isEmpty {
+                            Text(train.delay)
+                                .font(.caption.bold())
+                                .foregroundColor(train.delay.contains("+") || train.delay.contains("Soppresso") ? .red : .green)
+                        }
+                        if !train.platform.isEmpty && train.platform != "--" {
+                            Text("Bin. \(train.platform)")
+                                .font(.caption2.bold())
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color(.tertiarySystemFill))
+                                .cornerRadius(4)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func engineDisplayName(_ engine: String) -> String {
+        switch engine {
+        case "gemini_cloud": return "Cloud"
+        case "apple_intelligence": return "Apple Intelligence"
+        case "local_exact": return "Locale"
+        default: return engine
+        }
+    }
+
+    private func clearAssistantState() {
+        assistantSearchTask?.cancel()
+        assistantQuery = ""
+        assistantResult = nil
+        assistantParsed = nil
+        assistantStatusMessage = nil
+        assistantNeedsUpgradeMessage = nil
+        isAssistantRunning = false
+    }
+
+    private func assistantFormattedDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "it_IT")
+        f.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        f.dateFormat = "d MMM HH:mm"
+        return f.string(from: date)
+    }
+
+    private func applyToSolutionsTab(
+        origin: String,
+        originID resolvedOriginID: String,
+        destination: String,
+        destID resolvedDestID: String,
+        date: Date,
+        solutions: [TravelSolution]
+    ) {
+        self.originName = origin
+        self.originID = resolvedOriginID
+        self.destName = destination
+        self.destID = resolvedDestID
+        self.searchDate = date
+        manager.travelSolutions = solutions
+        self.hasSearchedSolutions = true
+        self.isAssistantMode = false
+        self.selectedTab = 1
+    }
+
+    private func contextualVoiceStrings() -> [String] {
+        var ctx: [String] = [
+            "In Orario", "Milano Cadorna", "Milano Nord Cadorna",
+            "Milano Centrale", "Milano Porta Garibaldi", "Milano Rogoredo",
+            "Milano Repubblica", "Milano Dateo", "Magenta", "Novara",
+            "Domodossola", "Rho Fiera", "Torino", "Torino Porta Nuova", "Roma Termini",
+            "partenze", "arrivi", "primo treno", "domani", "oggi pomeriggio",
+            "portami a casa", "portami al lavoro", "treno delle"
+        ]
+        if let nearby = locationManager.manualNearbyStation?.name ?? locationManager.nearbyStation?.name {
+            ctx.append(nearby)
+        }
+        ctx.append(contentsOf: SupporterCommuteManager.shared.origins.prefix(8))
+        ctx.append(contentsOf: SupporterCommuteManager.shared.destinations.prefix(8))
+        for rt in manager.smartRoutes.prefix(8) {
+            ctx.append(rt.originName)
+            ctx.append(rt.destinationName)
+        }
+        for favRt in manager.favoriteRoutes.prefix(8) {
+            ctx.append(favRt.originName)
+            ctx.append(favRt.destinationName)
+        }
+        ctx.append(contentsOf: manager.myStations.prefix(10).map { $0.name })
+        ctx.append(contentsOf: manager.recentStations.prefix(10).map { $0.nomeLungo })
+        ctx.append(contentsOf: manager.favoriteTrains.prefix(10).map { $0.number })
+        return ctx
+    }
+
+    private func startVoiceInput() {
+        isAssistantFieldFocused = false
+        assistantStatusMessage = nil
+        assistantNeedsUpgradeMessage = nil
+        voiceController.startListening(contextualStrings: contextualVoiceStrings()) { spoken in
+            assistantQuery = spoken
+            runAssistantSearch(inputMode: "voice")
+        }
+    }
+
+    private func runAssistantSearch(inputMode: String = "text") {
+        let q = assistantQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return }
+
+        assistantSearchTask?.cancel()
+        let currentSearchID = UUID()
+        activeAssistantSearchID = currentSearchID
+        isAssistantRunning = true
+        assistantLoadingStep = "Interpreto la richiesta..."
+        assistantResult = nil
+        assistantParsed = nil
+        assistantStatusMessage = nil
+        assistantNeedsUpgradeMessage = nil
+
+        let initialNearby = locationManager.manualNearbyStation ?? locationManager.nearbyStation
+        let favStationNames = manager.myStations.map { $0.name }
+        let favTrainNumbers = manager.favoriteTrains.map { $0.number }
+        let homeStList = SupporterCommuteManager.shared.origins
+        let workStList = SupporterCommuteManager.shared.destinations
+        let knownStations = manager.allRFIStations.isEmpty ? SmartQueryExecutor.bundledRFIStations() : manager.allRFIStations
+        let hasSup = manager.hasSupport()
+        let selectedChoice = aiManager.aiModeChoice
+        let lowerQ = q.lowercased()
+        let needsFreshLocation = initialNearby == nil &&
+            (lowerQ.contains("portami") || lowerQ.contains("da qui") || lowerQ.contains("qui vicino") || lowerQ.contains("stazione più vicina")) &&
+            !lowerQ.contains(" da ") &&
+            (locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways)
+
+        assistantSearchTask = Task {
+            let watchdog = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 22_000_000_000)
+                guard !Task.isCancelled,
+                      self.activeAssistantSearchID == currentSearchID,
+                      self.isAssistantRunning else { return }
+                self.assistantSearchTask?.cancel()
+                self.isAssistantRunning = false
+                if self.assistantResult == nil && self.assistantStatusMessage == nil && self.assistantNeedsUpgradeMessage == nil {
+                    let timeoutMsg = "La ricerca ha impiegato troppo tempo. Riprova tra un attimo."
+                    self.assistantStatusMessage = timeoutMsg
+                    SmartQueryParser.shared.logAnonymousQuery(
+                        rawQuery: q,
+                        inputMode: inputMode,
+                        engine: "none",
+                        outcome: "timeout",
+                        parsed: self.assistantParsed,
+                        resultSummary: timeoutMsg
+                    )
+                }
+            }
+            defer {
+                watchdog.cancel()
+                if self.activeAssistantSearchID == currentSearchID {
+                    self.isAssistantRunning = false
+                }
+            }
+
+            var nearbySt = initialNearby
+            if needsFreshLocation {
+                self.assistantLoadingStep = "Rilevo la stazione GPS vicina..."
+                _ = await locationManager.getCurrentLocation(maxAge: 120, timeout: 2.5)
+                guard !Task.isCancelled, self.activeAssistantSearchID == currentSearchID else { return }
+                nearbySt = locationManager.manualNearbyStation ?? locationManager.nearbyStation
+                self.assistantLoadingStep = "Interpreto la richiesta..."
+            }
+
+            let report = await SmartQueryParser.shared.parseDetailed(
+                query: q,
+                hasSupport: hasSup,
+                aiModeChoice: selectedChoice,
+                inputMode: inputMode,
+                nearbyStation: nearbySt?.name,
+                homeStations: homeStList,
+                workStations: workStList,
+                favoriteStations: favStationNames,
+                favoriteTrains: favTrainNumbers,
+                knownStations: knownStations
+            )
+            guard !Task.isCancelled, self.activeAssistantSearchID == currentSearchID else { return }
+
+            switch report.outcome {
+            case .parsed(let parsed):
+                self.assistantParsed = parsed
+                self.assistantLoadingStep = "Cerco i treni reali..."
+                let execResult = await SmartQueryExecutor.shared.execute(
+                    parsed: parsed,
+                    manager: manager,
+                    nearbyStation: nearbySt
+                )
+                guard !Task.isCancelled, self.activeAssistantSearchID == currentSearchID else {
+                    SmartQueryParser.shared.logAnonymousQuery(
+                        rawQuery: q,
+                        inputMode: inputMode,
+                        engine: report.engineUsed,
+                        outcome: "cancelled",
+                        parsed: parsed,
+                        resultSummary: "Ricerca annullata dall'utente"
+                    )
+                    return
+                }
+                self.assistantResult = execResult
+                if execResult.isSuccessfulForHistory {
+                    manager.addRecentAssistantQuery(q)
+                }
+                SmartQueryParser.shared.logAnonymousQuery(
+                    rawQuery: q,
+                    inputMode: inputMode,
+                    engine: report.engineUsed,
+                    outcome: execResult.isSuccessfulForHistory ? "ok" : "empty_result",
+                    parsed: parsed,
+                    resultSummary: execResult.telemetrySummary
+                )
+
+            case .needsUpgrade(let msg):
+                self.assistantNeedsUpgradeMessage = msg
+                SmartQueryParser.shared.logAnonymousQuery(
+                    rawQuery: q,
+                    inputMode: inputMode,
+                    engine: report.engineUsed,
+                    outcome: "needs_upgrade",
+                    parsed: report.parsedSnapshot,
+                    resultSummary: msg
+                )
+
+            case .clarification(let msg):
+                self.assistantStatusMessage = msg
+                SmartQueryParser.shared.logAnonymousQuery(
+                    rawQuery: q,
+                    inputMode: inputMode,
+                    engine: report.engineUsed,
+                    outcome: "clarification",
+                    parsed: report.parsedSnapshot,
+                    resultSummary: msg
+                )
+
+            case .error(let msg):
+                self.assistantStatusMessage = msg
+                SmartQueryParser.shared.logAnonymousQuery(
+                    rawQuery: q,
+                    inputMode: inputMode,
+                    engine: report.engineUsed,
+                    outcome: "error",
+                    parsed: report.parsedSnapshot,
+                    resultSummary: msg
+                )
             }
         }
     }

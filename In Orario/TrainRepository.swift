@@ -317,6 +317,7 @@ actor TrainRepository {
                     
                     let plannedPlatform = (progPart ?? progArr)?.trimmingCharacters(in: .whitespacesAndNewlines)
                     let actualPlatform = (effPart ?? effArr)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let isSuppressed = (f["actualFermataType"] as? Int) == 3 || ((f["tipoFermata"] as? String)?.uppercased() == "S")
                     
                     return Stop(
                         stationName: name.capitalized,
@@ -325,7 +326,8 @@ actor TrainRepository {
                         delay: effectiveDelay,
                         estimatedTime: estT,
                         plannedPlatform: plannedPlatform,
-                        actualPlatform: actualPlatform
+                        actualPlatform: actualPlatform,
+                        isSuppressed: isSuppressed
                     )
                 }
                 return StopsResult(stops: mappedStops, status: status, errorMessage: nil)

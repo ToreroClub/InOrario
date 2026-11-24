@@ -1,4 +1,5 @@
 import XCTest
+import Security
 @testable import In_Orario_
 
 final class InOrarioTests: XCTestCase {
@@ -107,15 +108,19 @@ final class InOrarioTests: XCTestCase {
     
     private actor DeduplicationTestController {
         private var startedContinuation: CheckedContinuation<Void, Never>?
-        private var releaseContinuation: CheckedContinuation<String, Never>?
+        private var releaseContinuations: [CheckedContinuation<String, Never>] = []
+        private var completedResult: String?
         var executionCount = 0
         
         func executeWork() async -> String {
             executionCount += 1
             startedContinuation?.resume()
             startedContinuation = nil
+            if let result = completedResult {
+                return result
+            }
             return await withCheckedContinuation { cont in
-                self.releaseContinuation = cont
+                self.releaseContinuations.append(cont)
             }
         }
         
@@ -127,8 +132,12 @@ final class InOrarioTests: XCTestCase {
         }
         
         func completeOperation(with result: String) {
-            releaseContinuation?.resume(returning: result)
-            releaseContinuation = nil
+            completedResult = result
+            let pending = releaseContinuations
+            releaseContinuations.removeAll()
+            for cont in pending {
+                cont.resume(returning: result)
+            }
         }
     }
 
@@ -156,7 +165,7 @@ final class InOrarioTests: XCTestCase {
                 }
             }
             
-            await Task.yield()
+            try? await Task.sleep(nanoseconds: 50_000_000)
             
             // Release the operation for all awaiting callers
             await controller.completeOperation(with: "DeduplicatedResult_S01649")
@@ -377,6 +386,63 @@ final class InOrarioTests: XCTestCase {
         XCTAssertEqual(avgDelay, 2)
     }
 
+    @MainActor
+    func testPassanteOriginTaggingAndDirectionResolution() {
+        // 1. Tagging della stazione sorgente in processPassanteTrains
+        let venTrain = Train(category: "S6", number: "24601", destination: "Pioltello Limito", time: "17:46", delay: "Soppresso", platform: "1")
+        let repTrain = Train(category: "S5", number: "24501", destination: "Treviglio", time: "17:58", delay: "In orario", platform: "2")
+        let lanTrain = Train(category: "REG", number: "24101", destination: "Bovisa", time: "17:53", delay: "Soppresso", platform: "1")
+        let preTaggedTrain = Train(category: "S1", number: "24102", destination: "Lodi", time: "18:05", delay: "In orario", platform: "1", origin: "Milano Dateo")
+
+        let (processed, _) = PassanteManager.processPassanteTrains(
+            ven: [venTrain, preTaggedTrain],
+            rep: [repTrain],
+            lan: [lanTrain]
+        )
+
+        XCTAssertEqual(processed.first(where: { $0.number == "24601" })?.origin, "Porta Venezia")
+        XCTAssertEqual(processed.first(where: { $0.number == "24501" })?.origin, "Repubblica")
+        XCTAssertEqual(processed.first(where: { $0.number == "24101" })?.origin, "Lancetti")
+        XCTAssertEqual(processed.first(where: { $0.number == "24102" })?.origin, "Dateo")
+
+        // 2. Risoluzione direzione Est / Ovest
+        let manager = PassanteManager()
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "REG", number: "1001", destination: "Bovisa", time: "17:53", delay: "Soppresso", platform: "1")), "Ovest")
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "S1", number: "24103", destination: "Saronno", time: "17:42", delay: "In orario", platform: "1")), "Ovest")
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "S6", number: "24603", destination: "Milano Certosa", time: "17:45", delay: "In orario", platform: "1")), "Ovest")
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "S6", number: "24605", destination: "Novara", time: "17:46", delay: "In orario", platform: "1")), "Ovest")
+
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "S5", number: "24503", destination: "Treviglio", time: "17:58", delay: "In orario", platform: "2")), "Est")
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "S5", number: "24505", destination: "Cassano d'Adda", time: "18:01", delay: "In orario", platform: "2")), "Est")
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "S6", number: "24607", destination: "Pioltello Limito", time: "17:50", delay: "+1'", platform: "2")), "Est")
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "S13", number: "24301", destination: "Certosa di Pavia", time: "18:06", delay: "In orario", platform: "2")), "Est")
+        XCTAssertEqual(manager.getPassanteDirection(for: Train(category: "REG", number: "1002", destination: "Lodi", time: "18:10", delay: "In orario", platform: "2")), "Est")
+    }
+
+    @MainActor
+    func testPassanteLocalTunnelFetchBlockedWhenDetailClosed() async {
+        let passanteManager = PassanteManager()
+        let trainManager = TrainManager()
+
+        XCTAssertFalse(passanteManager.isTunnelDetailOpen)
+
+        let localFetched = await passanteManager.fetchAllPassanteTrains(manager: trainManager, force: true)
+        XCTAssertFalse(localFetched)
+        XCTAssertEqual(passanteManager.lastLocalUpdateTimestamp, 0)
+        XCTAssertTrue(passanteManager.passanteTunnelTrains.isEmpty)
+
+        let detailFetched = await passanteManager.fetchTunnelDetailData(manager: trainManager, force: true)
+        XCTAssertFalse(detailFetched)
+        XCTAssertFalse(passanteManager.isLocalUpdating)
+        XCTAssertTrue(passanteManager.passanteTunnelTrains.isEmpty)
+
+        passanteManager.setTunnelDetailOpen(true)
+        XCTAssertTrue(passanteManager.isTunnelDetailOpen)
+        passanteManager.setTunnelDetailOpen(false)
+        XCTAssertFalse(passanteManager.isTunnelDetailOpen)
+        XCTAssertFalse(passanteManager.isLocalUpdating)
+    }
+
     // MARK: - 13. NewsItem Sorting & Expired Strikes Filter Test
     
     func testNewsItemSortingAndExpiredStrikesFilter() {
@@ -526,6 +592,8 @@ final class InOrarioTests: XCTestCase {
             lastNotifiedPlatform: "2",
             notifyPlatformChange: true,
             platformChangeStationName: "Rho Fiera",
+            notifyScheduledTime: true,
+            scheduledNotificationTime: "07:20",
             lastDelayText: "In orario",
             lastDelayColorName: "green"
         )
@@ -539,5 +607,1280 @@ final class InOrarioTests: XCTestCase {
         XCTAssertEqual(decodedTrain.stationPassName, "Milano Dateo")
         XCTAssertEqual(decodedTrain.activeDays, [1, 2, 3, 4, 5])
         XCTAssertEqual(decodedTrain.platformChangeStationName, "Rho Fiera")
+        XCTAssertEqual(decodedTrain.notifyScheduledTime, true)
+        XCTAssertEqual(decodedTrain.scheduledNotificationTime, "07:20")
+    }
+
+    func testDayCommuteScheduleCodableAndLegacyCompatibility() throws {
+        // Legacy JSON senza chiavi di esclusione per giorno
+        let legacyJSON = #"{"isEnabled":true,"outboundBand":"08:00 - 09:00","returnBand":"17:00 - 18:00"}"#.data(using: .utf8)!
+        let decodedLegacy = try JSONDecoder().decode(DayCommuteSchedule.self, from: legacyJSON)
+        XCTAssertTrue(decodedLegacy.isEnabled)
+        XCTAssertEqual(decodedLegacy.outboundBand, "08:00 - 09:00")
+        XCTAssertEqual(decodedLegacy.returnBand, "17:00 - 18:00")
+        XCTAssertEqual(decodedLegacy.excludedOutboundOrigins, [])
+        XCTAssertEqual(decodedLegacy.excludedOutboundDestinations, [])
+        XCTAssertEqual(decodedLegacy.excludedReturnOrigins, [])
+        XCTAssertEqual(decodedLegacy.excludedReturnDestinations, [])
+        XCTAssertFalse(decodedLegacy.hasCustomStationExclusions)
+
+        // Round-trip completo con esclusioni personalizzate
+        let custom = DayCommuteSchedule(
+            isEnabled: true,
+            outboundBand: "07:30 - 08:30",
+            returnBand: "18:00 - 19:00",
+            excludedOutboundOrigins: ["Milano Lambrate"],
+            excludedOutboundDestinations: ["Trecate"],
+            excludedReturnOrigins: ["Trecate"],
+            excludedReturnDestinations: ["Milano Centrale"]
+        )
+        XCTAssertTrue(custom.hasCustomStationExclusions)
+
+        let data = try JSONEncoder().encode(custom)
+        let roundTripped = try JSONDecoder().decode(DayCommuteSchedule.self, from: data)
+        XCTAssertEqual(roundTripped, custom)
+        XCTAssertTrue(roundTripped.hasCustomStationExclusions)
+    }
+
+    @MainActor
+    func testResolveEffectiveStationsPerDay() {
+        let baseOrigins = ["Milano Centrale", "Milano Porta Garibaldi", "Rho Fiera"]
+        let baseDestinations = ["Novara", "Trecate"]
+
+        let schedule = DayCommuteSchedule(
+            isEnabled: true,
+            outboundBand: "08:00 - 09:00",
+            returnBand: "17:00 - 18:00",
+            excludedOutboundOrigins: ["Rho Fiera"],
+            excludedOutboundDestinations: ["Trecate"],
+            excludedReturnOrigins: ["Novara"],
+            excludedReturnDestinations: ["Milano Centrale", "Rho Fiera"]
+        )
+
+        // Andata: filtra dalle liste globali
+        let outbound = SupporterCommuteManager.resolveEffectiveStations(
+            baseOrigins: baseOrigins,
+            baseDestinations: baseDestinations,
+            schedule: schedule,
+            isReturn: false
+        )
+        XCTAssertEqual(outbound.origins, ["Milano Centrale", "Milano Porta Garibaldi"])
+        XCTAssertEqual(outbound.destinations, ["Novara"])
+
+        // Ritorno: inverte baseDestinations -> origins, baseOrigins -> destinations e applica esclusioni return
+        let ret = SupporterCommuteManager.resolveEffectiveStations(
+            baseOrigins: baseOrigins,
+            baseDestinations: baseDestinations,
+            schedule: schedule,
+            isReturn: true
+        )
+        XCTAssertEqual(ret.origins, ["Trecate"])
+        XCTAssertEqual(ret.destinations, ["Milano Porta Garibaldi"])
+
+        // Fallback di sicurezza: se le esclusioni svuotassero completamente una lista, ritorna la lista base completa
+        let excludeAllSchedule = DayCommuteSchedule(
+            excludedOutboundOrigins: baseOrigins,
+            excludedOutboundDestinations: baseDestinations
+        )
+        let fallback = SupporterCommuteManager.resolveEffectiveStations(
+            baseOrigins: baseOrigins,
+            baseDestinations: baseDestinations,
+            schedule: excludeAllSchedule,
+            isReturn: false
+        )
+        XCTAssertEqual(fallback.origins, baseOrigins)
+        XCTAssertEqual(fallback.destinations, baseDestinations)
+    }
+
+    func testFormatCityOrStationSummaryGeneralCities() {
+        XCTAssertEqual(formatCityOrStationSummary(["Bergamo", "Bergamo Ospedale"]), "Bergamo")
+        XCTAssertEqual(formatCityOrStationSummary(["BERGAMO", "BERGAMO OSPEDALE"]), "Bergamo")
+        XCTAssertEqual(formatCityOrStationSummary(["Milano Centrale", "Milano Porta Garibaldi"]), "Milano")
+        XCTAssertEqual(formatCityOrStationSummary(["Busto Arsizio", "Busto Arsizio Nord"]), "Busto Arsizio")
+        XCTAssertEqual(formatCityOrStationSummary(["Villa Raverio", "Villa Fiorita"]), "Villa Raverio, Villa Fiorita")
+        XCTAssertEqual(formatCityOrStationSummary(["Milano Porta Garibaldi", "Rho Fiera"]), "Milano Porta Garibaldi, Rho Fiera")
+    }
+
+    @MainActor
+    func testScheduledSummaryWeekdaysFallbackPreventsEmptyDays() {
+        let mgr = SupporterCommuteManager.shared
+        let prevCustom = mgr.customizePerDay
+        let prevActive = mgr.activeWeekdays
+        let prevExcluded = mgr.scheduledSummaryExcludedWeekdays
+        defer {
+            mgr.customizePerDay = prevCustom
+            mgr.activeWeekdays = prevActive
+            mgr.scheduledSummaryExcludedWeekdays = prevExcluded
+        }
+
+        mgr.customizePerDay = false
+        mgr.activeWeekdays = [1, 2]
+        mgr.scheduledSummaryExcludedWeekdays = [1, 2, 3, 4, 5]
+
+        XCTAssertEqual(mgr.effectiveScheduledSummaryWeekdays, [1, 2])
+        XCTAssertTrue(mgr.isScheduledSummaryActive(on: 1))
+        XCTAssertFalse(mgr.isScheduledSummaryActive(on: 3))
+    }
+
+    @MainActor
+    func testCommuteAndScheduledSummaryEntitlementGating() async {
+        let mgr = SupporterCommuteManager.shared
+        let defaults = UserDefaults.standard
+        let hadSupportKey = defaults.object(forKey: "tip.colazionee")
+        let hadSupIdKey = defaults.object(forKey: "supporter_eternal_id")
+        let hadRemoteNotifKey = defaults.object(forKey: "remoteNotificationsEnabled_v1")
+        let prevOrigins = mgr.origins
+        let prevDests = mgr.destinations
+        let prevSummaryEnabled = mgr.scheduledSummaryEnabled
+        let prevProactiveEnabled = mgr.proactiveAlertsEnabled
+        let prevActivePlanB = mgr.activePlanB
+        let prevPinnedPlanB = mgr.pinnedPlanB
+
+        defer {
+            if let v = hadSupportKey { defaults.set(v, forKey: "tip.colazionee") } else { defaults.removeObject(forKey: "tip.colazionee") }
+            if let s = hadSupIdKey { defaults.set(s, forKey: "supporter_eternal_id") } else { defaults.removeObject(forKey: "supporter_eternal_id") }
+            if let n = hadRemoteNotifKey { defaults.set(n, forKey: "remoteNotificationsEnabled_v1") } else { defaults.removeObject(forKey: "remoteNotificationsEnabled_v1") }
+            mgr.origins = prevOrigins
+            mgr.destinations = prevDests
+            mgr.scheduledSummaryEnabled = prevSummaryEnabled
+            mgr.proactiveAlertsEnabled = prevProactiveEnabled
+            mgr.activePlanB = prevActivePlanB
+            if let p = prevPinnedPlanB { mgr.pinPlanB(p) } else { mgr.unpinPlanB() }
+        }
+
+        defaults.set("sup_test_gating", forKey: "supporter_eternal_id")
+        mgr.origins = ["Milano Centrale"]
+        mgr.destinations = ["Magenta"]
+        mgr.scheduledSummaryEnabled = true
+        mgr.proactiveAlertsEnabled = true
+
+        // 1. Utente gratuito (anche con eventuali preferenze residue da un vecchio abbonamento)
+        defaults.set(false, forKey: "tip.colazionee")
+        let samplePlan = PlanBReportDTO(
+            title: "Test",
+            body: "Test",
+            incident_type: "summary_ok",
+            incident_detail: nil,
+            cancelled_train: nil,
+            target_time: "08:00 - 09:00",
+            origins: ["Milano Centrale"],
+            destinations: ["Magenta"],
+            alternatives: [],
+            timestamp: "2026-11-18T10:00:00"
+        )
+        mgr.activePlanB = samplePlan
+        mgr.pinPlanB(samplePlan)
+
+        XCTAssertFalse(mgr.hasSupport())
+        XCTAssertFalse(mgr.shouldShowPromptBanner)
+        let freePayload = mgr.buildCommuteSyncPayload()
+        XCTAssertEqual(freePayload?["scheduled_summary_enabled"] as? Bool, false)
+        XCTAssertEqual(freePayload?["proactive_alerts"] as? Bool, false)
+
+        await mgr.handlePurchasesUpdated()
+        XCTAssertNil(mgr.activePlanB)
+        XCTAssertNil(mgr.pinnedPlanB)
+
+        // 2. Utente Pro
+        defaults.set(true, forKey: "tip.colazionee")
+        XCTAssertTrue(mgr.hasSupport())
+        let proPayload = mgr.buildCommuteSyncPayload()
+        XCTAssertEqual(proPayload?["scheduled_summary_enabled"] as? Bool, true)
+        XCTAssertEqual(proPayload?["proactive_alerts"] as? Bool, true)
+
+        // 3. Master switch "Abilita Notifiche" disattivato -> forza false lato server
+        defaults.set(false, forKey: "remoteNotificationsEnabled_v1")
+        let mutedPayload = mgr.buildCommuteSyncPayload()
+        XCTAssertEqual(mutedPayload?["scheduled_summary_enabled"] as? Bool, false)
+        XCTAssertEqual(mutedPayload?["proactive_alerts"] as? Bool, false)
+
+        defaults.set(true, forKey: "remoteNotificationsEnabled_v1")
+        let unmutedPayload = mgr.buildCommuteSyncPayload()
+        XCTAssertEqual(unmutedPayload?["scheduled_summary_enabled"] as? Bool, true)
+        XCTAssertEqual(unmutedPayload?["proactive_alerts"] as? Bool, true)
+    }
+
+    @MainActor
+    func testSupporterUpdatePopupSuppressionAndMetroBetaDefault() {
+        let defaults = UserDefaults.standard
+        let updater = AppUpdateManager.shared
+        let commute = SupporterCommuteManager.shared
+
+        let prevOrigins = commute.origins
+        let prevDests = commute.destinations
+        let prevLaunched = defaults.object(forKey: "has_launched_before_key")
+        let prevLastSeen = defaults.object(forKey: "supporter_last_seen_version")
+        let prevSnoozed = defaults.object(forKey: "supporter_commute_alert_snoozed_until")
+        let prevShowAlert = updater.showSupporterCommuteAlert
+        let prevChecked = updater.hasCheckedSupporterPopupThisLaunch
+        let prevMetroBeta = defaults.object(forKey: "metroMilanoBetaEnabled")
+
+        defer {
+            commute.origins = prevOrigins
+            commute.destinations = prevDests
+            if let v = prevLaunched { defaults.set(v, forKey: "has_launched_before_key") } else { defaults.removeObject(forKey: "has_launched_before_key") }
+            if let v = prevLastSeen { defaults.set(v, forKey: "supporter_last_seen_version") } else { defaults.removeObject(forKey: "supporter_last_seen_version") }
+            if let v = prevSnoozed { defaults.set(v, forKey: "supporter_commute_alert_snoozed_until") } else { defaults.removeObject(forKey: "supporter_commute_alert_snoozed_until") }
+            updater.showSupporterCommuteAlert = prevShowAlert
+            updater.hasCheckedSupporterPopupThisLaunch = prevChecked
+            if let v = prevMetroBeta { defaults.set(v, forKey: "metroMilanoBetaEnabled") } else { defaults.removeObject(forKey: "metroMilanoBetaEnabled") }
+        }
+
+        // 1. Se l'utente ha già configurato le stazioni di viaggio, il popup NON deve comparire nemmeno su update major/minor
+        defaults.set(true, forKey: "has_launched_before_key")
+        defaults.set("1.0", forKey: "supporter_last_seen_version")
+        defaults.removeObject(forKey: "supporter_commute_alert_snoozed_until")
+        updater.showSupporterCommuteAlert = false
+        updater.hasCheckedSupporterPopupThisLaunch = false
+        commute.origins = ["Magenta"]
+        commute.destinations = ["Milano Centrale"]
+
+        updater.checkSupporterUpdatePopup(hasSupport: true)
+        XCTAssertFalse(updater.showSupporterCommuteAlert)
+
+        // 2. Se non configurato ma l'utente ha premuto "Ricordamelo più tardi", lo snooze blocca ricomparse immediate
+        commute.origins = []
+        commute.destinations = []
+        defaults.set("1.0", forKey: "supporter_last_seen_version")
+        updater.hasCheckedSupporterPopupThisLaunch = false
+        updater.checkSupporterUpdatePopup(hasSupport: true)
+        XCTAssertTrue(updater.showSupporterCommuteAlert)
+
+        updater.snoozeSupporterCommuteAlert()
+        XCTAssertFalse(updater.showSupporterCommuteAlert)
+
+        updater.hasCheckedSupporterPopupThisLaunch = false
+        updater.checkSupporterUpdatePopup(hasSupport: true)
+        XCTAssertFalse(updater.showSupporterCommuteAlert)
+
+        // 3. Metro Milano Beta è disattivata di default se non esplicitamente impostata dall'utente
+        defaults.removeObject(forKey: "metroMilanoBetaEnabled")
+        XCTAssertFalse(defaults.bool(forKey: "metroMilanoBetaEnabled"))
+    }
+
+    @MainActor
+    func testDeviceIdentityManagerStabilityAndCommutePayload() {
+        let suiteName = "com.toreroclub.inorario.tests.deviceid.\(UUID().uuidString)"
+        let testDefaults = UserDefaults(suiteName: suiteName)!
+        let testService = "com.toreroclub.inorario.test.service.\(UUID().uuidString)"
+        let testAccount = "test_account"
+        let testFallbackKey = "test_fallback_key"
+
+        let mgr = SupporterCommuteManager.shared
+        let defaults = UserDefaults.standard
+        let hadSupId = defaults.object(forKey: "supporter_eternal_id")
+        let prevOrigins = mgr.origins
+        let prevDests = mgr.destinations
+
+        defer {
+            testDefaults.removePersistentDomain(forName: suiteName)
+            let secQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: testService,
+                kSecAttrAccount as String: testAccount
+            ]
+            SecItemDelete(secQuery as CFDictionary)
+            if let s = hadSupId { defaults.set(s, forKey: "supporter_eternal_id") } else { defaults.removeObject(forKey: "supporter_eternal_id") }
+            mgr.origins = prevOrigins
+            mgr.destinations = prevDests
+        }
+
+        let idManager1 = DeviceIdentityManager(
+            service: testService,
+            account: testAccount,
+            defaults: testDefaults,
+            fallbackDefaultsKey: testFallbackKey
+        )
+        let firstID = idManager1.deviceID
+        XCTAssertFalse(firstID.isEmpty)
+        XCTAssertNotNil(UUID(uuidString: firstID))
+        XCTAssertEqual(idManager1.deviceID, firstID)
+
+        let idManager2 = DeviceIdentityManager(
+            service: testService,
+            account: testAccount,
+            defaults: testDefaults,
+            fallbackDefaultsKey: testFallbackKey
+        )
+        XCTAssertEqual(idManager2.deviceID, firstID)
+
+        defaults.set("sup_test_device_id", forKey: "supporter_eternal_id")
+        mgr.origins = ["Magenta"]
+        mgr.destinations = ["Milano Centrale"]
+        let payload = mgr.buildCommuteSyncPayload()
+        XCTAssertEqual(payload?["device_id"] as? String, DeviceIdentityManager.shared.deviceID)
+    }
+
+    @MainActor
+    func testSmartQueryRoutingLocalExactAndDateResolution() async {
+        XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: true), .geminiCloud)
+        XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: false), .geminiCloud)
+        XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: false, hasAppleIntelligence: true), .appleIntelligence)
+        XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: false, hasAppleIntelligence: false), .localExactOnly)
+        XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: true, aiModeChoice: .local), .appleIntelligence)
+        XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: true, aiModeChoice: .cloud), .geminiCloud)
+        XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: true, aiModeChoice: .none), .localExactOnly)
+        XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("Torino"), "Torino Porta Nuova")
+        XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("Rho Fiera"), "Rho Fiera")
+        XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("Milano Repubblica"), "Milano Repubblica")
+        XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("maggenta"), "Magenta")
+        XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("milano porta garibaldi"), "Milano Porta Garibaldi")
+
+        let mgr = TrainManager()
+        let prevRecent = mgr.recentAssistantQueries
+        mgr.clearRecentAssistantQueries()
+        mgr.addRecentAssistantQuery("Partenze Milano Rogoredo")
+        mgr.addRecentAssistantQuery("Treno delle 11:34 da Magenta")
+        mgr.addRecentAssistantQuery("partenze milano rogoredo")
+        XCTAssertEqual(mgr.recentAssistantQueries.first, "partenze milano rogoredo")
+        XCTAssertEqual(mgr.recentAssistantQueries.count, 2)
+        mgr.removeRecentAssistantQuery("partenze milano rogoredo")
+        XCTAssertEqual(mgr.recentAssistantQueries, ["Treno delle 11:34 da Magenta"])
+        mgr.clearRecentAssistantQueries()
+        for q in prevRecent.reversed() {
+            mgr.addRecentAssistantQuery(q)
+        }
+
+        let stations = [
+            RFIStation(name: "Magenta", rfiID: "830001025", vtID: "S01025", lat: 45.465, lon: 8.882),
+            RFIStation(name: "MILANO AFFORI", rfiID: "830025005", vtID: "S01078", lat: 45.512, lon: 9.168),
+            RFIStation(name: "Milano Centrale", rfiID: "830001700", vtID: "S01700", lat: 45.485, lon: 9.204),
+            RFIStation(name: "Milano Nord Cadorna", rfiID: nil, vtID: "N00001", lat: 45.468, lon: 9.176),
+            RFIStation(name: "Milano Porta Garibaldi", rfiID: "830001645", vtID: "S01645", lat: 45.484, lon: 9.187),
+            RFIStation(name: "VITTUONE-ARLUNO", rfiID: "830001036", vtID: "S01036", lat: 45.486, lon: 8.953),
+            RFIStation(name: "CORBETTA-S.STEFANO TICINO", rfiID: "830001038", vtID: "S01038", lat: 45.474, lon: 8.920),
+            RFIStation(name: "NOVARA", rfiID: "830000247", vtID: "S00247", lat: 45.451, lon: 8.625),
+            RFIStation(name: "DOMODOSSOLA", rfiID: "830000202", vtID: "S00202", lat: 46.115, lon: 8.296)
+        ]
+
+        var romeCal = Calendar(identifier: .gregorian)
+        let romeTZ = TimeZone(identifier: "Europe/Rome")!
+        romeCal.timeZone = romeTZ
+        let nowRef = romeCal.date(from: DateComponents(year: 2026, month: 11, day: 21, hour: 10, minute: 15))!
+
+        // 1. Numero treno esatto
+        let qTrain = LocalExactQueryParser.parse(query: "S6 24627", knownStations: stations)
+        XCTAssertEqual(qTrain?.kind, .trainStatus)
+        XCTAssertEqual(qTrain?.trainNumber, "24627")
+
+        // 2. Orario esatto da stazione
+        let qTimeStation = LocalExactQueryParser.parse(query: "Treno delle 11:34 da Magenta", knownStations: stations)
+        XCTAssertEqual(qTimeStation?.kind, .trainAtTimeFromStation)
+        XCTAssertEqual(qTimeStation?.originStation, "Magenta")
+        XCTAssertEqual(qTimeStation?.targetTime, "11:34")
+
+        // 3. Primo treno da A a B (banale esatto con stazioni note / alias)
+        let qRoute = LocalExactQueryParser.parse(query: "Primo treno da Magenta a Centrale", knownStations: stations)
+        XCTAssertEqual(qRoute?.kind, .routeSolutions)
+        XCTAssertEqual(qRoute?.originStation, "Magenta")
+        XCTAssertEqual(qRoute?.destinationStation, "Milano Centrale")
+
+        // 4. Layer 1 locale addestrato sulle 6 query reali dell'utente e pattern vocali umani
+        let qComplex = LocalExactQueryParser.parse(
+            query: "Voglio andare da Milano Cadorna a Magenta alle 16 di domani",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qComplex?.kind, .routeSolutions)
+        XCTAssertEqual(qComplex?.originStation, "Milano Nord Cadorna")
+        XCTAssertEqual(qComplex?.destinationStation, "Magenta")
+        XCTAssertEqual(qComplex?.targetDate, "2026-11-22")
+        XCTAssertEqual(qComplex?.targetTime, "16:00")
+
+        let qPomeriggio = LocalExactQueryParser.parse(
+            query: "portami a magenta da milano centrale oggi pomeriggio",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qPomeriggio?.kind, .routeSolutions)
+        XCTAssertEqual(qPomeriggio?.originStation, "Milano Centrale")
+        XCTAssertEqual(qPomeriggio?.destinationStation, "Magenta")
+        XCTAssertEqual(qPomeriggio?.targetDate, "2026-11-21")
+        XCTAssertEqual(qPomeriggio?.targetTime, "14:30")
+
+        let qCasa = LocalExactQueryParser.parse(
+            query: "portami a casa da milano centrale",
+            knownStations: stations,
+            homeStations: ["Magenta"],
+            workStations: ["Milano Centrale", "Milano Porta Garibaldi"],
+            now: nowRef
+        )
+        XCTAssertEqual(qCasa?.kind, .routeSolutions)
+        XCTAssertEqual(qCasa?.originStation, "Milano Centrale")
+        XCTAssertEqual(qCasa?.destinationStation, "Magenta")
+
+        let qMagGaribaldi = LocalExactQueryParser.parse(
+            query: "Treno delle 18:19 da Magenta a Milano porta garibaldi",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qMagGaribaldi?.kind, .routeSolutions)
+        XCTAssertEqual(qMagGaribaldi?.originStation, "Magenta")
+        XCTAssertEqual(qMagGaribaldi?.destinationStation, "Milano Porta Garibaldi")
+        XCTAssertEqual(qMagGaribaldi?.targetTime, "18:19")
+
+        let qMagMi = LocalExactQueryParser.parse(
+            query: "Treno delle 18:20 da Magenta a Milano",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qMagMi?.kind, .routeSolutions)
+        XCTAssertEqual(qMagMi?.originStation, "Magenta")
+        XCTAssertEqual(qMagMi?.destinationStation, "Milano")
+        XCTAssertEqual(qMagMi?.targetTime, "18:20")
+
+        let qNovara = LocalExactQueryParser.parse(
+            query: "NOVARA Domodossola domani alle 12",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qNovara?.kind, .routeSolutions)
+        XCTAssertEqual(qNovara?.originStation, "NOVARA")
+        XCTAssertEqual(qNovara?.destinationStation, "DOMODOSSOLA")
+        XCTAssertEqual(qNovara?.targetDate, "2026-11-22")
+        XCTAssertEqual(qNovara?.targetTime, "12:00")
+
+        // Pattern vocali naturali, frasi disordinate, autocorrezioni e trascrizione parlata
+        XCTAssertEqual(VoiceTranscriptCleaner.normalize("porta mi a casa da milano centrale alle 18 e 19"), "portami a casa da milano centrale alle 18:19")
+        XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "treno delle 18 e 19", now: nowRef), "18:19")
+        XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "domani alle 8 e mezza", now: nowRef), "08:30")
+        XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "alle 4 del pomeriggio", now: nowRef), "16:00")
+
+        let qStartTime = LocalExactQueryParser.parse(query: "domani mattina alle 8 da Magenta a Milano", knownStations: stations, now: nowRef)
+        XCTAssertEqual(qStartTime?.kind, .routeSolutions)
+        XCTAssertEqual(qStartTime?.originStation, "Magenta")
+        XCTAssertEqual(qStartTime?.destinationStation, "Milano")
+        XCTAssertEqual(qStartTime?.targetDate, "2026-11-22")
+        XCTAssertEqual(qStartTime?.targetTime, "08:00")
+
+        let qMidTime = LocalExactQueryParser.parse(query: "da Magenta domani pomeriggio alle 4 per Milano Porta Garibaldi", knownStations: stations, now: nowRef)
+        XCTAssertEqual(qMidTime?.kind, .routeSolutions)
+        XCTAssertEqual(qMidTime?.originStation, "Magenta")
+        XCTAssertEqual(qMidTime?.destinationStation, "Milano Porta Garibaldi")
+        XCTAssertEqual(qMidTime?.targetDate, "2026-11-22")
+        XCTAssertEqual(qMidTime?.targetTime, "16:00")
+
+        let qSonoACasa = LocalExactQueryParser.parse(
+            query: "sono a Milano Centrale e devo tornare a casa",
+            knownStations: stations,
+            homeStations: ["Magenta"],
+            workStations: ["Milano Centrale"],
+            now: nowRef
+        )
+        XCTAssertEqual(qSonoACasa?.kind, .routeSolutions)
+        XCTAssertEqual(qSonoACasa?.originStation, "Milano Centrale")
+        XCTAssertEqual(qSonoACasa?.destinationStation, "Magenta")
+
+        let qAnziNo = LocalExactQueryParser.parse(
+            query: "voglio andare a Milano Centrale anzi no Porta Garibaldi da Magenta",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qAnziNo?.kind, .routeSolutions)
+        XCTAssertEqual(qAnziNo?.originStation, "Magenta")
+        XCTAssertEqual(qAnziNo?.destinationStation, "Milano Porta Garibaldi")
+
+        let qCasaLavoro = LocalExactQueryParser.parse(
+            query: "parto da casa domani alle 7 e mezza e vado al lavoro",
+            knownStations: stations,
+            homeStations: ["Magenta"],
+            workStations: ["Milano Centrale"],
+            now: nowRef
+        )
+        XCTAssertEqual(qCasaLavoro?.kind, .routeSolutions)
+        XCTAssertEqual(qCasaLavoro?.originStation, "Magenta")
+        XCTAssertEqual(qCasaLavoro?.destinationStation, "Milano Centrale")
+        XCTAssertEqual(qCasaLavoro?.targetDate, "2026-11-22")
+        XCTAssertEqual(qCasaLavoro?.targetTime, "07:30")
+
+        let qEscoLavoro = LocalExactQueryParser.parse(
+            query: "esco da lavoro alle 18",
+            knownStations: stations,
+            homeStations: ["Magenta"],
+            workStations: ["Milano Centrale"],
+            now: nowRef
+        )
+        XCTAssertEqual(qEscoLavoro?.kind, .routeSolutions)
+        XCTAssertEqual(qEscoLavoro?.originStation, "Milano Centrale")
+        XCTAssertEqual(qEscoLavoro?.destinationStation, "Magenta")
+        XCTAssertEqual(qEscoLavoro?.targetTime, "18:00")
+
+        let qDeadline = LocalExactQueryParser.parse(
+            query: "devo essere a Milano Centrale alle 9 da Magenta",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qDeadline?.kind, .routeSolutions)
+        XCTAssertEqual(qDeadline?.originStation, "Magenta")
+        XCTAssertEqual(qDeadline?.destinationStation, "Milano Centrale")
+        XCTAssertEqual(qDeadline?.targetTime, "08:10")
+
+        let qBare1820 = LocalExactQueryParser.parse(
+            query: "Magenta Milano delle 18 e 20",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qBare1820?.kind, .routeSolutions)
+        XCTAssertEqual(qBare1820?.originStation, "Magenta")
+        XCTAssertEqual(qBare1820?.destinationStation, "Milano")
+        XCTAssertEqual(qBare1820?.targetTime, "18:20")
+
+        let qHyphenPranzo = LocalExactQueryParser.parse(
+            query: "treno da vittuone a corbetta dopo pranzo",
+            knownStations: stations,
+            now: nowRef
+        )
+        XCTAssertEqual(qHyphenPranzo?.kind, .routeSolutions)
+        XCTAssertEqual(qHyphenPranzo?.originStation, "VITTUONE-ARLUNO")
+        XCTAssertEqual(qHyphenPranzo?.destinationStation, "CORBETTA-S.STEFANO TICINO")
+        XCTAssertEqual(qHyphenPranzo?.targetTime, "14:00")
+
+        // Risoluzione "Milano" su tratta NON deve MAI selezionare "MILANO AFFORI"
+        let resolvedMilanoRoute = await SmartQueryExecutor.shared.resolveStation(
+            name: "Milano",
+            allStations: stations,
+            fallbackNearby: nil,
+            forRouteSearch: true
+        )
+        XCTAssertEqual(resolvedMilanoRoute?.name, "Milano")
+        XCTAssertEqual(resolvedMilanoRoute?.rfiID, "830001650")
+        XCTAssertNotEqual(resolvedMilanoRoute?.name.uppercased(), "MILANO AFFORI")
+
+        // 5. Risoluzione data/ora in Europe/Rome
+        let parsedRoute = SmartTrainQuery(
+            kind: .routeSolutions,
+            originStation: "Milano Cadorna",
+            destinationStation: "Magenta",
+            targetDate: "2026-11-20",
+            targetTime: "16:00"
+        )
+        let resolved = parsedRoute.resolvedDate(now: nowRef)
+        let comps = romeCal.dateComponents([.year, .month, .day, .hour, .minute], from: resolved)
+        XCTAssertEqual(comps.year, 2026)
+        XCTAssertEqual(comps.month, 11)
+        XCTAssertEqual(comps.day, 20)
+        XCTAssertEqual(comps.hour, 16)
+        XCTAssertEqual(comps.minute, 0)
+
+        // 6. Guardrail SmartQueryPostProcessor (orario esplicito preservato + GPS "Portami a ..." + summary non vuoto)
+        let badTimeModelOut = SmartTrainQuery(
+            kind: .trainAtTimeFromStation,
+            originStation: "Magenta",
+            destinationStation: nil,
+            targetDate: "2026-11-19",
+            targetTime: "21:34",
+            normalizedSummary: "",
+            engineUsed: "apple_intelligence"
+        )
+        let refinedTime = SmartQueryPostProcessor.refine(
+            parsed: badTimeModelOut,
+            rawQuery: "Treno delle 11:34 da Magenta",
+            nearbyStation: nil,
+            now: nowRef
+        )
+        XCTAssertEqual(refinedTime.targetTime, "11:34")
+        XCTAssertEqual(refinedTime.displaySummary(fallbackQuery: "Treno delle 11:34 da Magenta"), "Treno delle 11:34 da Magenta")
+
+        let portamiModelOut = SmartTrainQuery(
+            kind: .routeSolutions,
+            originStation: "nessuna",
+            destinationStation: nil,
+            targetDate: nil,
+            targetTime: "16:00",
+            normalizedSummary: nil,
+            engineUsed: "apple_intelligence"
+        )
+        let refinedPortami = SmartQueryPostProcessor.refine(
+            parsed: portamiModelOut,
+            rawQuery: "Portami a Milano Porta Garibaldi alle 16:00 di domani",
+            nearbyStation: "Magenta",
+            now: nowRef
+        )
+        XCTAssertEqual(refinedPortami.kind, .routeSolutions)
+        XCTAssertEqual(refinedPortami.originStation, "Magenta")
+        XCTAssertEqual(refinedPortami.destinationStation, "Milano Porta Garibaldi")
+        XCTAssertEqual(refinedPortami.targetDate, "2026-11-22")
+        XCTAssertEqual(refinedPortami.targetTime, "16:00")
+        XCTAssertFalse(refinedPortami.displaySummary(fallbackQuery: "").isEmpty)
+
+        // 7. SmartQueryExecutor.matchTrainInList NON deve mai restituire treni di un altro orario (es. 21:34/21:41 quando si cerca 11:34)
+        let eveningBoard = [
+            Train(category: "S6", number: "24685", destination: "Pioltello Limito", time: "21:34", delay: "In orario", platform: "2"),
+            Train(category: "RV", number: "2045", destination: "Milano Centrale", time: "21:41", delay: "In orario", platform: "2")
+        ]
+        XCTAssertNil(SmartQueryExecutor.shared.matchTrainInList(eveningBoard, requestedHHmm: "11:34", destinationHint: nil))
+
+        let morningBoard = [
+            Train(category: "S6", number: "24635", destination: "Milano Porta Garibaldi", time: "11:34", delay: "In orario", platform: "2"),
+            Train(category: "RV", number: "2023", destination: "Milano Centrale", time: "11:49", delay: "In orario", platform: "2")
+        ]
+        let matchedMorning = SmartQueryExecutor.shared.matchTrainInList(morningBoard, requestedHHmm: "11:34", destinationHint: nil)
+        XCTAssertEqual(matchedMorning?.number, "24635")
+        XCTAssertEqual(matchedMorning?.time, "11:34")
+    }
+
+    // MARK: - 14. Station Board Filters, Commute Matcher & History Success Check
+
+    func testTrainCategoryClassificationAndSuburbanLines() {
+        let trains: [(String, String, TrainCategoryGroup, String?)] = [
+            ("FR", "9614", .highSpeed, nil),
+            ("FA", "8502", .highSpeed, nil),
+            ("FB", "8610", .highSpeed, nil),
+            ("AV", "9511", .highSpeed, nil),
+            ("Italo", "9912", .highSpeed, nil),
+            ("IC", "660", .intercity, nil),
+            ("ICN", "754", .intercity, nil),
+            ("EC", "310", .intercity, nil),
+            ("REG", "25871", .regional, nil),
+            ("RV", "2023", .regional, nil),
+            ("RE", "2969", .regional, nil),
+            ("S5", "24566", .suburban, "S5"),
+            ("S13", "24467", .suburban, "S13"),
+            ("MXP", "312", .airport, nil),
+        ]
+
+        for (cat, num, expectedGroup, expectedSub) in trains {
+            let tr = Train(category: cat, number: num, destination: "Milano", time: "10:00", delay: "In orario", platform: "1")
+            XCTAssertEqual(TrainCategoryGroup.classify(tr), expectedGroup, "Failed group for \(cat) \(num)")
+            XCTAssertEqual(TrainCategoryGroup.suburbanLineCode(for: tr), expectedSub, "Failed suburban code for \(cat) \(num)")
+        }
+    }
+
+    func testStationBoardFilterCombinations() {
+        let board = [
+            Train(category: "S13", number: "24467", destination: "Pavia", time: "19:33", delay: "+1'", platform: "1 SOT"),
+            Train(category: "RE", number: "2969", destination: "Milano Centrale", time: "19:26", delay: "+12'", platform: "--"),
+            Train(category: "REG", number: "25871", destination: "Ponte S. Pietro", time: "19:31", delay: "In orario", platform: "17"),
+            Train(category: "S5", number: "24566", destination: "Varese", time: "19:34", delay: "Cancellato", platform: "2 SOT"),
+            Train(category: "FR", number: "9614", destination: "Torino P.N.", time: "19:40", delay: "In orario", platform: "5"),
+        ]
+
+        var state = StationBoardFilterState()
+        state.hideCancelled = true
+        state.onlyWithPlatform = true
+        let activeBoards = state.apply(to: board, favoriteTrainNumbers: ["24467"], commuteMatches: nil)
+        XCTAssertEqual(activeBoards.map(\.number), ["24467", "25871", "9614"])
+
+        state.onlyOnTime = true
+        let onTimeWithPlat = state.apply(to: board, favoriteTrainNumbers: ["24467"], commuteMatches: nil)
+        XCTAssertEqual(onTimeWithPlat.map(\.number), ["25871", "9614"])
+
+        var subFilter = StationBoardFilterState()
+        subFilter.selectedSuburbanLines = ["S13"]
+        subFilter.selectedCategories = [.regional]
+        let mixed = subFilter.apply(to: board, favoriteTrainNumbers: [], commuteMatches: nil)
+        XCTAssertEqual(mixed.map(\.number), ["24467", "2969", "25871"])
+
+        var favFilter = StationBoardFilterState()
+        favFilter.onlyFavorites = true
+        let favOnly = favFilter.apply(to: board, favoriteTrainNumbers: ["24467"], commuteMatches: nil)
+        XCTAssertEqual(favOnly.map(\.number), ["24467"])
+
+        var commuteFilter = StationBoardFilterState()
+        commuteFilter.commuteTarget = .home
+        let matches: [String: CommuteTrainMatch] = [
+            "25871": CommuteTrainMatch(trainNumber: "25871", matchedTargetStation: "Magenta", estimatedArrivalTime: "20:02", source: .lefrecce)
+        ]
+        let commuteFiltered = commuteFilter.apply(to: board, favoriteTrainNumbers: [], commuteMatches: matches)
+        XCTAssertEqual(commuteFiltered.map(\.number), ["25871"])
+    }
+
+    func testStationNameMatcherAndOrderedStops() {
+        XCTAssertTrue(StationNameMatcher.isSameStation("Milano Porta Garibaldi", "Milano P. Garibaldi"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Milano P. Garibaldi Passante", "Milano Porta Garibaldi Sotterranea"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Milano Porta Garibaldi", "Pavia Porta Garibaldi"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Milano Certosa", "Certosa di Pavia"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Milano Bovisa Politecnico", "Milano Bovisa"))
+
+        let stops = [
+            Stop(stationName: "Torino Porta Nuova", time: "17:00", actualTime: "17:00", delay: 0, estimatedTime: nil, plannedPlatform: "1", actualPlatform: "1"),
+            Stop(stationName: "Novara", time: "17:55", actualTime: nil, delay: 0, estimatedTime: nil, plannedPlatform: "2", actualPlatform: nil),
+            Stop(stationName: "Magenta", time: "18:10", actualTime: nil, delay: 0, estimatedTime: nil, plannedPlatform: "1", actualPlatform: nil),
+            Stop(stationName: "Milano Porta Garibaldi", time: "18:35", actualTime: nil, delay: 0, estimatedTime: nil, plannedPlatform: "8", actualPlatform: nil),
+        ]
+
+        let forward = StationNameMatcher.stopsContainOrderedRoute(stops: stops, originStationName: "Novara", targetStations: ["Magenta"])
+        XCTAssertEqual(forward?.targetStation, "Magenta")
+        XCTAssertEqual(forward?.arrivalTime, "18:10")
+
+        // Direzione opposta: Magenta viene prima di Milano Porta Garibaldi
+        let reverse = StationNameMatcher.stopsContainOrderedRoute(stops: stops, originStationName: "Milano P. Garibaldi", targetStations: ["Magenta"])
+        XCTAssertNil(reverse)
+    }
+
+    func testSmartQueryExecutionResultSuccessForHistory() {
+        let station = Station(name: "Magenta", rfiID: "1618", vtID: "S01040")
+        let dummyTrain = Train(category: "S6", number: "24652", destination: "Milano", time: "18:19", delay: "In orario", platform: "2")
+
+        XCTAssertFalse(SmartQueryExecutionResult.message("Errore").isSuccessfulForHistory)
+        XCTAssertFalse(SmartQueryExecutionResult.solutions(solutions: [], origin: "Magenta", destination: "Milano", originID: "1", destID: "2", searchDate: Date()).isSuccessfulForHistory)
+        XCTAssertFalse(SmartQueryExecutionResult.trainAtTime(train: nil, station: station, boardSample: [], requestedTime: "18:19").isSuccessfulForHistory)
+
+        XCTAssertTrue(SmartQueryExecutionResult.trainStatus(train: dummyTrain).isSuccessfulForHistory)
+        XCTAssertTrue(SmartQueryExecutionResult.stationBoard(station: station, isArrivals: false).isSuccessfulForHistory)
+        XCTAssertTrue(SmartQueryExecutionResult.trainAtTime(train: dummyTrain, station: station, boardSample: [dummyTrain], requestedTime: "18:19").isSuccessfulForHistory)
+    }
+
+    func testStage0OnlyMatchesExactTerminus() {
+        let board = [
+            Train(category: "FR", number: "9614", destination: "Novara", time: "18:10", delay: "In orario", platform: "4"),
+            Train(category: "S6", number: "24652", destination: "Novara", time: "18:19", delay: "In orario", platform: "2 SOT"),
+            Train(category: "S6", number: "24654", destination: "Magenta", time: "18:49", delay: "In orario", platform: "2 SOT"),
+        ]
+        // Stage 0 non deve indovinare fermate intermedie senza verifica orari/fermate reali
+        let matchesInterm = StationCommuteMatcher.computeStage0Matches(
+            boardTrains: board,
+            targetStations: ["Corbetta-S.Stefano Ticino"]
+        )
+        XCTAssertNil(matchesInterm["9614"])
+        XCTAssertNil(matchesInterm["24652"])
+
+        let matchesTerminus = StationCommuteMatcher.computeStage0Matches(
+            boardTrains: board,
+            targetStations: ["Magenta"]
+        )
+        XCTAssertEqual(matchesTerminus["24654"]?.matchedTargetStation, "Magenta")
+        XCTAssertNil(matchesTerminus["24652"])
+    }
+
+    func testNationalStationNameMatcherAndNoFalsePositives() {
+        // Alias ufficiali in tutta Italia
+        XCTAssertTrue(StationNameMatcher.isSameStation("Firenze S.M.N.", "Firenze Santa Maria Novella"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Venezia S.L.", "Venezia Santa Lucia"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Torino P.N.", "Torino Porta Nuova"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Torino P.S.", "Torino Porta Susa"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Verona P.N.", "Verona Porta Nuova"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Genova P.P.", "Genova Piazza Principe"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Roma Term.", "Roma Termini"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Roma S. Pietro", "Roma San Pietro"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Bologna Centrale AV", "Bologna Centrale"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Bologna C.le", "Bologna Centrale"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Forli'", "Forlì"))
+        XCTAssertTrue(StationNameMatcher.isSameStation("Milano Nord Cadorna", "Milano Cadorna"))
+
+        // Zero falsi positivi su stazioni vicine/omonime
+        XCTAssertFalse(StationNameMatcher.isSameStation("Varese", "Varese Nord"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Busto Arsizio", "Busto Arsizio Nord"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Novara", "Novara Nord"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Monza", "Monza Sobborghi"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Venezia Santa Lucia", "Venezia Mestre"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Torino Porta Nuova", "Torino Porta Susa"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Roma Termini", "Roma Tiburtina"))
+        XCTAssertFalse(StationNameMatcher.isSameStation("Reggio Emilia", "Reggio Emilia AV Mediopadana"))
+
+        // Scarta "Tutte Le Stazioni" su LeFrecce
+        let genericRoma = TrenitaliaLocation(id: 830008400, name: "Roma ( Tutte Le Stazioni )", displayName: "Roma ( Tutte Le Stazioni )")
+        let specificRoma = TrenitaliaLocation(id: 830008409, name: "Roma Termini", displayName: "Roma Termini")
+        XCTAssertFalse(StationNameMatcher.matchesLefrecceLocation(genericRoma, targetStationName: "Roma Termini"))
+        XCTAssertTrue(StationNameMatcher.matchesLefrecceLocation(specificRoma, targetStationName: "Roma Termini"))
+    }
+
+    func testLefrecceStrictDirectValidationAndSuppressedStops() throws {
+        let jsonObj: [String: Any] = [
+            "solutions": [
+                // 1. Soluzione multi-nodo con tratto urbano/metro: deve essere SCARTATA
+                [
+                    "solution": [
+                        "origin": "Magenta",
+                        "destination": "Milano Cadorna",
+                        "arrivalTime": "2026-11-21T08:40:00.000+01:00",
+                        "nodes": [
+                            [
+                                "origin": "Magenta",
+                                "destination": "Milano Porta Garibaldi",
+                                "arrivalTime": "2026-11-21T08:25:00.000+01:00",
+                                "train": ["name": "24612", "acronym": "S6", "urban": false]
+                            ],
+                            [
+                                "origin": "Milano Porta Garibaldi",
+                                "destination": "Milano Cadorna",
+                                "arrivalTime": "2026-11-21T08:40:00.000+01:00",
+                                "train": ["name": "UB", "acronym": "UB", "urban": true]
+                            ]
+                        ]
+                    ]
+                ],
+                // 2. Soluzione diretta ma da stazione di partenza diversa (Milano Centrale invece di Roma Termini): SCARTATA
+                [
+                    "solution": [
+                        "origin": "Roma Tiburtina",
+                        "destination": "Firenze Santa Maria Novella",
+                        "arrivalTime": "2026-11-21T10:15:00.000+01:00",
+                        "nodes": [
+                            [
+                                "origin": "Roma Tiburtina",
+                                "destination": "Firenze Santa Maria Novella",
+                                "arrivalTime": "2026-11-21T10:15:00.000+01:00",
+                                "train": ["name": "FR 9514", "acronym": "FR", "urban": false]
+                            ]
+                        ]
+                    ]
+                ],
+                // 3. Soluzione diretta valida da Roma Termini a Firenze S.M.N.
+                [
+                    "solution": [
+                        "origin": "Roma Termini",
+                        "destination": "Firenze Santa Maria Novella",
+                        "arrivalTime": "2026-11-21T10:25:00.000+01:00",
+                        "nodes": [
+                            [
+                                "origin": "Roma Termini",
+                                "destination": "Firenze Santa Maria Novella",
+                                "arrivalTime": "2026-11-21T10:25:00.000+01:00",
+                                "train": ["name": "FR 9620", "acronym": "FR", "urban": false]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+        let data = try JSONSerialization.data(withJSONObject: jsonObj)
+        let matches = StationCommuteMatcher.parseDirectLefrecceMatches(
+            from: data,
+            currentStationName: "Roma Termini",
+            targetStationName: "Firenze S.M.N."
+        )
+        XCTAssertEqual(matches.count, 1)
+        XCTAssertEqual(matches.first?.trainNumber, "9620")
+        XCTAssertEqual(matches.first?.estimatedArrivalTime, "10:25")
+
+        // Fermata soppressa deve essere ignorata
+        let stopsWithSuppressed = [
+            Stop(stationName: "Roma Termini", time: "09:00", actualTime: nil, delay: 0, estimatedTime: nil, plannedPlatform: "1", actualPlatform: nil, isSuppressed: false),
+            Stop(stationName: "Firenze S.M.N.", time: "10:25", actualTime: nil, delay: 0, estimatedTime: nil, plannedPlatform: "4", actualPlatform: nil, isSuppressed: true),
+            Stop(stationName: "Bologna Centrale", time: "11:05", actualTime: nil, delay: 0, estimatedTime: nil, plannedPlatform: "6", actualPlatform: nil, isSuppressed: false),
+        ]
+        XCTAssertNil(StationNameMatcher.stopsContainOrderedRoute(stops: stopsWithSuppressed, originStationName: "Roma Termini", targetStations: ["Firenze Santa Maria Novella"]))
+        let bolognaHit = StationNameMatcher.stopsContainOrderedRoute(stops: stopsWithSuppressed, originStationName: "Roma Termini", targetStations: ["Bologna C.le"])
+        XCTAssertEqual(bolognaHit?.arrivalTime, "11:05")
+
+        // Verifica merge deterministico multi-stazione (sceglie arrivo più presto)
+        let earlier = CommuteTrainMatch(trainNumber: "24652", matchedTargetStation: "Milano Porta Garibaldi", estimatedArrivalTime: "18:45", source: .lefrecce)
+        let later = CommuteTrainMatch(trainNumber: "24652", matchedTargetStation: "Milano Repubblica", estimatedArrivalTime: "18:48", source: .lefrecce)
+        XCTAssertTrue(StationCommuteMatcher.shouldPreferCandidate(earlier, candidateTargetIndex: 1, over: later, existingTargetIndex: 0, referenceMinutes: 18 * 60))
+        XCTAssertFalse(StationCommuteMatcher.shouldPreferCandidate(later, candidateTargetIndex: 0, over: earlier, existingTargetIndex: 1, referenceMinutes: 18 * 60))
+    }
+
+    @MainActor
+    func testStationBoardFilterStorePersistenceTTLAndPerStationSuburban() {
+        let suiteName = "InOrarioFilterStoreTest_\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let store = StationBoardFilterStore(defaults: defaults)
+        let t0 = Date(timeIntervalSince1970: 1_700_000_000)
+
+        var state = StationBoardFilterState()
+        state.commuteTarget = .home
+        state.selectedCategories = [.regional]
+        state.selectedSuburbanLines = ["S6"]
+        state.hideCancelled = true
+
+        store.saveState(state, for: "Milano Porta Garibaldi", now: t0)
+
+        // Riaprendo un'altra stazione entro 10 minuti: commuteTarget, categoria e hideCancelled restano,
+        // mentre la linea suburbana S6 resta confinata solo a Milano Porta Garibaldi
+        let t10 = t0.addingTimeInterval(10 * 60)
+        let loadedRoma = store.loadState(for: "Roma Termini", hasSupport: true, now: t10)
+        XCTAssertEqual(loadedRoma.commuteTarget, .home)
+        XCTAssertEqual(loadedRoma.selectedCategories, [.regional])
+        XCTAssertTrue(loadedRoma.selectedSuburbanLines.isEmpty)
+        XCTAssertTrue(loadedRoma.hideCancelled)
+
+        // Tornando a Milano Porta Garibaldi entro TTL, anche S6 è ripristinata (e la finestra scorrevole si rinnova)
+        let t11 = t10.addingTimeInterval(60)
+        let loadedMilano = store.loadState(for: "Milano P. Garibaldi", hasSupport: true, now: t11)
+        XCTAssertEqual(loadedMilano.selectedSuburbanLines, ["S6"])
+
+        // Pausa quando si apre la stazione di casa: apply non filtra il filtro casa/lavoro
+        let sampleBoard = [
+            Train(category: "REG", number: "2020", destination: "Torino", time: "19:00", delay: "In orario", platform: "1"),
+            Train(category: "FR", number: "9600", destination: "Roma", time: "19:10", delay: "In orario", platform: "2"),
+        ]
+        let pausedResult = loadedRoma.apply(to: sampleBoard, favoriteTrainNumbers: [], commuteMatches: [:], isAlreadyAtTargetStation: true)
+        XCTAssertEqual(pausedResult.map(\.number), ["2020"]) // REG applicato, commuteTarget in pausa
+
+        // Scadenza dopo oltre 15 minuti dall'ultimo accesso (t11)
+        let expired = store.loadState(for: "Roma Termini", hasSupport: true, now: t11.addingTimeInterval(15 * 60 + 1))
+        XCTAssertFalse(expired.isActive)
+    }
+
+    @MainActor
+    func testCommuteArrivalFormatterAbbreviations() {
+        XCTAssertEqual(
+            CommuteArrivalFormatter.displayCandidates(stationName: "Milano Porta Garibaldi", arrivalTime: "02:00"),
+            ["Arrivo a Milano P. Garibaldi alle 02:00", "Arrivo a Mi. P. Garibaldi alle 02:00"]
+        )
+        XCTAssertEqual(
+            CommuteArrivalFormatter.displayCandidates(stationName: "Milano Centrale", arrivalTime: "02:00"),
+            ["Arrivo a Milano Centrale alle 02:00", "Arrivo a Mi. Centrale alle 02:00"]
+        )
+        XCTAssertEqual(
+            CommuteArrivalFormatter.displayCandidates(stationName: "Torino Porta Nuova", arrivalTime: "08:15"),
+            ["Arrivo a Torino P. Nuova alle 08:15"]
+        )
+        XCTAssertEqual(
+            CommuteArrivalFormatter.displayCandidates(stationName: "Magenta", arrivalTime: "18:42"),
+            ["Arrivo a Magenta alle 18:42"]
+        )
+        XCTAssertEqual(
+            CommuteArrivalFormatter.displayCandidates(stationName: "Milano Greco Pirelli", arrivalTime: "08:15"),
+            ["Arrivo a Mi. Greco Pirelli alle 08:15"]
+        )
+    }
+
+    // MARK: - 15. Granular Commute Time Bands & On-Device Train Discovery Tests
+
+    func testCommuteTimeBandParsingFormattingAndAdjustment() {
+        let morning = CommuteTimeBand.parse("09:00 - 09:30")
+        XCTAssertEqual(morning.startMinutes, 9 * 60)
+        XCTAssertEqual(morning.endMinutes, 9 * 60 + 30)
+        XCTAssertEqual(morning.durationMinutes, 30)
+        XCTAssertEqual(morning.durationLabel, "30 min")
+        XCTAssertEqual(morning.formatted, "09:00 - 09:30")
+        XCTAssertEqual(morning.compactFormatted, "09:00-09:30")
+        XCTAssertTrue(morning.contains(timeString: "09:00"))
+        XCTAssertTrue(morning.contains(timeString: "09:19"))
+        XCTAssertTrue(morning.contains(timeString: "09:30"))
+        XCTAssertFalse(morning.contains(timeString: "09:31"))
+
+        let evening = CommuteTimeBand.parse("17:00 - 19:00")
+        XCTAssertEqual(evening.durationMinutes, 120)
+        XCTAssertEqual(evening.durationLabel, "2h")
+
+        // Modifica ora di inizio: preserva la fine se rimane valida (15m..360m), altrimenti mantiene durata
+        let shiftedEarlier = morning.updatingStart(to: 8 * 60 + 45)
+        XCTAssertEqual(shiftedEarlier.formatted, "08:45 - 09:30")
+        let shiftedPastEnd = morning.updatingStart(to: 10 * 60)
+        XCTAssertEqual(shiftedPastEnd.formatted, "10:00 - 10:30")
+
+        // Modifica ora di fine: blocca minimo a 15m ed evita wrap involontari indietro
+        let clampedMin = morning.updatingEnd(to: 9 * 60 + 5)
+        XCTAssertEqual(clampedMin.formatted, "09:00 - 09:15")
+        let clampedBefore = morning.updatingEnd(to: 8 * 60 + 30)
+        XCTAssertEqual(clampedBefore.formatted, "09:00 - 09:15")
+
+        // Fascia a cavallo della mezzanotte
+        let midnight = CommuteTimeBand.parse("23:15 - 00:15")
+        XCTAssertEqual(midnight.durationMinutes, 60)
+        XCTAssertEqual(midnight.durationLabel, "1h")
+        XCTAssertTrue(midnight.contains(timeString: "23:40"))
+        XCTAssertTrue(midnight.contains(timeString: "00:10"))
+        XCTAssertFalse(midnight.contains(timeString: "00:30"))
+    }
+
+    func testDayCommuteScheduleTrainsCodableAndLegacyCompatibility() throws {
+        let legacyJSON = #"{"isEnabled":true,"outboundBand":"09:00 - 09:30","returnBand":"17:00 - 19:00"}"#.data(using: .utf8)!
+        let decodedLegacy = try JSONDecoder().decode(DayCommuteSchedule.self, from: legacyJSON)
+        XCTAssertEqual(decodedLegacy.outboundBand, "09:00 - 09:30")
+        XCTAssertEqual(decodedLegacy.returnBand, "17:00 - 19:00")
+        XCTAssertTrue(decodedLegacy.outboundTrains.isEmpty)
+        XCTAssertTrue(decodedLegacy.returnTrains.isEmpty)
+        XCTAssertFalse(decodedLegacy.outboundTrainsCustomized)
+        XCTAssertFalse(decodedLegacy.returnTrainsCustomized)
+
+        let manualTrain = CommuteHabitTrain(
+            trainNumber: "24625",
+            category: "S6",
+            originStation: "Magenta",
+            destinationStation: "Milano Porta Garibaldi",
+            departureTime: "08:49",
+            arrivalTime: "09:24",
+            isManuallyAdded: true
+        )
+        let custom = DayCommuteSchedule(
+            isEnabled: true,
+            outboundBand: "09:00 - 09:30",
+            returnBand: "17:00 - 19:00",
+            outboundTrains: [manualTrain],
+            returnTrains: [],
+            outboundTrainsCustomized: true,
+            returnTrainsCustomized: false
+        )
+        let encoded = try JSONEncoder().encode(custom)
+        let roundTripped = try JSONDecoder().decode(DayCommuteSchedule.self, from: encoded)
+        XCTAssertEqual(roundTripped, custom)
+        XCTAssertEqual(roundTripped.outboundTrains.first?.isManuallyAdded, true)
+    }
+
+    func testCommuteTrainDiscoveryParsingAndDeduplication() throws {
+        let jsonString = """
+        {
+          "solutions": [
+            {
+              "solution": {
+                "origin": "Magenta",
+                "destination": "Milano Porta Garibaldi",
+                "departureTime": "2026-11-30T09:04:00.000+01:00",
+                "arrivalTime": "2026-11-30T09:39:00.000+01:00",
+                "nodes": [
+                  {
+                    "origin": "Magenta",
+                    "destination": "Milano Porta Garibaldi",
+                    "departureTime": "2026-11-30T09:04:00.000+01:00",
+                    "arrivalTime": "2026-11-30T09:39:00.000+01:00",
+                    "train": { "name": "S6 24627", "trainCategory": "Suburbano", "acronym": "S6", "urban": false }
+                  }
+                ]
+              }
+            },
+            {
+              "solution": {
+                "origin": "Magenta",
+                "destination": "Milano Porta Garibaldi",
+                "departureTime": "2026-11-30T09:19:00.000+01:00",
+                "arrivalTime": "2026-11-30T09:49:00.000+01:00",
+                "nodes": [
+                  {
+                    "origin": "Magenta",
+                    "destination": "Milano Porta Garibaldi",
+                    "departureTime": "2026-11-30T09:19:00.000+01:00",
+                    "arrivalTime": "2026-11-30T09:49:00.000+01:00",
+                    "train": { "name": "RV 2017", "trainCategory": "Regionale Veloce", "acronym": "RV", "urban": false }
+                  }
+                ]
+              }
+            },
+            {
+              "solution": {
+                "origin": "Magenta",
+                "destination": "Milano Porta Garibaldi",
+                "departureTime": "2026-11-30T09:34:00.000+01:00",
+                "arrivalTime": "2026-11-30T10:09:00.000+01:00",
+                "nodes": [
+                  {
+                    "origin": "Magenta",
+                    "destination": "Milano Porta Garibaldi",
+                    "departureTime": "2026-11-30T09:34:00.000+01:00",
+                    "arrivalTime": "2026-11-30T10:09:00.000+01:00",
+                    "train": { "name": "S6 24629", "trainCategory": "Suburbano", "acronym": "S6", "urban": false }
+                  }
+                ]
+              }
+            },
+            {
+              "solution": {
+                "origin": "Magenta",
+                "destination": "Milano Porta Garibaldi",
+                "departureTime": "2026-11-30T09:10:00.000+01:00",
+                "arrivalTime": "2026-11-30T09:50:00.000+01:00",
+                "nodes": [
+                  { "origin": "Magenta", "destination": "Rho", "departureTime": "2026-11-30T09:10:00.000+01:00", "arrivalTime": "2026-11-30T09:25:00.000+01:00", "train": { "name": "S6 24628", "urban": false } },
+                  { "origin": "Rho", "destination": "Milano Porta Garibaldi", "departureTime": "2026-11-30T09:30:00.000+01:00", "arrivalTime": "2026-11-30T09:50:00.000+01:00", "train": { "name": "Metro", "urban": true } }
+                ]
+              }
+            }
+          ]
+        }
+        """
+        let data = try XCTUnwrap(jsonString.data(using: .utf8))
+        let band = CommuteTimeBand.parse("09:00 - 09:30")
+        let parsed = CommuteTrainDiscoveryService.parseLefrecceBandTrains(
+            from: data,
+            originStation: "Magenta",
+            destinationStation: "Milano Porta Garibaldi",
+            band: band
+        )
+        XCTAssertEqual(parsed.totalSolutions, 4)
+        XCTAssertEqual(parsed.trains.map(\.trainNumber), ["24627", "2017"])
+        XCTAssertEqual(parsed.trains.map(\.category), ["S6", "RV"])
+
+        // Deduplica multi-destinazione/origine & preservazione treni manuali fuori fascia
+        let duplicateSameTrain = CommuteHabitTrain(
+            trainNumber: "24627",
+            category: "S6",
+            originStation: "Magenta",
+            destinationStation: "Milano Repubblica",
+            departureTime: "09:04",
+            arrivalTime: "09:42",
+            isManuallyAdded: false
+        )
+        let deduped = CommuteTrainDiscoveryService.deduplicateAndSort(
+            parsed.trains + [duplicateSameTrain],
+            origins: ["Magenta"],
+            band: band
+        )
+        XCTAssertEqual(deduped.count, 2)
+        XCTAssertEqual(deduped.first?.arrivalTime, "09:39")
+
+        let manualEarly = CommuteHabitTrain(
+            trainNumber: "24625",
+            category: "S6",
+            originStation: "Magenta",
+            destinationStation: "Milano Porta Garibaldi",
+            departureTime: "08:49",
+            arrivalTime: "09:24",
+            isManuallyAdded: true
+        )
+        let merged = CommuteTrainDiscoveryService.mergeDiscoveredWithExisting(
+            discovered: deduped,
+            existing: [manualEarly],
+            band: band,
+            origins: ["Magenta"]
+        )
+        XCTAssertEqual(merged.map(\.trainNumber), ["24625", "24627", "2017"])
+
+        // nextDate ritorna il giorno ISO della settimana richiesto strettamente nel futuro
+        let ref = Date(timeIntervalSince1970: 1_763_980_800) // Lun 24 Nov 2025
+        let nextWed = CommuteTrainDiscoveryService.nextDate(forISOWeekday: 3, hour: 9, minute: 0, referenceDate: ref)
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let isoWd = ((cal.component(.weekday, from: nextWed) + 5) % 7) + 1
+        XCTAssertEqual(isoWd, 3)
+        XCTAssertGreaterThan(nextWed, ref)
+    }
+
+    @MainActor
+    func testBuildCommuteSyncPayloadIncludesPerDayTrains() throws {
+        let mgr = SupporterCommuteManager.shared
+        let defaults = UserDefaults.standard
+        let hadSupId = defaults.object(forKey: "supporter_eternal_id")
+        let hadSupport = defaults.object(forKey: "tip.colazionee")
+        let prevOrigins = mgr.origins
+        let prevDests = mgr.destinations
+        let prevCustom = mgr.customizePerDay
+        let prevWeekdays = mgr.activeWeekdays
+        let prevSchedules = mgr.daySchedules
+        let prevOutBand = mgr.defaultOutboundBand
+        let prevRetBand = mgr.defaultReturnBand
+
+        defer {
+            if let s = hadSupId { defaults.set(s, forKey: "supporter_eternal_id") } else { defaults.removeObject(forKey: "supporter_eternal_id") }
+            if let h = hadSupport { defaults.set(h, forKey: "tip.colazionee") } else { defaults.removeObject(forKey: "tip.colazionee") }
+            mgr.origins = prevOrigins
+            mgr.destinations = prevDests
+            mgr.customizePerDay = prevCustom
+            mgr.activeWeekdays = prevWeekdays
+            mgr.daySchedules = prevSchedules
+            mgr.defaultOutboundBand = prevOutBand
+            mgr.defaultReturnBand = prevRetBand
+        }
+
+        defaults.set("sup_test_trains_payload", forKey: "supporter_eternal_id")
+        defaults.set(true, forKey: "tip.colazionee")
+        mgr.origins = ["Magenta"]
+        mgr.destinations = ["Milano Porta Garibaldi"]
+        mgr.activeWeekdays = [1, 2]
+        mgr.defaultOutboundBand = "09:00 - 09:30"
+        mgr.defaultReturnBand = "17:00 - 19:00"
+
+        let monTrain = CommuteHabitTrain(
+            trainNumber: "24627",
+            category: "S6",
+            originStation: "Magenta",
+            destinationStation: "Milano Porta Garibaldi",
+            departureTime: "09:04",
+            arrivalTime: "09:39",
+            isManuallyAdded: false
+        )
+        let tueExtra = CommuteHabitTrain(
+            trainNumber: "2017",
+            category: "RV",
+            originStation: "Magenta",
+            destinationStation: "Milano Centrale",
+            departureTime: "09:19",
+            arrivalTime: "09:49",
+            isManuallyAdded: true
+        )
+        mgr.daySchedules = [
+            1: DayCommuteSchedule(isEnabled: true, outboundBand: "09:00 - 09:30", returnBand: "17:00 - 19:00", outboundTrains: [monTrain]),
+            2: DayCommuteSchedule(isEnabled: true, outboundBand: "08:30 - 09:30", returnBand: "17:30 - 18:30", outboundTrains: [monTrain, tueExtra]),
+        ]
+
+        // 1. Modalità globale con treni diversi fra Lunedì e Martedì -> divide in due gruppi
+        mgr.customizePerDay = false
+        let globalPayload = try XCTUnwrap(mgr.buildCommuteSyncPayload())
+        let globalSchedules = try XCTUnwrap(globalPayload["schedules"] as? [[String: Any]])
+        let globalOutbounds = globalSchedules.filter { ($0["type"] as? String) == "outbound" }
+        XCTAssertEqual(globalOutbounds.count, 2)
+        XCTAssertEqual(globalOutbounds[0]["weekdays"] as? [Int], [1])
+        XCTAssertEqual(globalOutbounds[0]["trains"] as? [String], ["24627"])
+        XCTAssertEqual(globalOutbounds[1]["weekdays"] as? [Int], [2])
+        XCTAssertEqual(globalOutbounds[1]["trains"] as? [String], ["24627", "2017"])
+
+        // 2. Modalità per singolo giorno -> include fasce granulari e train_details per ciascun giorno
+        mgr.customizePerDay = true
+        let perDayPayload = try XCTUnwrap(mgr.buildCommuteSyncPayload())
+        let perDaySchedules = try XCTUnwrap(perDayPayload["schedules"] as? [[String: Any]])
+        let monOutbound = try XCTUnwrap(perDaySchedules.first(where: { ($0["type"] as? String) == "outbound" && ($0["weekdays"] as? [Int]) == [1] }))
+        XCTAssertEqual(monOutbound["time"] as? String, "09:00 - 09:30")
+        XCTAssertEqual(monOutbound["trains"] as? [String], ["24627"])
+        let monDetails = try XCTUnwrap(monOutbound["train_details"] as? [[String: Any]])
+        XCTAssertEqual(monDetails.first?["departure_time"] as? String, "09:04")
+    }
+
+    @MainActor
+    func testHomeBannerPlanBSuppressedOnSummaryOkUnlessFollowed() throws {
+        let mgr = SupporterCommuteManager.shared
+        let defaults = UserDefaults.standard
+        let hadSupport = defaults.object(forKey: "tip.colazionee")
+        let prevActive = mgr.activePlanB
+        let prevPinned = mgr.pinnedPlanB
+        let prevChosen = mgr.chosenAlternativeId
+
+        defer {
+            if let h = hadSupport { defaults.set(h, forKey: "tip.colazionee") } else { defaults.removeObject(forKey: "tip.colazionee") }
+            mgr.activePlanB = prevActive
+            mgr.pinnedPlanB = prevPinned
+            mgr.chosenAlternativeId = prevChosen
+        }
+
+        defaults.set(true, forKey: "tip.colazionee")
+        mgr.pinnedPlanB = nil
+        mgr.chosenAlternativeId = nil
+
+        let alt = PlanBAlternativeItem(
+            train_number: "24638",
+            category: "S6",
+            destination: "Magenta",
+            station: "Milano Dateo",
+            departure_time: "12:10",
+            arrival_time: "12:54",
+            duration: "44min",
+            delay: 0,
+            platform: "2",
+            transfer_info: "Treno diretto (44min)",
+            legs: nil
+        )
+
+        let summaryOkPlan = PlanBReportDTO(
+            title: "🟢 Circolazione regolare (12:00 - 13:00)",
+            body: "Circolazione regolare. Prossimo treno: S6 24638 delle 12:10 da Milano Dateo (in orario).",
+            incident_type: "summary_ok",
+            incident_detail: nil,
+            cancelled_train: nil,
+            target_time: "12:00 - 13:00",
+            origins: ["Milano Dateo"],
+            destinations: ["Magenta"],
+            alternatives: [alt],
+            timestamp: "2026-11-24T11:45:00"
+        )
+
+        // 1. Con summary_ok e nessun treno seguito, la striscia sulla Home NON deve apparire
+        mgr.activePlanB = summaryOkPlan
+        XCTAssertNil(mgr.homeBannerPlanB)
+
+        // 2. Se l'utente tocca esplicitamente "Segui" su un treno del riepilogo, la striscia appare
+        mgr.chosenAlternativeId = alt.id
+        XCTAssertNotNil(mgr.homeBannerPlanB)
+
+        // 3. Con un disservizio reale (summary_critical o delay), la striscia appare anche senza aver ancora scelto un treno
+        mgr.chosenAlternativeId = nil
+        let criticalPlan = PlanBReportDTO(
+            title: "🔴 Disservizi sulla tratta (12:00 - 13:00)",
+            body: "Attenzione: treno 24638 in ritardo di +17'.",
+            incident_type: "summary_critical",
+            incident_detail: nil,
+            cancelled_train: nil,
+            target_time: "12:00 - 13:00",
+            origins: ["Milano Dateo"],
+            destinations: ["Magenta"],
+            alternatives: [alt],
+            timestamp: "2026-11-24T11:45:00"
+        )
+        mgr.activePlanB = criticalPlan
+        XCTAssertNotNil(mgr.homeBannerPlanB)
+        XCTAssertEqual(mgr.homeBannerPlanB?.incident_type, "summary_critical")
     }
 }

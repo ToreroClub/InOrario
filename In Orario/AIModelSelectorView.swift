@@ -32,6 +32,7 @@ struct AIModelSelectorView: View {
                 aiManager.aiModeChoice = .none
                 aiManager.preferLocalAI = false
                 showCloudPaidBanner = false
+                manager.syncRemoteNotifications()
             }
             
             // Opzione 2: Apple Intelligence (Locale)
@@ -51,6 +52,7 @@ struct AIModelSelectorView: View {
                         aiManager.selectedModelID = "apple_intelligence"
                         aiManager.preferLocalAI = true
                         showCloudPaidBanner = false
+                        manager.syncRemoteNotifications()
                     }
                 }
                 
@@ -78,6 +80,7 @@ struct AIModelSelectorView: View {
                         aiManager.aiModeChoice = .cloud
                         aiManager.preferLocalAI = false
                         showCloudPaidBanner = false
+                        manager.syncRemoteNotifications()
                     } else {
                         Haptics.play(.light)
                         withAnimation {

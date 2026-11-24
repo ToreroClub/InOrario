@@ -211,9 +211,6 @@ struct TrainStopsView: View {
 
                                 let station = stationFromStopName(stop.stationName, manager: manager, passanteManager: passanteManager)
                                 let hasMetro = !station.metroLines.isEmpty
-                                
-                                let isHomeStation = !manager.homeDestinationStationName.isEmpty &&
-                                     stop.stationName.lowercased().contains(manager.homeDestinationStationName.lowercased())
                                  
                                 let rowBg = isCurrent ? Color.orange.opacity(0.15) : Color.clear
 
@@ -222,11 +219,7 @@ struct TrainStopsView: View {
                                          VStack(alignment: .leading, spacing: 4) {
                                              Text(stop.stationName.formattedStationName)
                                                  .font(.headline)
-                                                 .foregroundColor(
-                                                     isHomeStation 
-                                                     ? (isPast ? Color.blue.opacity(0.5) : .blue) 
-                                                     : (isPast ? .secondary : .primary)
-                                                 )
+                                                 .foregroundColor(isPast ? .secondary : .primary)
                                          }
                                         
                                         Spacer()
@@ -394,7 +387,7 @@ struct TrainStopsView: View {
                     }
                     
                     let favTrain = manager.favoriteTrains.first(where: { $0.number == train.number })
-                    let hasNotifications = favTrain?.notifyDelay == true || favTrain?.notifyDeparture == true || favTrain?.notifyStationPass == true || favTrain?.notifyPlatformChange == true
+                    let hasNotifications = favTrain?.notifyDelay == true || favTrain?.notifyDeparture == true || favTrain?.notifyStationPass == true || favTrain?.notifyPlatformChange == true || favTrain?.notifyScheduledTime == true
                     
                     Button {
                         if isItalo {

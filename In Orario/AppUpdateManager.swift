@@ -40,8 +40,10 @@ class AppUpdateManager: ObservableObject {
     private let snoozedVersionKey = "snoozed_update_version"
     private let snoozedTimeKey = "snoozed_update_timestamp"
     private let supporterLastSeenVersionKey = "supporter_last_seen_version"
+    private let supporterCommuteSnoozedUntilKey = "supporter_commute_alert_snoozed_until"
     private let hasLaunchedBeforeKey = "has_launched_before_key"
     private let lastSeenRemoteAlertIdKey = "last_seen_remote_alert_id"
+    var hasCheckedSupporterPopupThisLaunch: Bool = false
     
     var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -55,6 +57,18 @@ class AppUpdateManager: ObservableObject {
     
     func checkSupporterUpdatePopup(hasSupport: Bool, forcedByBackend: Bool = false) {
         guard hasSupport else { return }
+        if !forcedByBackend && hasCheckedSupporterPopupThisLaunch {
+            return
+        }
+        hasCheckedSupporterPopupThisLaunch = true
+
+        let hasConfiguredCommute = !SupporterCommuteManager.shared.origins.isEmpty &&
+                                   !SupporterCommuteManager.shared.destinations.isEmpty
+        if hasConfiguredCommute && !forcedByBackend {
+            UserDefaults.standard.set(true, forKey: hasLaunchedBeforeKey)
+            UserDefaults.standard.set(currentVersion, forKey: supporterLastSeenVersionKey)
+            return
+        }
         
         let hasLaunchedBefore = UserDefaults.standard.bool(forKey: hasLaunchedBeforeKey)
         let lastSeen = UserDefaults.standard.string(forKey: supporterLastSeenVersionKey)
@@ -71,6 +85,12 @@ class AppUpdateManager: ObservableObject {
             UserDefaults.standard.set(currentVersion, forKey: supporterLastSeenVersionKey)
             return
         }
+
+        let now = Date().timeIntervalSince1970
+        let snoozedUntil = UserDefaults.standard.double(forKey: supporterCommuteSnoozedUntilKey)
+        if !forcedByBackend && snoozedUntil > now {
+            return
+        }
         
         // Mostra il popup ai sostenitori SOLO per aggiornamenti principali (es. 1.4 -> 1.5)
         // o se espressamente attivato dal backend, MAI per i piccoli bug fix o micro-patch.
@@ -82,10 +102,13 @@ class AppUpdateManager: ObservableObject {
     
     func dismissSupporterCommuteAlert() {
         UserDefaults.standard.set(currentVersion, forKey: supporterLastSeenVersionKey)
+        UserDefaults.standard.removeObject(forKey: supporterCommuteSnoozedUntilKey)
         self.showSupporterCommuteAlert = false
     }
     
     func snoozeSupporterCommuteAlert() {
+        let later = Date().addingTimeInterval(3 * 86400).timeIntervalSince1970
+        UserDefaults.standard.set(later, forKey: supporterCommuteSnoozedUntilKey)
         self.showSupporterCommuteAlert = false
     }
     

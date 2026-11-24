@@ -1377,15 +1377,16 @@ struct PassanteTunnelStatusButton: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var locationManager: LocationManager
-    @Binding var showThermometerSheet: Bool
+    let onOpenDetail: () -> Void
     var body: some View {
         Button {
             Haptics.play(.light)
             if let nearby = locationManager.nearbyStation,
-               let st = passanteManager.passanteStationsForUser.first(where: { $0.matches(nearby) }) {
+               let st = passanteManager.passanteStationsForUser.first(where: { $0.matches(nearby) }),
+               !passanteManager.selectedPassanteStation.matches(st) {
                 passanteManager.selectedPassanteStation = st
             }
-            showThermometerSheet = true
+            onOpenDetail()
         } label: {
             Image(systemName: "info.circle.fill")
                 .foregroundColor(Color(hex: passanteManager.passanteTunnelHealthColor).opacity(0.8))
@@ -1401,7 +1402,7 @@ struct PassanteTunnelStatusButton: View {
 struct PassanteTunnelStatusHeaderView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
-    @State private var showThermometerSheet = false
+    let onOpenDetail: () -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
@@ -1416,7 +1417,7 @@ struct PassanteTunnelStatusHeaderView: View {
                 
                 Spacer()
                 
-                PassanteTunnelStatusButton(showThermometerSheet: $showThermometerSheet)
+                PassanteTunnelStatusButton(onOpenDetail: onOpenDetail)
             }
             
             if !passanteManager.passanteSelectedLinesAlerts.isEmpty {
@@ -1437,12 +1438,6 @@ struct PassanteTunnelStatusHeaderView: View {
         .background(Color(hex: passanteManager.passanteTunnelHealthColor).opacity(0.12))
         .cornerRadius(8)
         .contentShape(Rectangle())
-        .sheet(isPresented: $showThermometerSheet) {
-            PassanteTunnelDetailView()
-                .environmentObject(manager)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
     }
 }
 
@@ -1466,8 +1461,13 @@ struct PassanteTunnelDetailView: View {
     @EnvironmentObject var passanteManager: PassanteManager
     @Environment(\.dismiss) var dismiss
     @Environment(\.scenePhase) var scenePhase
+    @State private var isRefreshing = false
     
-    let timer = Timer.publish(every: 45, on: .main, in: .common).autoconnect()
+    private func refreshDetail(force: Bool) async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        _ = await passanteManager.fetchTunnelDetailData(manager: manager, force: force)
+    }
     
     var activeStuckTrains: [StuckTrainInfo] {
         if passanteManager.isUsingLocalEngine {
@@ -1684,25 +1684,50 @@ struct PassanteTunnelDetailView: View {
                         }
                     }
                     
-                    if !passanteManager.passanteTunnelTrains.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Treni nel Passante")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            ForEach(passanteManager.passanteTunnelTrains.prefix(8)) { train in
+                    let sampleTrains = Array(passanteManager.passanteTunnelTrains.prefix(5))
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Treni nel Passante")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        if !sampleTrains.isEmpty {
+                            ForEach(sampleTrains) { train in
                                 HStack(spacing: 12) {
                                     SuburbanLineBadge(id: train.category.isEmpty ? "S" : train.category)
                                         .frame(width: 32, height: 20)
                                     
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(SharedFormatters.formatDestination(train.destination))
-                                            .font(.subheadline.bold())
-                                            .foregroundColor(.primary)
-                                            .lineLimit(1)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 6) {
+                                            Text(train.number.isEmpty || train.number == "0" ? train.category : train.number)
+                                                .font(.subheadline.bold())
+                                                .foregroundColor(.primary)
+                                                .lineLimit(1)
+                                            
+                                            if let direction = passanteManager.getPassanteDirection(for: train) {
+                                                Text(direction == "Ovest" ? String(localized: "← Ovest") : String(localized: "Est →"))
+                                                    .font(.caption2.weight(.semibold))
+                                                    .foregroundColor(.secondary)
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(Color.primary.opacity(0.07))
+                                                    .cornerRadius(5)
+                                                    .lineLimit(1)
+                                            }
+                                        }
                                         
                                         if let status = passanteManager.passanteLiveStatuses[train.number], !status.lastStation.isEmpty, status.lastStation != "--" {
-                                            Text(String(format: String(localized: "Ultimo ril.: %@ (%@)"), status.lastStation.formattedStationName, status.lastTime))
+                                            let hasValidTime = !status.lastTime.isEmpty && status.lastTime != "--" && status.lastTime != "--:--"
+                                            if hasValidTime {
+                                                Text(String(format: String(localized: "Ultimo ril.: %@ (%@)"), status.lastStation.formattedStationName, status.lastTime))
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            } else {
+                                                Text(String(format: String(localized: "Ultimo ril.: %@"), status.lastStation.formattedStationName))
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        } else if let originStation = train.origin, !originStation.isEmpty {
+                                            Text(String(format: String(localized: "Partenza prevista da %@ (%@)"), originStation.formattedStationName, train.time))
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         } else {
@@ -1737,17 +1762,31 @@ struct PassanteTunnelDetailView: View {
                                 }
                                 .padding(.vertical, 4)
                                 
-                                if train.id != passanteManager.passanteTunnelTrains.prefix(8).last?.id {
+                                if train.id != sampleTrains.last?.id {
                                     Divider()
                                 }
                             }
+                        } else if isRefreshing {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Caricamento treni...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 6)
+                        } else {
+                            Text("Nessun treno trovato al momento")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 6)
                         }
-                        .padding()
-                        .background(Color(UIColor.secondarySystemGroupedBackground))
-                        .cornerRadius(16)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(16)
                     
-                    Text("Nota: Il passante è interamente monitorato (S1, S2, S5, S6, S12, S13) a livello di stazioni e tratte per rilevare anomalie e treni fermi globalmente.")
+                    Text("Nota: Questi sono alcuni treni di esempio attualmente nel tunnel del Passante (direzione Est e Ovest). Ti aiutano a capire subito come va la circolazione: se noti soppressioni, deviazioni o forti ritardi, potrebbe esserci un problema anche per il tuo treno; se è tutto verde, tendenzialmente va tutto bene.")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -1764,31 +1803,42 @@ struct PassanteTunnelDetailView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         Task {
-                            await passanteManager.forceLocalUpdate(manager: manager)
+                            await refreshDetail(force: true)
                         }
                     }) {
-                        if passanteManager.isLocalUpdating {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle())
-                        } else {
-                            Image(systemName: "arrow.clockwise")
+                        ZStack {
+                            if isRefreshing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
                         }
+                        .frame(width: 22, height: 22)
                     }
-                    .disabled(passanteManager.isLocalUpdating)
+                    .disabled(isRefreshing)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Chiudi") { dismiss() }
                 }
             }
-            .onReceive(timer) { _ in
-                guard scenePhase == .active else { return }
-                Task {
-                    await passanteManager.fetchPassanteLive(manager: manager, includePositions: true, force: true)
+        }
+        .task {
+            passanteManager.setTunnelDetailOpen(true)
+            defer {
+                passanteManager.setTunnelDetailOpen(false)
+            }
+            await refreshDetail(force: false)
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(45))
+                guard !Task.isCancelled else { break }
+                if scenePhase == .active {
+                    await refreshDetail(force: true)
                 }
             }
-            .task {
-                await passanteManager.fetchPassanteLive(manager: manager, includePositions: true)
-            }
+        }
+        .onDisappear {
+            passanteManager.setTunnelDetailOpen(false)
         }
     }
     

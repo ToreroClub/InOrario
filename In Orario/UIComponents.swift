@@ -344,4 +344,24 @@ struct LavoraMiBannerView: View {
     }
 }
 
+struct BetaBadgeView: View {
+    var text: LocalizedStringKey = "BETA"
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .tracking(0.5)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(Color.purple.opacity(0.18))
+            .foregroundColor(.purple)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color.purple.opacity(0.32), lineWidth: 1)
+            )
+    }
+}
+
+
 

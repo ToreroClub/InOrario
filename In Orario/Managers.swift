@@ -49,6 +49,7 @@ struct Haptics {
                 UserDefaults.standard.set(token, forKey: apnsTokenKey)
                 syncRemoteNotifications()
                 syncLiveActivities()
+                Task { await SupporterCommuteManager.shared.syncRoutineWithServer() }
             }
         }
     }
@@ -103,15 +104,15 @@ struct Haptics {
     
     @Published var loadedSmartRouteDetails: [String: SmartRouteDetails] = [:]
     @Published var isLoadingSmartRoutes = false
-    @Published var homeDestinationStationName: String = ""
-    @Published var isHomeFilterActive: Bool = false
     @Published var recentTrains: [SavedTrain] = []
     @Published var recentStations: [VTSearchStation] = []
     @Published var viewedRecentTrains: [SavedTrain] = []
     @Published var viewedRecentStations: [VTSearchStation] = []
+    @Published var recentAssistantQueries: [String] = []
     
     private let viewedRecentTrainsKey = "viewedRecentTrains_v2"
     private let viewedRecentStationsKey = "viewedRecentStations_v2"
+    private let recentAssistantQueriesKey = "recentAssistantQueries_v1"
     
     @Published var userName: String = ""
     @Published var iCloudSyncEnabled: Bool = false
@@ -124,7 +125,6 @@ struct Haptics {
     private let favoriteRoutesKey = "savedFavoriteRoutes_v1"
     private let savedTripsKey = "savedTrips_v1"
     private let smartRoutesKey = "savedSmartRoutes_v1"
-    private let homeDestinationStationNameKey = "homeDestinationStationName_v1"
     private let userNameKey = "userName_v1"
     private let iCloudSyncEnabledKey = "iCloudSyncEnabled_v1"
     private let recentTrainsKey = "recentTrains_v1"
@@ -275,6 +275,7 @@ struct Haptics {
         NotificationCenter.default.addObserver(forName: NSNotification.Name("PurchasesUpdated"), object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
+                self.objectWillChange.send()
                 self.syncRemoteNotifications()
             }
         }
@@ -291,6 +292,7 @@ struct Haptics {
         
         loadViewedRecentTrains()
         loadViewedRecentStations()
+        loadRecentAssistantQueries()
         checkAndCleanOneShotNotifications()
     }
     
@@ -801,11 +803,6 @@ struct Haptics {
         if let data = UserDefaults.standard.data(forKey: savedTripsKey), let decoded = try? JSONDecoder().decode([SavedTrip].self, from: data) {
             self.savedTrips = decoded
         }
-        if let homeDest = UserDefaults.standard.string(forKey: homeDestinationStationNameKey) {
-            if self.homeDestinationStationName != homeDest {
-                self.homeDestinationStationName = homeDest
-            }
-        }
         if let savedName = UserDefaults.standard.string(forKey: userNameKey) {
             if self.userName != savedName {
                 self.userName = savedName
@@ -893,7 +890,6 @@ struct Haptics {
         
         indexSpotlightItems()
         
-        UserDefaults.standard.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
         UserDefaults.standard.set(userName, forKey: userNameKey)
         UserDefaults.standard.set(iCloudSyncEnabled, forKey: iCloudSyncEnabledKey)
         
@@ -904,7 +900,6 @@ struct Haptics {
         UserDefaults.standard.set(apnsToken, forKey: apnsTokenKey)
         
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
-            groupDefaults.set(homeDestinationStationName, forKey: homeDestinationStationNameKey)
             groupDefaults.set(strikeRegion, forKey: strikeRegionKey)
         }
         
@@ -1036,6 +1031,41 @@ struct Haptics {
         viewedRecentStations = []
         saveViewedRecentStations()
     }
+
+    func addRecentAssistantQuery(_ rawQuery: String) {
+        let trimmed = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        recentAssistantQueries.removeAll { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+        recentAssistantQueries.insert(trimmed, at: 0)
+        if recentAssistantQueries.count > 15 {
+            recentAssistantQueries.removeLast(recentAssistantQueries.count - 15)
+        }
+        saveRecentAssistantQueries()
+    }
+
+    func removeRecentAssistantQuery(_ query: String) {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        recentAssistantQueries.removeAll { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+        saveRecentAssistantQueries()
+    }
+
+    func clearRecentAssistantQueries() {
+        recentAssistantQueries = []
+        saveRecentAssistantQueries()
+    }
+
+    func saveRecentAssistantQueries() {
+        if let encoded = try? JSONEncoder().encode(recentAssistantQueries) {
+            UserDefaults.standard.set(encoded, forKey: recentAssistantQueriesKey)
+        }
+    }
+
+    func loadRecentAssistantQueries() {
+        if let data = UserDefaults.standard.data(forKey: recentAssistantQueriesKey),
+           let decoded = try? JSONDecoder().decode([String].self, from: data) {
+            self.recentAssistantQueries = decoded
+        }
+    }
     
     func removeRecentTrain(number: String) {
         recentTrains.removeAll { $0.number == number }
@@ -1091,96 +1121,7 @@ struct Haptics {
         return list
     }
     
-    func filterTrainsForHome(_ trains: [Train], currentStationName: String) -> [Train] {
-        guard !homeDestinationStationName.isEmpty else { return trains }
-        let homeLower = homeDestinationStationName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        let currentLower = currentStationName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if currentLower == homeLower {
-            return trains
-        }
-        
-        return trains.filter { train in
-            let destLower = train.destination.lowercased()
-            
-            if homeLower.contains("magenta") {
-                let eastOfMagenta = ["milano", "garibaldi", "repubblica", "venezia", "dateo", "vittoria", "forlanini", "certosa", "villapizzone", "lancetti", "rho", "pregnana", "vittuone", "arluno"]
-                let isEast = eastOfMagenta.contains { currentLower.contains($0) }
-                if isEast {
-                    let cat = train.category.lowercased()
-                    let isHighSpeed = cat.contains("fr") || cat.contains("freccia") || cat.contains("italo") || cat.contains("av") || cat.contains("ec") || cat.contains("ic")
-                    
-                    if currentLower.contains("garibaldi") {
-                        return destLower.contains("novara") || destLower.contains("magenta") || destLower.contains("trecate")
-                    } else {
-                        let validDest = destLower.contains("novara") || destLower.contains("torino") || destLower.contains("magenta") || destLower.contains("trecate") || destLower.contains("lingotto")
-                        return validDest && !isHighSpeed
-                    }
-                }
-                let westOfMagenta = ["novara", "trecate"]
-                let isWest = westOfMagenta.contains { currentLower.contains($0) }
-                if isWest {
-                    return destLower.contains("milano") || destLower.contains("pioltello") || destLower.contains("treviglio") || destLower.contains("passante")
-                }
-            }
-            
-            if homeLower.contains("bovisa") {
-                let northWestOfBovisa = ["saronno", "mariano", "camnago", "meda", "seveso", "cesano", "bovisio", "varedo", "paderno", "cormano", "cusano", "caronno", "garbagnate", "bollate", "novate"]
-                let isNorthWest = northWestOfBovisa.contains { currentLower.contains($0) }
-                if isNorthWest {
-                    return destLower.contains("cadorna") || destLower.contains("milano") || destLower.contains("pavia") || destLower.contains("lodi") || destLower.contains("rogoredo")
-                }
-                let southEastOfBovisa = ["cadorna", "domodossola", "lancetti", "garibaldi", "repubblica", "venezia", "dateo", "vittoria", "rogoredo", "lodi", "pavia"]
-                let isSouthEast = southEastOfBovisa.contains { currentLower.contains($0) }
-                if isSouthEast {
-                    return destLower.contains("saronno") || destLower.contains("mariano") || destLower.contains("camnago") || destLower.contains("bovisa")
-                }
-            }
-            
-            if homeLower.contains("rogoredo") {
-                let northWestOfRogoredo = ["bovisa", "lancetti", "garibaldi", "repubblica", "venezia", "dateo", "vittoria", "forlanini", "certosa", "villapizzone", "rho", "greco", "lambrate"]
-                let isNorthWest = northWestOfRogoredo.contains { currentLower.contains($0) }
-                if isNorthWest {
-                    return destLower.contains("rogoredo") || destLower.contains("lodi") || destLower.contains("pavia") || destLower.contains("piacenza") || destLower.contains("mantova") || destLower.contains("genova") || destLower.contains("bologna") || destLower.contains("parma") || destLower.contains("melegnano")
-                }
-                let southEastOfRogoredo = ["pavia", "lodi", "melegnano", "piacenza"]
-                let isSouthEast = southEastOfRogoredo.contains { currentLower.contains($0) }
-                if isSouthEast {
-                    return destLower.contains("milano") || destLower.contains("bovisa") || destLower.contains("saronno") || destLower.contains("mariano") || destLower.contains("cadorna") || destLower.contains("torino")
-                }
-            }
-            
-            if homeLower.contains("monza") {
-                let southOfMonza = ["milano", "greco", "garibaldi", "lambrate", "forlanini", "rogoredo", "albairate", "cristoforo", "romolo", "romana", "tibaldi", "sesto"]
-                let isSouth = southOfMonza.contains { currentLower.contains($0) }
-                if isSouth {
-                    return destLower.contains("chiasso") || destLower.contains("como") || destLower.contains("seregno") || destLower.contains("lecco") || destLower.contains("monza") || destLower.contains("bergamo") || destLower.contains("carnate") || destLower.contains("molteno") || destLower.contains("colico") || destLower.contains("sondrio")
-                }
-                let northOfMonza = ["como", "chiasso", "lecco", "seregno", "desio", "lissone", "carnate", "arcore"]
-                let isNorth = northOfMonza.contains { currentLower.contains($0) }
-                if isNorth {
-                    return destLower.contains("milano") || destLower.contains("greco") || destLower.contains("albairate") || destLower.contains("saronno") || destLower.contains("rho")
-                }
-            }
-            
-            if homeLower.contains("saronno") {
-                let southEastOfSaronno = ["milano", "cadorna", "bovisa", "domodossola", "greco", "monza", "lodi", "albairate", "romolo", "cristoforo", "lambrate", "garibaldi"]
-                let isSouthEast = southEastOfSaronno.contains { currentLower.contains($0) }
-                if isSouthEast {
-                    return destLower.contains("saronno") || destLower.contains("laveno") || destLower.contains("como") || destLower.contains("novara") || destLower.contains("varese")
-                }
-                let northWestOfSaronno = ["laveno", "como", "varese", "gerenzano", "turate", "lomazzo", "fino", "grandate"]
-                let isNorthWest = northWestOfSaronno.contains { currentLower.contains($0) }
-                if isNorthWest {
-                    return destLower.contains("cadorna") || destLower.contains("milano") || destLower.contains("lodi") || destLower.contains("albairate")
-                }
-            }
-            
-            return destLower.contains(homeLower) || homeLower.contains(destLower)
-        }
-    }
-    
-                func addSmartRoute(origin: String, destination: String) {
+    func addSmartRoute(origin: String, destination: String) {
         let route = SuburbanRoute(originName: origin, destinationName: destination)
         if !smartRoutes.contains(where: { $0.id == route.id }) {
             smartRoutes.append(route)
@@ -1400,17 +1341,16 @@ struct Haptics {
         }
         
         if !remoteNotificationsEnabled {
-            print("[syncRemoteNotifications] Notifiche globali disabilitate. Sincronizzo stato vuoto sul server.")
-            unregisterDeviceForStrikes(token: token)
+            print("[syncRemoteNotifications] Notifiche stato treno disabilitate. Rimuovo solo le iscrizioni dei treni sul server (scioperi sempre attivi).")
             Task {
                 for train in favoriteTrains {
                     unregisterTrainForPush(trainNumber: train.number, token: token)
                 }
             }
-            // Non faccio return, proseguo per sincronizzare sul server che le notifiche sono disabilitate
+            // Non faccio return, proseguo per sincronizzare sul server che le notifiche treno sono disabilitate
         }
         
-        let strikeEnabled = remoteNotificationsEnabled ? strikeNotificationsEnabled : false
+        let strikeEnabled = true
         
         var trainsPayload: [[String: Any]] = []
         if remoteNotificationsEnabled {
@@ -1418,7 +1358,8 @@ struct Haptics {
                 let isEnabled = (train.notifyDelay == true) ||
                                 (train.notifyDeparture == true) ||
                                 (train.notifyStationPass == true) ||
-                                (train.notifyPlatformChange == true)
+                                (train.notifyPlatformChange == true) ||
+                                (train.notifyScheduledTime == true && hasSupport())
                 if isEnabled {
                     trainsPayload.append([
                         "train_number": train.number,
@@ -1430,15 +1371,18 @@ struct Haptics {
                         "arrival_time": train.arrivalTime ?? "",
                         "active_days": train.activeDays ?? [],
                         "notify_platform_change": train.notifyPlatformChange ?? false,
-                        "platform_change_station_name": train.platformChangeStationName ?? ""
+                        "platform_change_station_name": train.platformChangeStationName ?? "",
+                        "notify_scheduled_time": hasSupport() ? (train.notifyScheduledTime ?? false) : false,
+                        "scheduled_notification_time": train.scheduledNotificationTime ?? ""
                     ])
                 }
             }
         }
         
         let support = hasSupport()
-        let aiEngine = support ? (AIFeatureManager.shared.preferLocalAI ? "local" : "cloud") : (AIFeatureManager.shared.isLocalModelInstalled ? "local" : "none")
-        let currentSignature = "\(token)|\(remoteNotificationsEnabled)|\(strikeRegion)|\(strikeEnabled)|\(support)|\(aiEngine)|\(trainsPayload.description)"
+        let aiEngine = currentAIEngineString()
+        let deviceID = DeviceIdentityManager.shared.deviceID
+        let currentSignature = "\(deviceID)|\(token)|\(remoteNotificationsEnabled)|\(strikeRegion)|\(strikeEnabled)|\(support)|\(aiEngine)|\(trainsPayload.description)"
         
         if currentSignature == lastSyncedSignature || currentSignature == inFlightSyncSignature {
             return
@@ -1454,6 +1398,7 @@ struct Haptics {
         
         let payload: [String: Any] = [
             "token": token,
+            "device_id": deviceID,
             "platform": "ios",
             "strike_region": strikeRegion,
             "strike_enabled": strikeEnabled,
@@ -1558,11 +1503,12 @@ struct Haptics {
         
         let model = getDeviceModelName()
         let os = "iOS \(UIDevice.current.systemVersion)"
-        let ai = hasSupport() ? (AIFeatureManager.shared.preferLocalAI ? "local" : "cloud") : (AIFeatureManager.shared.isLocalModelInstalled ? "local" : "none")
+        let ai = currentAIEngineString()
         let support = hasSupport()
         
         let payload: [String: Any] = [
             "token": token,
+            "device_id": DeviceIdentityManager.shared.deviceID,
             "platform": "ios",
             "strike_region": region,
             "strike_enabled": strikeNotificationsEnabled,
@@ -1603,6 +1549,17 @@ struct Haptics {
         return UserDefaults.standard.bool(forKey: "tip.colazionee")
     }
     
+    func currentAIEngineString() -> String {
+        switch AIFeatureManager.shared.aiModeChoice {
+        case .cloud:
+            return hasSupport() ? "cloud" : (AIFeatureManager.shared.isAppleIntelligenceAvailable ? "local" : "none")
+        case .local:
+            return AIFeatureManager.shared.isAppleIntelligenceAvailable ? "local" : "none"
+        case .none:
+            return "none"
+        }
+    }
+    
     func getLimit() -> Int {
         if hasSupport() { return 10 }
         return 1
@@ -1627,11 +1584,12 @@ struct Haptics {
                 let activeDays = train.activeDays ?? []
                 if activeDays.isEmpty {
                     // È una notifica one-shot
-                    if (train.notifyDelay == true || train.notifyDeparture == true || train.notifyStationPass == true || train.notifyPlatformChange == true) {
+                    if (train.notifyDelay == true || train.notifyDeparture == true || train.notifyStationPass == true || train.notifyPlatformChange == true || train.notifyScheduledTime == true) {
                         favoriteTrains[i].notifyDelay = false
                         favoriteTrains[i].notifyDeparture = false
                         favoriteTrains[i].notifyStationPass = false
                         favoriteTrains[i].notifyPlatformChange = false
+                        favoriteTrains[i].notifyScheduledTime = false
                         updated = true
                         
                         // Deregistra dal server
@@ -1653,11 +1611,12 @@ struct Haptics {
         var updated = false
         for i in 0..<favoriteTrains.count {
             let train = favoriteTrains[i]
-            if (train.notifyDelay == true || train.notifyDeparture == true || train.notifyStationPass == true || train.notifyPlatformChange == true) {
+            if (train.notifyDelay == true || train.notifyDeparture == true || train.notifyStationPass == true || train.notifyPlatformChange == true || train.notifyScheduledTime == true) {
                 favoriteTrains[i].notifyDelay = false
                 favoriteTrains[i].notifyDeparture = false
                 favoriteTrains[i].notifyStationPass = false
                 favoriteTrains[i].notifyPlatformChange = false
+                favoriteTrains[i].notifyScheduledTime = false
                 updated = true
                 
                 if let token = apnsToken {
@@ -1699,16 +1658,19 @@ struct Haptics {
         let notifyDeparture = trainPref?.notifyDeparture ?? false
         let notifyPlatformChange = trainPref?.notifyPlatformChange ?? false
         let platformChangeStationName = trainPref?.platformChangeStationName ?? ""
+        let notifyScheduledTime = hasSupport() ? (trainPref?.notifyScheduledTime ?? false) : false
+        let scheduledNotificationTime = trainPref?.scheduledNotificationTime ?? ""
         
         let limit = getLimit()
         
         let model = "\(UIDevice.current.model) (\(UIDevice.current.name))"
         let os = "iOS \(UIDevice.current.systemVersion)"
-        let ai = hasSupport() ? (AIFeatureManager.shared.preferLocalAI ? "local" : "cloud") : (AIFeatureManager.shared.isLocalModelInstalled ? "local" : "none")
+        let ai = currentAIEngineString()
         let support = hasSupport()
         
         var payload: [String: Any] = [
             "token": token,
+            "device_id": DeviceIdentityManager.shared.deviceID,
             "platform": "ios",
             "train_number": trainNumber,
             "notify_delay": notifyDelay,
@@ -1721,6 +1683,8 @@ struct Haptics {
             "arrival_time": trainPref?.arrivalTime ?? "",
             "notify_platform_change": notifyPlatformChange,
             "platform_change_station_name": platformChangeStationName,
+            "notify_scheduled_time": notifyScheduledTime,
+            "scheduled_notification_time": scheduledNotificationTime,
             "device_model": model,
             "os_version": os,
             "ai_engine": ai,
@@ -1788,6 +1752,7 @@ struct Haptics {
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/liveactivity/register") else { return }
         let payload: [String: Any] = [
             "token": deviceToken,
+            "device_id": DeviceIdentityManager.shared.deviceID,
             "push_token": tokenString,
             "train_number": trainNumber,
             "is_supporter": true
@@ -1841,6 +1806,7 @@ struct Haptics {
                     }
                     if changed {
                         self.saveFavorites()
+                        Task { await SupporterCommuteManager.shared.syncRoutineWithServer() }
                     }
                     UIApplication.shared.registerForRemoteNotifications()
                     self.syncRemoteNotifications()
@@ -1856,19 +1822,22 @@ struct Haptics {
                     self.remoteNotificationsEnabled = true
                     self.strikeNotificationsEnabled = true
                     UIApplication.shared.registerForRemoteNotifications()
+                    self.saveFavorites()
                     self.syncRemoteNotifications()
                 } else {
                     self.remoteNotificationsEnabled = false
+                    self.saveFavorites()
                 }
-                self.saveFavorites()
+                Task { await SupporterCommuteManager.shared.syncRoutineWithServer() }
             }
         }
     }
     
     func disableNotifications() {
         self.remoteNotificationsEnabled = false
-        self.syncRemoteNotifications()
         self.saveFavorites()
+        self.syncRemoteNotifications()
+        Task { await SupporterCommuteManager.shared.syncRoutineWithServer() }
     }
     
     func isFavorite(trainNumber: String) -> Bool { favoriteTrains.contains { $0.number == trainNumber } }
@@ -2439,6 +2408,9 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
             }
             return 830001645 // Milano Porta Garibaldi Superficie
         }
+        if uName.contains("CADORNA") && !uName.contains("NORD") {
+            query = "Milano Nord Cadorna"
+        }
         
         // Cerchiamo le location tramite API LeFrecce
         let safeQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
@@ -2462,36 +2434,30 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         return Int(id)
     }
 
-    func searchTravelSolutions(
+    func queryTravelSolutionsDirect(
         originID: String,
         destID: String,
         date: Date,
         originName: String? = nil,
-        destName: String? = nil,
-        onResolvedIDs: (@Sendable (String, String) -> Void)? = nil
-    ) async {
-        self.isSearchingSolutions = true
-        self.travelSolutions = []
-        
+        destName: String? = nil
+    ) async -> (solutions: [TravelSolution], resolvedOriginID: String, resolvedDestID: String) {
         guard let depId = await resolveLocationId(id: originID, stationName: originName),
               let arrId = await resolveLocationId(id: destID, stationName: destName) else {
-            self.isSearchingSolutions = false
-            return
+            return ([], originID, destID)
         }
-        
-        if String(depId) != originID || String(arrId) != destID {
-            onResolvedIDs?(String(depId), String(arrId))
-        }
-        
+
+        let resolvedOrig = String(depId)
+        let resolvedDest = String(arrId)
+
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "Europe/Rome")
         f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.000ZZZZZ"
         let dateStr = f.string(from: date)
-        
+
         let urlString = "https://www.lefrecce.it/Channels.Website.BFF.WEB/website/ticket/solutions"
-        guard let url = URL(string: urlString) else { self.isSearchingSolutions = false; return }
-        
+        guard let url = URL(string: urlString) else { return ([], resolvedOrig, resolvedDest) }
+
         let payload: [String: Any] = [
             "departureLocationId": depId,
             "arrivalLocationId": arrId,
@@ -2510,28 +2476,57 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
                 "bestFare": false
             ]
         ]
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148", forHTTPHeaderField: "User-Agent")
-        
+
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
             let (data, _) = try await NetworkService.shared.post(request: request)
-            guard !Task.isCancelled else { self.isSearchingSolutions = false; return }
-            
+            guard !Task.isCancelled else { return ([], resolvedOrig, resolvedDest) }
+
             let parsedSolutions = await Task.detached(priority: .userInitiated) {
                 Self.parseTravelSolutions(from: data)
             }.value
-            
-            guard !Task.isCancelled else { self.isSearchingSolutions = false; return }
-            self.travelSolutions = parsedSolutions
-            self.isSearchingSolutions = false
+
+            return (parsedSolutions, resolvedOrig, resolvedDest)
         } catch {
-            self.isSearchingSolutions = false
+            return ([], resolvedOrig, resolvedDest)
         }
+    }
+
+    func searchTravelSolutions(
+        originID: String,
+        destID: String,
+        date: Date,
+        originName: String? = nil,
+        destName: String? = nil,
+        onResolvedIDs: (@Sendable (String, String) -> Void)? = nil
+    ) async {
+        self.isSearchingSolutions = true
+        self.travelSolutions = []
+
+        let result = await queryTravelSolutionsDirect(
+            originID: originID,
+            destID: destID,
+            date: date,
+            originName: originName,
+            destName: destName
+        )
+
+        if result.resolvedOriginID != originID || result.resolvedDestID != destID {
+            onResolvedIDs?(result.resolvedOriginID, result.resolvedDestID)
+        }
+
+        guard !Task.isCancelled else {
+            self.isSearchingSolutions = false
+            return
+        }
+        self.travelSolutions = result.solutions
+        self.isSearchingSolutions = false
     }
     
     nonisolated static func parseTravelSolutions(from data: Data) -> [TravelSolution] {
@@ -2970,13 +2965,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         if let token = self.apnsToken, !token.isEmpty {
             return token
         }
-        let fallbackKey = "app_unique_client_id_v1"
-        if let saved = UserDefaults.standard.string(forKey: fallbackKey), !saved.isEmpty {
-            return saved
-        }
-        let newId = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
-        UserDefaults.standard.set(newId, forKey: fallbackKey)
-        return newId
+        return DeviceIdentityManager.shared.deviceID
     }
 
     func syncLiveActivities() {

@@ -56,6 +56,9 @@ struct ContentView: View {
     @State private var isMyStationsExpanded = true
     @State private var isNearbyExpanded = true
     @State private var showSearchSheet = false
+    @State private var searchInitialAssistant = false
+    @State private var searchAutoStartVoice = false
+    @State private var searchInitialQuery: String? = nil
     @State private var showMetroHistorySheet = false
     @State private var showSavedTrips = false
     @State private var showHistorySheet = false
@@ -64,8 +67,10 @@ struct ContentView: View {
     @State private var showNewsCenter = false
     @State private var showOnboarding = false
     @State private var showNewSmartRouteSheet = false
+    @State private var showPassanteDetailSheet = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("showSuburbanLines") private var showSuburbanLines = true
+    @AppStorage("metroMilanoBetaEnabled") private var metroMilanoBetaEnabled = false
     @State private var hasRequestedLocation = false
     @State private var hasPerformedInitialLoad = false
     
@@ -246,7 +251,9 @@ struct ContentView: View {
     func passanteLinesContent(activeNearby: Station?) -> some View {
         VStack(alignment: .leading, spacing: 15) {
             if passanteManager.userUsesTunnel {
-                PassanteTunnelStatusHeaderView()
+                PassanteTunnelStatusHeaderView {
+                    showPassanteDetailSheet = true
+                }
             }
             
             let selectedLines = SuburbanData.shared.allLines.filter { passanteManager.selectedSuburbanLines.contains($0.id) }
@@ -405,7 +412,7 @@ struct ContentView: View {
                         ),
                         nearby: locationManager.manualNearbyStation ?? locationManager.nearbyStation,
                         nearbyDistance: locationManager.manualNearbyStation != nil ? nil : locationManager.nearbyStationDistance,
-                        activePlan: commuteManager.pinnedPlanB ?? commuteManager.activePlanB,
+                        activePlan: commuteManager.homeBannerPlanB,
                         onSelectPlanB: {
                             showPlanBDetailSheet = true
                         },
@@ -452,20 +459,39 @@ struct ContentView: View {
             }
             .navigationDestination(item: $selectedSuggestedStation) { s in SmartBoardView(station: s) }
             .navigationDestination(item: $selectedSuggestedRoute) { r in FavoriteRouteSolutionView(route: r) }
-            .sheet(isPresented: $showSearchSheet, onDismiss: { manager.loadFavorites() }) {
+            .sheet(isPresented: $showSearchSheet, onDismiss: {
+                searchInitialAssistant = false
+                searchAutoStartVoice = false
+                searchInitialQuery = nil
+                manager.loadFavorites()
+            }) {
                 if showingMetroView {
                     MetroSearchView { station in
                         NotificationCenter.default.post(name: NSNotification.Name("OpenMetroStation"), object: station)
                     }
                 } else {
-                    SearchView()
+                    SearchView(
+                        initialAssistantMode: searchInitialAssistant,
+                        autoStartVoice: searchAutoStartVoice,
+                        initialQuery: searchInitialQuery
+                    )
                 }
             }
             .sheet(isPresented: $showMetroHistorySheet) {
                 MetroHistorySheet()
                     .environmentObject(metroManager)
             }
-            .sheet(isPresented: $showHistorySheet) { HistoryView() }
+            .sheet(isPresented: $showHistorySheet) {
+                HistoryView { selectedQuery in
+                    showHistorySheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        searchInitialAssistant = true
+                        searchAutoStartVoice = false
+                        searchInitialQuery = selectedQuery
+                        showSearchSheet = true
+                    }
+                }
+            }
             .sheet(isPresented: $showNotificationsSettings) {
                 NavigationStack { NotificationsSettingsView() }
             }
@@ -480,6 +506,13 @@ struct ContentView: View {
             .sheet(isPresented: $showNewSmartRouteSheet) {
                 PassanteQuickSetupView()
                     .environmentObject(manager)
+            }
+            .sheet(isPresented: $showPassanteDetailSheet) {
+                PassanteTunnelDetailView()
+                    .environmentObject(manager)
+                    .environmentObject(passanteManager)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .fullScreenCover(isPresented: $showOnboarding) {
                 OnboardingView(showOnboarding: $showOnboarding)
@@ -513,12 +546,18 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showCommuteSetupSheet) {
-                NavigationStack {
-                    CommuteSetupView()
+                if manager.hasSupport() {
+                    NavigationStack {
+                        CommuteSetupView()
+                    }
+                } else {
+                    SupportPaywallSheet()
+                        .environmentObject(manager)
                 }
             }
             .sheet(isPresented: $showPlanBDetailSheet) {
-                if let plan = commuteManager.pinnedPlanB ?? commuteManager.activePlanB {
+                if commuteManager.hasSupport(),
+                   let plan = commuteManager.activePlanB ?? commuteManager.pinnedPlanB {
                     NavigationStack {
                         PlanBDetailView(plan: plan, initialFocusedAlternativeId: commuteManager.chosenAlternativeId)
                             .environmentObject(manager)
@@ -568,7 +607,11 @@ struct ContentView: View {
                         updateManager.handleRemoteAlertPrimaryAction(alert: alert) { action in
                             switch action {
                             case "commute_setup":
-                                showCommuteSetupSheet = true
+                                if manager.hasSupport() {
+                                    showCommuteSetupSheet = true
+                                } else {
+                                    manager.showPaywallSheet = true
+                                }
                             case "support":
                                 manager.showPaywallSheet = true
                             default:
@@ -601,6 +644,14 @@ struct ContentView: View {
                             await manager.enrichFavoriteTrainData(trainNumber: train.number)
                         }
                     }
+
+                    // Controllo popup sostenitori (solo al primo caricamento dopo aggiornamento) e verifica aggiornamenti su App Store
+                    if hasCompletedOnboarding {
+                        updateManager.checkSupporterUpdatePopup(hasSupport: manager.hasSupport())
+                        Task {
+                            await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
+                        }
+                    }
                 }
                 
                 if hasCompletedOnboarding {
@@ -613,6 +664,18 @@ struct ContentView: View {
                     }
                 } else {
                     showOnboarding = true
+                }
+                if let pendingTrain = manager.deepLinkTrain {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        self.deepLinkTrain = pendingTrain
+                        manager.deepLinkTrain = nil
+                    }
+                }
+                if commuteManager.pendingOpenPlanBSheet, commuteManager.hasSupport(), commuteManager.activePlanB != nil {
+                    commuteManager.pendingOpenPlanBSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        self.showPlanBDetailSheet = true
+                    }
                 }
                 withAnimation(.spring()) { }
                 
@@ -627,14 +690,6 @@ struct ContentView: View {
                     guessingEngine.markStationSeen(initialNearby.name)
                 }
                 
-                // Controllo popup sostenitori (dopo aggiornamento app) e verifica aggiornamenti disponibili su App Store
-                if hasCompletedOnboarding {
-                    updateManager.checkSupporterUpdatePopup(hasSupport: manager.hasSupport())
-                    Task {
-                        await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
-                    }
-                }
-                
             }
             .onChange(of: hasCompletedOnboarding) { oldValue, newValue in
                 if !newValue {
@@ -643,7 +698,7 @@ struct ContentView: View {
                         try? await Task.sleep(for: .milliseconds(500))
                         showOnboarding = true
                     }
-                } else {
+                } else if !oldValue && newValue {
                     updateManager.checkSupporterUpdatePopup(hasSupport: manager.hasSupport())
                     Task {
                         await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
@@ -676,8 +731,13 @@ struct ContentView: View {
                     syncPassanteStation(gpsStation)
                 }
             }
+            .onChange(of: metroMilanoBetaEnabled) { _, isEnabled in
+                if !isEnabled && showingMetroView {
+                    showingMetroView = false
+                }
+            }
             .onChange(of: manager.strikeRegion) { _, newRegion in
-                if newRegion != "Lombardia" && showingMetroView {
+                if newRegion != "Lombardia" && !metroMilanoBetaEnabled && showingMetroView {
                     showingMetroView = false
                 }
             }
@@ -688,7 +748,7 @@ struct ContentView: View {
         // ─── MENU (tre puntini, a sinistra) ───
         ToolbarItem(placement: .topBarLeading) {
             Menu {
-                if manager.strikeRegion == "Lombardia" {
+                if metroMilanoBetaEnabled || showingMetroView {
                     Button {
                         Haptics.play(.medium)
                         withAnimation {
@@ -776,13 +836,38 @@ struct ContentView: View {
         }
 
         ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                Haptics.play(.medium)
-                showSearchSheet = true
+            Menu {
+                Button {
+                    Haptics.play(.light)
+                    searchInitialAssistant = false
+                    searchAutoStartVoice = false
+                    searchInitialQuery = nil
+                    showSearchSheet = true
+                } label: {
+                    Label("Cerca", systemImage: "magnifyingglass")
+                }
+
+                if !showingMetroView {
+                    Button {
+                        Haptics.play(.medium)
+                        searchInitialAssistant = true
+                        searchAutoStartVoice = true
+                        searchInitialQuery = nil
+                        showSearchSheet = true
+                    } label: {
+                        Label("Chiedi all'Assistente", systemImage: "sparkles")
+                    }
+                }
             } label: {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
+            } primaryAction: {
+                Haptics.play(.medium)
+                searchInitialAssistant = false
+                searchAutoStartVoice = false
+                searchInitialQuery = nil
+                showSearchSheet = true
             }
         }
     }
@@ -849,7 +934,7 @@ struct ContentView: View {
             }
             .onReceive(passanteTimer) { _ in
                 guard scenePhase == .active else { return }
-                if isPassanteExpanded {
+                if isPassanteExpanded && !showPassanteDetailSheet {
                     Task {
                         await passanteManager.fetchPassanteLive(manager: manager)
                     }
@@ -859,7 +944,22 @@ struct ContentView: View {
                 showProfile = true
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenCommutePlanB"))) { _ in
-                showPlanBDetailSheet = true
+                commuteManager.pendingOpenPlanBSheet = false
+                guard commuteManager.hasSupport() else {
+                    manager.showPaywallSheet = true
+                    return
+                }
+                let hadSheet = showProfile || showNotificationsSettings || showCommuteSetupSheet
+                showProfile = false
+                showNotificationsSettings = false
+                showCommuteSetupSheet = false
+                if hadSheet {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        showPlanBDetailSheet = true
+                    }
+                } else {
+                    showPlanBDetailSheet = true
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TriggerOpenMetroHistorySheet"))) { _ in
                 showMetroHistorySheet = true
@@ -937,11 +1037,12 @@ struct SuburbanLineView: View {
 struct HistoryView: View {
     @EnvironmentObject var manager: TrainManager
     @Environment(\.dismiss) var dismiss
+    var onSelectAssistantQuery: ((String) -> Void)? = nil
     
     var body: some View {
         NavigationStack {
             List {
-                if manager.unifiedRecentTrains.isEmpty && manager.unifiedRecentStations.isEmpty {
+                if manager.unifiedRecentTrains.isEmpty && manager.unifiedRecentStations.isEmpty && manager.recentAssistantQueries.isEmpty {
                     VStack(spacing: 20) {
                         Image(systemName: "clock.badge.slash")
                             .font(.system(size: 50))
@@ -949,7 +1050,7 @@ struct HistoryView: View {
                         Text("Cronologia vuota")
                             .font(.title2)
                             .fontWeight(.bold)
-                        Text("I treni e le stazioni che aprirai appariranno qui automaticamente.")
+                        Text("I treni, le stazioni e le ricerche recenti appariranno qui automaticamente.")
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
@@ -1017,6 +1118,52 @@ struct HistoryView: View {
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         manager.removeRecentStation(name: result.nomeLungo, vtID: result.vtID)
+                                        Haptics.play(.light)
+                                    } label: {
+                                        Label("Elimina", systemImage: "trash.fill")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if !manager.recentAssistantQueries.isEmpty {
+                        Section(header: HStack {
+                            Text("Ricerche recenti")
+                            Spacer()
+                            Button("Cancella") {
+                                manager.clearRecentAssistantQueries()
+                                Haptics.play(.medium)
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        }) {
+                            ForEach(manager.recentAssistantQueries, id: \.self) { recentQ in
+                                Button {
+                                    Haptics.play(.light)
+                                    if let onSelectAssistantQuery {
+                                        onSelectAssistantQuery(recentQ)
+                                    } else {
+                                        dismiss()
+                                    }
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "sparkles")
+                                            .foregroundColor(.purple)
+                                        Text(recentQ)
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                            .multilineTextAlignment(.leading)
+                                        Spacer()
+                                        Image(systemName: "arrow.up.left")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.vertical, 2)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        manager.removeRecentAssistantQuery(recentQ)
                                         Haptics.play(.light)
                                     } label: {
                                         Label("Elimina", systemImage: "trash.fill")
@@ -1553,10 +1700,11 @@ struct NearbySectionView: View {
                                 .foregroundColor(.orange)
                             
                             VStack(alignment: .leading, spacing: 2) {
+                                let bannerTitle = (plan.incident_type == "summary_ok") ? "Treno seguito" : "Percorso alternativo"
                                 if let chosen = chosenAlt {
                                     let cleanCat = cleanTrainCategory(chosen.category)
                                     HStack(spacing: 5) {
-                                        Text("Percorso alternativo")
+                                        Text(bannerTitle)
                                             .font(.headline)
                                             .foregroundColor(.orange)
                                         Text("· \(cleanCat.isEmpty ? "" : "\(cleanCat) ")\(chosen.train_number)")
@@ -1569,7 +1717,7 @@ struct NearbySectionView: View {
                                         .foregroundColor(.secondary)
                                         .lineLimit(1)
                                 } else {
-                                    Text("Percorso alternativo")
+                                    Text(bannerTitle)
                                         .font(.headline)
                                         .foregroundColor(.orange)
                                     HStack(spacing: 4) {

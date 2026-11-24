@@ -16,6 +16,7 @@ struct CommuteSetupView: View {
     @State private var selectedWeekdays: Set<Int> = [1, 2, 3, 4, 5] // Lun - Ven
     @State private var customizePerDay: Bool = false
     @State private var daySchedules: [Int: DayCommuteSchedule] = [:]
+    @State private var expandedDays: Set<Int> = []
     @State private var proactiveAlerts: Bool = true
     
     // Station Pickers
@@ -26,12 +27,16 @@ struct CommuteSetupView: View {
     @State private var tempDestName: String = ""
     @State private var tempDestID: String = ""
     
-    // Simulation
+    // Simulation & Discovery
     @State private var simulationTripType: Bool = false // false = andata, true = ritorno
     @State private var isSaving: Bool = false
     @State private var showPlanBSheet: Bool = false
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
+    @State private var editingTrainsDayTarget: CommuteDayTrainEditorTarget? = nil
+    @State private var discoveringKeys: Set<String> = []
+    @State private var discoveryTask: Task<Void, Never>? = nil
+    @State private var perDayDiscoveryTasks: [String: Task<Void, Never>] = [:]
     
     let weekdayNames = [
         (1, "Lun", "Lunedì"),
@@ -47,14 +52,17 @@ struct CommuteSetupView: View {
         Form {
             // Header pulito
             Section {
-                Text("Il server monitora la tua tratta abituale e in caso di cancellazioni o gravi ritardi riceverai un'alternativa.")
+                Text("Il server monitora la tua tratta abituale in caso di cancellazioni o gravi ritardi e riceverai un'alternativa. Personalizza le tue stazioni di partenza, arrivo e viceversa e gli orari per ogni singolo giorno.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.vertical, 2)
             }
             
             // STAZIONI DI PARTENZA
-            Section(header: Text("Stazioni di partenza")) {
+            Section(
+                header: Label("Stazioni di partenza (Casa)", systemImage: "house.fill"),
+                footer: Text("Usate anche per il filtro \"Portami a Casa\" nei tabelloni stazione.")
+            ) {
                 if origins.isEmpty {
                     Text("Nessuna stazione di partenza impostata")
                         .font(.footnote)
@@ -62,13 +70,14 @@ struct CommuteSetupView: View {
                 } else {
                     ForEach(origins, id: \.self) { st in
                         HStack {
-                            Image(systemName: "mappin.and.ellipse")
+                            Image(systemName: "house.fill")
                                 .foregroundColor(.blue)
                             Text(st)
                                 .font(.body)
                             Spacer()
                             Button {
                                 origins.removeAll { $0 == st }
+                                pruneStationFromExclusions(st)
                             } label: {
                                 Image(systemName: "trash")
                                     .foregroundColor(.red)
@@ -91,7 +100,10 @@ struct CommuteSetupView: View {
             }
             
             // STAZIONI DI ARRIVO
-            Section(header: Text("Stazioni di arrivo")) {
+            Section(
+                header: Label("Stazioni di arrivo (Lavoro)", systemImage: "briefcase.fill"),
+                footer: Text("Usate anche per il filtro \"Portami al Lavoro\" nei tabelloni stazione.")
+            ) {
                 if destinations.isEmpty {
                     Text("Nessuna stazione di arrivo impostata")
                         .font(.footnote)
@@ -99,13 +111,14 @@ struct CommuteSetupView: View {
                 } else {
                     ForEach(destinations, id: \.self) { st in
                         HStack {
-                            Image(systemName: "flag.fill")
+                            Image(systemName: "briefcase.fill")
                                 .foregroundColor(.green)
                             Text(st)
                                 .font(.body)
                             Spacer()
                             Button {
                                 destinations.removeAll { $0 == st }
+                                pruneStationFromExclusions(st)
                             } label: {
                                 Image(systemName: "trash")
                                     .foregroundColor(.red)
@@ -132,17 +145,17 @@ struct CommuteSetupView: View {
                 Toggle("Personalizza per singolo giorno", isOn: $customizePerDay.animation(.easeInOut(duration: 0.2)))
                 
                 if !customizePerDay {
-                    Picker("Andata", selection: $defaultOutboundBand) {
-                        ForEach(SupporterCommuteManager.timeBands, id: \.self) { band in
-                            Text(band).tag(band)
-                        }
-                    }
+                    CommuteTimeRangeRow(
+                        title: "Andata",
+                        accentColor: .blue,
+                        bandString: $defaultOutboundBand
+                    )
                     
-                    Picker("Ritorno", selection: $defaultReturnBand) {
-                        ForEach(SupporterCommuteManager.timeBands, id: \.self) { band in
-                            Text(band).tag(band)
-                        }
-                    }
+                    CommuteTimeRangeRow(
+                        title: "Ritorno",
+                        accentColor: .purple,
+                        bandString: $defaultReturnBand
+                    )
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Giorni di viaggio")
@@ -178,21 +191,36 @@ struct CommuteSetupView: View {
                     .padding(.vertical, 4)
                 } else {
                     ForEach(weekdayNames, id: \.0) { dayIndex, shortName, fullName in
-                        let isEnabled = daySchedules[dayIndex]?.isEnabled ?? true
-                        let outbound = daySchedules[dayIndex]?.outboundBand ?? defaultOutboundBand
-                        let ret = daySchedules[dayIndex]?.returnBand ?? defaultReturnBand
-                        
-                        HStack(alignment: .center, spacing: 10) {
+                        let sched = daySchedules[dayIndex] ?? DayCommuteSchedule(
+                            isEnabled: selectedWeekdays.contains(dayIndex),
+                            outboundBand: defaultOutboundBand,
+                            returnBand: defaultReturnBand
+                        )
+                        let isEnabled = sched.isEnabled
+                        let outbound = sched.outboundBand
+                        let ret = sched.returnBand
+                        let isExpanded = expandedDays.contains(dayIndex)
+
+                        HStack(alignment: .center, spacing: 8) {
                             Button {
+                                if isEnabled {
+                                    let enabledCount = weekdayNames.filter { daySchedules[$0.0]?.isEnabled ?? selectedWeekdays.contains($0.0) }.count
+                                    if enabledCount <= 1 {
+                                        Haptics.notify(.warning)
+                                        return
+                                    }
+                                }
                                 Haptics.play(.light)
-                                withAnimation(.easeInOut(duration: 0.15)) {
-                                    var cur = daySchedules[dayIndex] ?? DayCommuteSchedule(
-                                        isEnabled: false,
-                                        outboundBand: defaultOutboundBand,
-                                        returnBand: defaultReturnBand
-                                    )
+                                withAnimation(.easeInOut(duration: 0.18)) {
+                                    var cur = sched
                                     cur.isEnabled.toggle()
                                     daySchedules[dayIndex] = cur
+                                    if !cur.isEnabled {
+                                        expandedDays.remove(dayIndex)
+                                    }
+                                }
+                                if !isEnabled {
+                                    scheduleDiscoverForDayIfEmpty(dayIndex)
                                 }
                             } label: {
                                 HStack(spacing: 5) {
@@ -201,6 +229,8 @@ struct CommuteSetupView: View {
                                     Text(fullName)
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
@@ -209,93 +239,74 @@ struct CommuteSetupView: View {
                                 .clipShape(Capsule())
                             }
                             .buttonStyle(.plain)
-                            
-                            Spacer()
-                            
+
+                            Spacer(minLength: 6)
+
                             if !isEnabled {
                                 Text("Nessun viaggio")
                                     .font(.footnote)
                                     .foregroundColor(.secondary.opacity(0.6))
                                     .strikethrough(true, color: .secondary.opacity(0.5))
+                                    .lineLimit(1)
                                     .padding(.trailing, 4)
                             } else {
-                                VStack(alignment: .trailing, spacing: 4) {
-                                    Menu {
-                                        ForEach(SupporterCommuteManager.timeBands, id: \.self) { band in
-                                            Button {
-                                                var cur = daySchedules[dayIndex] ?? DayCommuteSchedule()
-                                                cur.outboundBand = band
-                                                daySchedules[dayIndex] = cur
-                                            } label: {
-                                                HStack {
-                                                    Text(band)
-                                                    if band == outbound {
-                                                        Image(systemName: "checkmark")
-                                                    }
-                                                }
+                                Button {
+                                    Haptics.play(.light)
+                                    withAnimation(.easeInOut(duration: 0.22)) {
+                                        if isExpanded {
+                                            expandedDays.remove(dayIndex)
+                                        } else {
+                                            expandedDays.insert(dayIndex)
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text("\(compactBand(outbound))  •  \(compactBand(ret))")
+                                                .font(.caption.weight(.semibold))
+                                                .monospacedDigit()
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.8)
+                                                .foregroundColor(.primary)
+                                            if sched.hasCustomStationExclusions {
+                                                Text("Stazioni personalizzate")
+                                                    .font(.caption2.bold())
+                                                    .foregroundColor(.orange)
+                                            } else {
+                                                Text("Tutte le stazioni")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
                                             }
                                         }
-                                    } label: {
-                                        HStack(spacing: 4) {
-                                            Text("Andata:")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text(outbound)
-                                                .font(.caption)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.primary)
-                                            Image(systemName: "chevron.up.chevron.down")
-                                                .font(.system(size: 7))
-                                                .foregroundColor(.secondary)
-                                        }
-                                        .padding(.horizontal, 7)
-                                        .padding(.vertical, 3)
-                                        .background(Color(.tertiarySystemFill))
-                                        .cornerRadius(6)
+                                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(.secondary)
+                                            .frame(width: 18, height: 18)
                                     }
-                                    .buttonStyle(.plain)
-                                    
-                                    Menu {
-                                        ForEach(SupporterCommuteManager.timeBands, id: \.self) { band in
-                                            Button {
-                                                var cur = daySchedules[dayIndex] ?? DayCommuteSchedule()
-                                                cur.returnBand = band
-                                                daySchedules[dayIndex] = cur
-                                            } label: {
-                                                HStack {
-                                                    Text(band)
-                                                    if band == ret {
-                                                        Image(systemName: "checkmark")
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } label: {
-                                        HStack(spacing: 4) {
-                                            Text("Ritorno:")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text(ret)
-                                                .font(.caption)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.primary)
-                                            Image(systemName: "chevron.up.chevron.down")
-                                                .font(.system(size: 7))
-                                                .foregroundColor(.secondary)
-                                        }
-                                        .padding(.horizontal, 7)
-                                        .padding(.vertical, 3)
-                                        .background(Color(.tertiarySystemFill))
-                                        .cornerRadius(6)
-                                    }
-                                    .buttonStyle(.plain)
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 4)
+                        .id("day_hdr_\(dayIndex)")
+
+                        if isEnabled && isExpanded {
+                            dayDetailCard(
+                                dayIndex: dayIndex,
+                                sched: sched,
+                                outbound: outbound,
+                                ret: ret
+                            )
+                            .listRowSeparator(.hidden, edges: .top)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 10, trailing: 16))
+                            .id("day_det_\(dayIndex)")
+                        }
                     }
                 }
             }
+
+            // TABELLA TRENI PER GIORNO (CALCOLATA ON-DEVICE SU IPHONE)
+            trainsTableSection
             
             // VERIFICA ALTERNATIVE (CON SELEZIONE ANDATA / RITORNO)
             Section(header: Text("Verifica alternative")) {
@@ -313,8 +324,6 @@ struct CommuteSetupView: View {
                         let loc = await locationManager.getCurrentLocation(maxAge: 30)
                         let coord = loc?.coordinate
                         await commuteManager.requestManualPlanB(
-                            origins: origins,
-                            destinations: destinations,
                             for: simulationTripType,
                             userLat: coord?.latitude,
                             userLon: coord?.longitude
@@ -356,6 +365,57 @@ struct CommuteSetupView: View {
         .onAppear {
             loadInitialState()
         }
+        .onDisappear {
+            discoveryTask?.cancel()
+            for task in perDayDiscoveryTasks.values {
+                task.cancel()
+            }
+            perDayDiscoveryTasks.removeAll()
+            if applyLocalSettingsToManager() {
+                Task {
+                    await commuteManager.syncRoutineWithServer()
+                }
+            }
+        }
+        .onChange(of: origins) { _, _ in
+            guard !isHydratingInitialState else { return }
+            scheduleDiscoverAllActive(forceRefresh: false)
+        }
+        .onChange(of: destinations) { _, _ in
+            guard !isHydratingInitialState else { return }
+            scheduleDiscoverAllActive(forceRefresh: false)
+        }
+        .onChange(of: defaultOutboundBand) { _, newBand in
+            guard !isHydratingInitialState, !customizePerDay else { return }
+            for (d, _, _) in weekdayNames {
+                var cur = daySchedules[d] ?? DayCommuteSchedule(isEnabled: selectedWeekdays.contains(d), outboundBand: newBand, returnBand: defaultReturnBand)
+                cur.outboundBand = newBand
+                daySchedules[d] = cur
+            }
+            scheduleDiscoverGlobalDirection(isReturn: false)
+        }
+        .onChange(of: defaultReturnBand) { _, newBand in
+            guard !isHydratingInitialState, !customizePerDay else { return }
+            for (d, _, _) in weekdayNames {
+                var cur = daySchedules[d] ?? DayCommuteSchedule(isEnabled: selectedWeekdays.contains(d), outboundBand: defaultOutboundBand, returnBand: newBand)
+                cur.returnBand = newBand
+                daySchedules[d] = cur
+            }
+            scheduleDiscoverGlobalDirection(isReturn: true)
+        }
+        .onChange(of: selectedWeekdays) { _, newDays in
+            guard !isHydratingInitialState, !customizePerDay else { return }
+            for (d, _, _) in weekdayNames {
+                var cur = daySchedules[d] ?? DayCommuteSchedule(isEnabled: newDays.contains(d), outboundBand: defaultOutboundBand, returnBand: defaultReturnBand)
+                cur.isEnabled = newDays.contains(d)
+                daySchedules[d] = cur
+            }
+            scheduleDiscoverMissingTrains()
+        }
+        .onChange(of: customizePerDay) { _, _ in
+            guard !isHydratingInitialState else { return }
+            scheduleDiscoverMissingTrains()
+        }
         // Station Search Sheet: Origine
         .sheet(isPresented: $showOriginPicker) {
             StationSelectionSheet(
@@ -394,6 +454,46 @@ struct CommuteSetupView: View {
             tempDestName = ""
             tempDestID = ""
         }
+        // Sheet Modifica Treni Giorno (Matita)
+        .sheet(item: $editingTrainsDayTarget) { target in
+            let dIdx = target.id
+            let dayName = weekdayNames.first(where: { $0.0 == dIdx })?.2 ?? "Giorno"
+            let sched = daySchedules[dIdx] ?? DayCommuteSchedule(
+                isEnabled: selectedWeekdays.contains(dIdx),
+                outboundBand: defaultOutboundBand,
+                returnBand: defaultReturnBand
+            )
+            let outBand = customizePerDay ? sched.outboundBand : defaultOutboundBand
+            let retBand = customizePerDay ? sched.returnBand : defaultReturnBand
+            let outSt = effectiveStationsForUI(dayIndex: dIdx, isReturn: false)
+            let retSt = effectiveStationsForUI(dayIndex: dIdx, isReturn: true)
+
+            DayTrainsEditorSheet(
+                dayIndex: dIdx,
+                dayName: dayName,
+                outboundBand: outBand,
+                returnBand: retBand,
+                outboundOrigins: outSt.origins,
+                outboundDestinations: outSt.destinations,
+                returnOrigins: retSt.origins,
+                returnDestinations: retSt.destinations,
+                initialOutboundTrains: sched.outboundTrains,
+                initialReturnTrains: sched.returnTrains,
+                initialOutboundCustomized: sched.outboundTrainsCustomized,
+                initialReturnCustomized: sched.returnTrainsCustomized
+            ) { newOutbound, newReturn, outCustom, retCustom in
+                var updated = daySchedules[dIdx] ?? DayCommuteSchedule(
+                    isEnabled: isDayActiveForUI(dIdx),
+                    outboundBand: outBand,
+                    returnBand: retBand
+                )
+                updated.outboundTrains = newOutbound
+                updated.returnTrains = newReturn
+                updated.outboundTrainsCustomized = outCustom
+                updated.returnTrainsCustomized = retCustom
+                daySchedules[dIdx] = updated
+            }
+        }
         // Modal Alternative
         .sheet(isPresented: $showPlanBSheet) {
             if let plan = commuteManager.activePlanB {
@@ -414,7 +514,14 @@ struct CommuteSetupView: View {
         }
     }
     
+    @State private var hasLoadedInitialState: Bool = false
+    @State private var isHydratingInitialState: Bool = true
+
     private func loadInitialState() {
+        guard !hasLoadedInitialState else { return }
+        hasLoadedInitialState = true
+        isHydratingInitialState = true
+
         origins = commuteManager.origins
         destinations = commuteManager.destinations
         defaultOutboundBand = commuteManager.defaultOutboundBand
@@ -430,6 +537,19 @@ struct CommuteSetupView: View {
         
         if daySchedules.isEmpty {
             applyGeneralTimesToDays()
+        } else {
+            for (dayIndex, _, _) in weekdayNames where daySchedules[dayIndex] == nil {
+                daySchedules[dayIndex] = DayCommuteSchedule(
+                    isEnabled: selectedWeekdays.contains(dayIndex),
+                    outboundBand: defaultOutboundBand,
+                    returnBand: defaultReturnBand
+                )
+            }
+        }
+
+        DispatchQueue.main.async {
+            isHydratingInitialState = false
+            scheduleDiscoverMissingTrains()
         }
     }
     
@@ -446,10 +566,19 @@ struct CommuteSetupView: View {
         daySchedules = dict
     }
     
-    private func saveSettings() async {
-        isSaving = true
-        defer { isSaving = false }
-        
+    private func applyLocalSettingsToManager() -> Bool {
+        guard !origins.isEmpty && !destinations.isEmpty else { return false }
+        let changed =
+            commuteManager.origins != origins ||
+            commuteManager.destinations != destinations ||
+            commuteManager.defaultOutboundBand != defaultOutboundBand ||
+            commuteManager.defaultReturnBand != defaultReturnBand ||
+            commuteManager.activeWeekdays != selectedWeekdays ||
+            commuteManager.customizePerDay != customizePerDay ||
+            commuteManager.daySchedules != daySchedules ||
+            commuteManager.proactiveAlertsEnabled != proactiveAlerts
+        guard changed else { return false }
+
         commuteManager.origins = origins
         commuteManager.destinations = destinations
         commuteManager.defaultOutboundBand = defaultOutboundBand
@@ -458,8 +587,596 @@ struct CommuteSetupView: View {
         commuteManager.customizePerDay = customizePerDay
         commuteManager.daySchedules = daySchedules
         commuteManager.proactiveAlertsEnabled = proactiveAlerts
-        
+        return true
+    }
+
+    private func saveSettings() async {
+        isSaving = true
+        defer { isSaving = false }
+
+        _ = applyLocalSettingsToManager()
         await commuteManager.syncRoutineWithServer()
+    }
+
+    private func pruneStationFromExclusions(_ station: String) {
+        for dayIndex in daySchedules.keys {
+            var cur = daySchedules[dayIndex] ?? DayCommuteSchedule()
+            cur.excludedOutboundOrigins.removeAll { $0 == station }
+            cur.excludedOutboundDestinations.removeAll { $0 == station }
+            cur.excludedReturnOrigins.removeAll { $0 == station }
+            cur.excludedReturnDestinations.removeAll { $0 == station }
+            daySchedules[dayIndex] = cur
+        }
+    }
+
+    private func toggleStationExclusion(
+        dayIndex: Int,
+        station: String,
+        pool: [String],
+        keyPath: WritableKeyPath<DayCommuteSchedule, [String]>,
+        isReturnDirection: Bool
+    ) {
+        var cur = daySchedules[dayIndex] ?? DayCommuteSchedule(
+            isEnabled: selectedWeekdays.contains(dayIndex),
+            outboundBand: defaultOutboundBand,
+            returnBand: defaultReturnBand
+        )
+        var excl = cur[keyPath: keyPath]
+        if let idx = excl.firstIndex(of: station) {
+            excl.remove(at: idx)
+            Haptics.play(.light)
+        } else {
+            let activeCount = pool.filter { !excl.contains($0) }.count
+            if activeCount <= 1 {
+                Haptics.notify(.warning)
+                return
+            }
+            excl.append(station)
+            Haptics.play(.light)
+        }
+        cur[keyPath: keyPath] = excl
+        daySchedules[dayIndex] = cur
+        scheduleDiscoverSingleDayDirection(dayIndex: dayIndex, isReturn: isReturnDirection)
+    }
+
+    private func compactBand(_ band: String) -> String {
+        CommuteTimeBand.parse(band).compactFormatted
+    }
+
+    private func isDayActiveForUI(_ dayIndex: Int) -> Bool {
+        if customizePerDay {
+            return daySchedules[dayIndex]?.isEnabled ?? selectedWeekdays.contains(dayIndex)
+        }
+        return selectedWeekdays.contains(dayIndex)
+    }
+
+    private var activeDaysForDisplay: [(Int, String, String)] {
+        weekdayNames.filter { isDayActiveForUI($0.0) }
+    }
+
+    private func effectiveStationsForUI(dayIndex: Int, isReturn: Bool) -> (origins: [String], destinations: [String]) {
+        if customizePerDay {
+            return SupporterCommuteManager.resolveEffectiveStations(
+                baseOrigins: origins,
+                baseDestinations: destinations,
+                schedule: daySchedules[dayIndex],
+                isReturn: isReturn
+            )
+        }
+        return isReturn ? (destinations, origins) : (origins, destinations)
+    }
+
+    private var trainsTableSection: some View {
+        Section(
+            header: HStack {
+                Text("Treni")
+                Spacer()
+                if !origins.isEmpty && !destinations.isEmpty {
+                    Button {
+                        Haptics.play(.light)
+                        scheduleDiscoverAllActive(forceRefresh: true)
+                    } label: {
+                        if !discoveringKeys.isEmpty {
+                            ProgressView()
+                                .scaleEffect(0.75)
+                        } else {
+                            Label("Aggiorna", systemImage: "arrow.clockwise")
+                                .font(.caption.weight(.semibold))
+                                .textCase(nil)
+                        }
+                    }
+                    .disabled(!discoveringKeys.isEmpty)
+                }
+            },
+            footer: Text("I treni vengono cercati direttamente dal tuo iPhone in base alle fasce orarie sopra. Tocca la matita per modificare i treni di un giorno: le notifiche monitoreranno questi treni evitando falsi avvisi per altre corse.")
+        ) {
+            if origins.isEmpty || destinations.isEmpty {
+                Text("Imposta le stazioni di partenza e arrivo per trovare automaticamente i tuoi treni.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            } else if activeDaysForDisplay.isEmpty {
+                Text("Seleziona almeno un giorno di viaggio.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(activeDaysForDisplay, id: \.0) { dayIndex, _, fullName in
+                    let sched = daySchedules[dayIndex] ?? DayCommuteSchedule(
+                        isEnabled: true,
+                        outboundBand: defaultOutboundBand,
+                        returnBand: defaultReturnBand
+                    )
+                    let outBand = customizePerDay ? sched.outboundBand : defaultOutboundBand
+                    let retBand = customizePerDay ? sched.returnBand : defaultReturnBand
+                    let outOrigins = effectiveStationsForUI(dayIndex: dayIndex, isReturn: false).origins
+                    let retOrigins = effectiveStationsForUI(dayIndex: dayIndex, isReturn: true).origins
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text(fullName)
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Button {
+                                Haptics.play(.light)
+                                editingTrainsDayTarget = CommuteDayTrainEditorTarget(id: dayIndex)
+                            } label: {
+                                Image(systemName: "pencil")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.blue)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.blue.opacity(0.12))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Modifica treni di \(fullName)")
+                        }
+
+                        dayDirectionTrainsBlock(
+                            title: "Andata",
+                            iconName: "sun.max.fill",
+                            accentColor: .blue,
+                            band: outBand,
+                            trains: sched.outboundTrains,
+                            isDiscovering: discoveringKeys.contains("\(dayIndex)_out"),
+                            showOriginPrefix: outOrigins.count > 1
+                        )
+
+                        Divider()
+
+                        dayDirectionTrainsBlock(
+                            title: "Ritorno",
+                            iconName: "moon.stars.fill",
+                            accentColor: .purple,
+                            band: retBand,
+                            trains: sched.returnTrains,
+                            isDiscovering: discoveringKeys.contains("\(dayIndex)_ret"),
+                            showOriginPrefix: retOrigins.count > 1
+                        )
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dayDirectionTrainsBlock(
+        title: String,
+        iconName: String,
+        accentColor: Color,
+        band: String,
+        trains: [CommuteHabitTrain],
+        isDiscovering: Bool,
+        showOriginPrefix: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: iconName)
+                    .font(.caption)
+                    .foregroundColor(accentColor)
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(accentColor)
+                Text(compactBand(band))
+                    .font(.caption.weight(.medium))
+                    .monospacedDigit()
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+
+            if isDiscovering {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .scaleEffect(0.75)
+                    Text("Ricerca treni su ViaggiaTreno...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            } else if trains.isEmpty {
+                Text("Nessun treno trovato in fascia")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                CommuteFlowLayout(spacing: 6, lineSpacing: 6) {
+                    ForEach(trains) { train in
+                        habitTrainChip(train, accentColor: accentColor, showOriginPrefix: showOriginPrefix)
+                    }
+                }
+            }
+        }
+    }
+
+    private func habitTrainChip(
+        _ train: CommuteHabitTrain,
+        accentColor: Color,
+        showOriginPrefix: Bool
+    ) -> some View {
+        let chipTint: Color = train.isManuallyAdded ? .orange : accentColor
+        return HStack(spacing: 4) {
+            Text(train.departureTime)
+                .font(.caption2.bold())
+                .monospacedDigit()
+                .foregroundColor(.primary)
+            Text("\(train.category) \(train.trainNumber)")
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(chipTint)
+            if showOriginPrefix && !train.originStation.isEmpty {
+                Text("(\(Train.cleanStationName(train.originStation)))")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(chipTint.opacity(0.11))
+        .overlay(
+            RoundedRectangle(cornerRadius: 7)
+                .stroke(chipTint.opacity(train.isManuallyAdded ? 0.45 : 0.2), lineWidth: 1)
+        )
+        .cornerRadius(7)
+    }
+
+    // MARK: - On-Device Discovery Orchestration
+
+    private func scheduleDiscoverMissingTrains() {
+        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        discoveryTask?.cancel()
+        discoveryTask = Task {
+            let active = activeDaysForDisplay
+            var workItems: [(Int, Bool)] = []
+            for (dayIndex, _, _) in active {
+                let sched = daySchedules[dayIndex] ?? DayCommuteSchedule()
+                if sched.outboundTrains.isEmpty && !sched.outboundTrainsCustomized {
+                    workItems.append((dayIndex, false))
+                }
+                if sched.returnTrains.isEmpty && !sched.returnTrainsCustomized {
+                    workItems.append((dayIndex, true))
+                }
+            }
+            for (dayIndex, isRet) in workItems {
+                guard !Task.isCancelled else { return }
+                await discoverDirection(dayIndex: dayIndex, isReturn: isRet, mergeManual: true, forceRefresh: false)
+            }
+        }
+    }
+
+    private func scheduleDiscoverForDayIfEmpty(_ dayIndex: Int) {
+        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        let sched = daySchedules[dayIndex] ?? DayCommuteSchedule()
+        let needOut = sched.outboundTrains.isEmpty && !sched.outboundTrainsCustomized
+        let needRet = sched.returnTrains.isEmpty && !sched.returnTrainsCustomized
+        guard needOut || needRet else { return }
+        Task {
+            if needOut {
+                await discoverDirection(dayIndex: dayIndex, isReturn: false, mergeManual: true, forceRefresh: false)
+            }
+            if needRet {
+                await discoverDirection(dayIndex: dayIndex, isReturn: true, mergeManual: true, forceRefresh: false)
+            }
+        }
+    }
+
+    private func scheduleDiscoverAllActive(forceRefresh: Bool) {
+        discoveryTask?.cancel()
+        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        discoveryTask = Task {
+            if !forceRefresh {
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                guard !Task.isCancelled else { return }
+            } else {
+                await CommuteTrainDiscoveryService.shared.clearCache()
+            }
+            for (dayIndex, _, _) in activeDaysForDisplay {
+                guard !Task.isCancelled else { return }
+                await discoverDirection(dayIndex: dayIndex, isReturn: false, mergeManual: true, forceRefresh: forceRefresh)
+                guard !Task.isCancelled else { return }
+                await discoverDirection(dayIndex: dayIndex, isReturn: true, mergeManual: true, forceRefresh: forceRefresh)
+            }
+        }
+    }
+
+    private func scheduleDiscoverGlobalDirection(isReturn: Bool) {
+        discoveryTask?.cancel()
+        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        discoveryTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            for (dayIndex, _, _) in activeDaysForDisplay {
+                guard !Task.isCancelled else { return }
+                await discoverDirection(dayIndex: dayIndex, isReturn: isReturn, mergeManual: true, forceRefresh: false)
+            }
+        }
+    }
+
+    private func scheduleDiscoverSingleDayDirection(dayIndex: Int, isReturn: Bool) {
+        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        let taskKey = "\(dayIndex)_\(isReturn ? "ret" : "out")"
+        perDayDiscoveryTasks[taskKey]?.cancel()
+        perDayDiscoveryTasks[taskKey] = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            await discoverDirection(dayIndex: dayIndex, isReturn: isReturn, mergeManual: true, forceRefresh: false)
+        }
+    }
+
+    private func discoverDirection(
+        dayIndex: Int,
+        isReturn: Bool,
+        mergeManual: Bool,
+        forceRefresh: Bool
+    ) async {
+        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        let key = "\(dayIndex)_\(isReturn ? "ret" : "out")"
+        discoveringKeys.insert(key)
+        defer { discoveringKeys.remove(key) }
+
+        let currentSched = daySchedules[dayIndex] ?? DayCommuteSchedule(
+            isEnabled: isDayActiveForUI(dayIndex),
+            outboundBand: defaultOutboundBand,
+            returnBand: defaultReturnBand
+        )
+        let bandStr = customizePerDay
+            ? (isReturn ? currentSched.returnBand : currentSched.outboundBand)
+            : (isReturn ? defaultReturnBand : defaultOutboundBand)
+        let eff = effectiveStationsForUI(dayIndex: dayIndex, isReturn: isReturn)
+
+        let discovered = await CommuteTrainDiscoveryService.shared.discoverTrains(
+            weekday: dayIndex,
+            bandString: bandStr,
+            origins: eff.origins,
+            destinations: eff.destinations,
+            extraMarginBefore: 0,
+            extraMarginAfter: 0,
+            forceRefresh: forceRefresh
+        )
+
+        guard !Task.isCancelled, !origins.isEmpty && !destinations.isEmpty else { return }
+
+        var latestSched = daySchedules[dayIndex] ?? currentSched
+        let band = CommuteTimeBand.parse(bandStr)
+        if isReturn {
+            latestSched.returnTrains = mergeManual
+                ? CommuteTrainDiscoveryService.mergeDiscoveredWithExisting(
+                    discovered: discovered,
+                    existing: latestSched.returnTrains,
+                    band: band,
+                    origins: eff.origins
+                )
+                : discovered
+        } else {
+            latestSched.outboundTrains = mergeManual
+                ? CommuteTrainDiscoveryService.mergeDiscoveredWithExisting(
+                    discovered: discovered,
+                    existing: latestSched.outboundTrains,
+                    band: band,
+                    origins: eff.origins
+                )
+                : discovered
+        }
+        daySchedules[dayIndex] = latestSched
+    }
+
+    private func directionArrowBadge(color: Color) -> some View {
+        HStack {
+            Spacer()
+            Image(systemName: "arrow.down")
+                .font(.caption.bold())
+                .foregroundColor(color)
+                .frame(width: 24, height: 24)
+                .background(color.opacity(0.14))
+                .clipShape(Circle())
+            Spacer()
+        }
+        .padding(.vertical, 1)
+    }
+
+    private func dayDetailCard(
+        dayIndex: Int,
+        sched: DayCommuteSchedule,
+        outbound: String,
+        ret: String
+    ) -> some View {
+        let outboundBandBinding = Binding<String>(
+            get: { daySchedules[dayIndex]?.outboundBand ?? outbound },
+            set: { newBand in
+                var cur = daySchedules[dayIndex] ?? sched
+                cur.outboundBand = newBand
+                daySchedules[dayIndex] = cur
+                scheduleDiscoverSingleDayDirection(dayIndex: dayIndex, isReturn: false)
+            }
+        )
+        let returnBandBinding = Binding<String>(
+            get: { daySchedules[dayIndex]?.returnBand ?? ret },
+            set: { newBand in
+                var cur = daySchedules[dayIndex] ?? sched
+                cur.returnBand = newBand
+                daySchedules[dayIndex] = cur
+                scheduleDiscoverSingleDayDirection(dayIndex: dayIndex, isReturn: true)
+            }
+        )
+
+        return VStack(alignment: .leading, spacing: 12) {
+            // Blocco Andata
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sun.max.fill")
+                    Text("Andata")
+                }
+                .font(.subheadline.bold())
+                .foregroundColor(.blue)
+
+                CommuteTimeRangeRow(
+                    title: nil,
+                    accentColor: .blue,
+                    bandString: outboundBandBinding
+                )
+
+                if !origins.isEmpty {
+                    stationSelectorList(
+                        accentColor: .blue,
+                        pool: origins,
+                        excluded: sched.excludedOutboundOrigins
+                    ) { st in
+                        toggleStationExclusion(
+                            dayIndex: dayIndex,
+                            station: st,
+                            pool: origins,
+                            keyPath: \.excludedOutboundOrigins,
+                            isReturnDirection: false
+                        )
+                    }
+                }
+
+                if !origins.isEmpty && !destinations.isEmpty {
+                    directionArrowBadge(color: .blue)
+                }
+
+                if !destinations.isEmpty {
+                    stationSelectorList(
+                        accentColor: .blue,
+                        pool: destinations,
+                        excluded: sched.excludedOutboundDestinations
+                    ) { st in
+                        toggleStationExclusion(
+                            dayIndex: dayIndex,
+                            station: st,
+                            pool: destinations,
+                            keyPath: \.excludedOutboundDestinations,
+                            isReturnDirection: false
+                        )
+                    }
+                }
+            }
+
+            Divider()
+
+            // Blocco Ritorno
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "moon.stars.fill")
+                    Text("Ritorno")
+                }
+                .font(.subheadline.bold())
+                .foregroundColor(.purple)
+
+                CommuteTimeRangeRow(
+                    title: nil,
+                    accentColor: .purple,
+                    bandString: returnBandBinding
+                )
+
+                if !destinations.isEmpty {
+                    stationSelectorList(
+                        accentColor: .purple,
+                        pool: destinations,
+                        excluded: sched.excludedReturnOrigins
+                    ) { st in
+                        toggleStationExclusion(
+                            dayIndex: dayIndex,
+                            station: st,
+                            pool: destinations,
+                            keyPath: \.excludedReturnOrigins,
+                            isReturnDirection: true
+                        )
+                    }
+                }
+
+                if !origins.isEmpty && !destinations.isEmpty {
+                    directionArrowBadge(color: .purple)
+                }
+
+                if !origins.isEmpty {
+                    stationSelectorList(
+                        accentColor: .purple,
+                        pool: origins,
+                        excluded: sched.excludedReturnDestinations
+                    ) { st in
+                        toggleStationExclusion(
+                            dayIndex: dayIndex,
+                            station: st,
+                            pool: origins,
+                            keyPath: \.excludedReturnDestinations,
+                            isReturnDirection: true
+                        )
+                    }
+                }
+            }
+
+            if sched.hasCustomStationExclusions {
+                Button {
+                    Haptics.play(.light)
+                    var cur = sched
+                    cur.excludedOutboundOrigins = []
+                    cur.excludedOutboundDestinations = []
+                    cur.excludedReturnOrigins = []
+                    cur.excludedReturnDestinations = []
+                    daySchedules[dayIndex] = cur
+                    scheduleDiscoverSingleDayDirection(dayIndex: dayIndex, isReturn: false)
+                    scheduleDiscoverSingleDayDirection(dayIndex: dayIndex, isReturn: true)
+                } label: {
+                    Label("Ripristina tutte le stazioni", systemImage: "arrow.counterclockwise")
+                        .font(.caption.bold())
+                        .foregroundColor(.orange)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+            }
+        }
+        .padding(12)
+        .background(Color(.tertiarySystemFill).opacity(0.6))
+        .cornerRadius(12)
+    }
+
+    private func stationSelectorList(
+        accentColor: Color,
+        pool: [String],
+        excluded: [String],
+        onToggle: @escaping (String) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(pool, id: \.self) { st in
+                let isIncluded = !excluded.contains(st)
+                Button {
+                    onToggle(st)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: isIncluded ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 14))
+                            .foregroundColor(isIncluded ? accentColor : .secondary)
+                        Text(st)
+                            .font(.caption)
+                            .foregroundColor(isIncluded ? .primary : .secondary)
+                            .strikethrough(!isIncluded, color: .secondary.opacity(0.6))
+                        Spacer()
+                    }
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 8)
+                    .background(isIncluded ? Color(.secondarySystemGroupedBackground) : Color.clear)
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 
@@ -561,6 +1278,42 @@ struct PlanBDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                if let incType = currentPlan.incident_type,
+                   incType.hasPrefix("summary_") || incType == "cancelled" || incType == "delay" {
+                    let bannerStyle: (icon: String, color: Color) = {
+                        switch incType {
+                        case "summary_ok":
+                            return ("checkmark.seal.fill", .green)
+                        case "summary_warning":
+                            return ("exclamationmark.triangle.fill", .orange)
+                        default:
+                            return ("xmark.octagon.fill", .red)
+                        }
+                    }()
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: bannerStyle.icon)
+                            .font(.title3)
+                            .foregroundColor(bannerStyle.color)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(currentPlan.title)
+                                .font(.subheadline.bold())
+                                .foregroundColor(.primary)
+                            Text(currentPlan.body)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(bannerStyle.color.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(bannerStyle.color.opacity(0.35), lineWidth: 1)
+                    )
+                    .padding(.horizontal)
+                }
+
                 // Selettore interattivo stazioni di partenza
                 if currentPlan.origins.count > 1 {
                     VStack(alignment: .leading, spacing: 8) {
@@ -1045,8 +1798,14 @@ struct PlanBDetailView: View {
             locationManager.requestLocation()
             scrollToChosenAlternative(using: scrollProxy)
         }
+        .onDisappear {
+            if (currentPlan.incident_type == "summary_ok" || currentPlan.incident_type == "simulation"),
+               commuteManager.chosenAlternativeId == nil {
+                commuteManager.activePlanB = nil
+            }
+        }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Alternative di viaggio")
+        .navigationTitle(currentPlan.incident_type?.hasPrefix("summary_") == true ? "Riepilogo Tratta" : "Alternative di viaggio")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

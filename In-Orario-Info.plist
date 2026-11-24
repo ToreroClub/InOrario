@@ -24,6 +24,10 @@
 	<array>
 		<string>lavorami</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>In Orario utilizza il microfono per permetterti di cercare treni, stazioni e soluzioni di viaggio con la voce.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>In Orario utilizza il riconoscimento vocale per trascrivere le tue richieste sui treni e trovare subito le soluzioni reali.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>

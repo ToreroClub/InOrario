@@ -345,10 +345,12 @@ struct ProfileView: View {
     @EnvironmentObject var usageTracker: UsageTracker
     @Environment(\.dismiss) var dismiss
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
+    @AppStorage("metroMilanoBetaEnabled") private var metroMilanoBetaEnabled = false
 
     @StateObject private var tipManager = TipManager()
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @State private var showPaywallSheet = false
+    @State private var showFeedbackSheet = false
     @State private var showManageSubscriptions = false
     
     var body: some View {
@@ -454,9 +456,12 @@ struct ProfileView: View {
 
                 Section(header: Text("Suggerimenti e IA")) {
                     NavigationLink(destination: AISettingsView()) {
-                        Label("Assistente IA", systemImage: "brain.head.profile")
-                            .foregroundColor(.indigo)
-                            .font(.headline)
+                        HStack(spacing: 8) {
+                            Label("Assistente IA", systemImage: "brain.head.profile")
+                                .foregroundColor(.indigo)
+                                .font(.headline)
+                            BetaBadgeView()
+                        }
                     }
                     
                     NavigationLink(destination: SmartSuggestionsSettingsView()) {
@@ -478,6 +483,15 @@ struct ProfileView: View {
                     NavigationLink(destination: FAQView()) {
                         Label("Domande Frequenti", systemImage: "questionmark.circle.fill")
                             .foregroundColor(.blue)
+                            .font(.headline)
+                    }
+                    
+                    Button {
+                        Haptics.play(.medium)
+                        showFeedbackSheet = true
+                    } label: {
+                        Label("Segnala Bug o Feedback", systemImage: "ladybug.fill")
+                            .foregroundColor(.red)
                             .font(.headline)
                     }
                     
@@ -549,6 +563,24 @@ struct ProfileView: View {
                 
 
                 
+                Section(
+                    header: Text("Metro Milano Beta"),
+                    footer: Text("La visualizzazione metropolitana di Milano è accessibile dal menu in alto a sinistra accedendo a Metropolitana. Per tornare nella sezione treno, premi lo stesso identico menu (i tre puntini in alto a sinistra) e premi su Treni. Se disattivata, l'opzione non comparirà nel menu.")
+                ) {
+                    Toggle(isOn: $metroMilanoBetaEnabled) {
+                        Label {
+                            Text("Abilita Metro Milano Beta")
+                                .font(.headline)
+                        } icon: {
+                            Image(systemName: "tram.fill")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .onChange(of: metroMilanoBetaEnabled) { _, _ in
+                        Haptics.play(.light)
+                    }
+                }
+
                 Section(footer:
                     HStack {
                         Spacer()
@@ -579,6 +611,10 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showPaywallSheet) {
                 SupportPaywallSheet()
+                    .environmentObject(manager)
+            }
+            .sheet(isPresented: $showFeedbackSheet) {
+                FeedbackFormView()
                     .environmentObject(manager)
             }
             .manageSubscriptionsSheet(
@@ -723,9 +759,14 @@ struct FeedbackFormView: View {
     @State private var showSuccessAlert = false
     @State private var showErrorAlert = false
     
+    private var effectiveAPNsToken: String {
+        [manager.apnsToken, UserDefaults.standard.string(forKey: "apnsTokenKey_v1")]
+            .compactMap { $0 }
+            .first(where: { !$0.isEmpty }) ?? ""
+    }
+
     private var isPushActive: Bool {
-        let token = manager.apnsToken ?? UserDefaults.standard.string(forKey: "apnsTokenKey_v1")
-        return token != nil && !token!.isEmpty && manager.remoteNotificationsEnabled
+        return !effectiveAPNsToken.isEmpty && manager.remoteNotificationsEnabled
     }
     
     var body: some View {
@@ -888,13 +929,14 @@ struct FeedbackFormView: View {
         isSending = true
         Haptics.play(.medium)
         
-        let token = manager.apnsToken ?? (UserDefaults.standard.string(forKey: "apnsTokenKey_v1") ?? "")
+        let token = effectiveAPNsToken
+        let deviceID = DeviceIdentityManager.shared.deviceID
         let payload: [String: Any] = [
             "category": category,
             "message": message,
             "contact": contact,
             "email": contact,
-            "device_id": manager.getEffectiveDeviceToken(),
+            "device_id": deviceID,
             "device_token": token,
             "device_model": manager.getDeviceModelName(),
             "os_version": UIDevice.current.systemVersion,
@@ -912,6 +954,7 @@ struct FeedbackFormView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(deviceID, forHTTPHeaderField: "X-Device-ID")
         if !token.isEmpty {
             request.setValue(token, forHTTPHeaderField: "X-Device-Token")
         }
@@ -1037,7 +1080,6 @@ struct CustomizeDashboardView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
     @State private var showNewSmartRouteSheet = false
-    @State private var homeDestInput = ""
     
     @AppStorage("rememberNearbyState") private var rememberNearbyState = true
     @AppStorage("rememberMyStationsState") private var rememberMyStationsState = false
@@ -1136,9 +1178,6 @@ struct CustomizeDashboardView: View {
             PassanteQuickSetupView()
                 .environmentObject(manager)
         }
-        .onAppear {
-            homeDestInput = manager.homeDestinationStationName
-        }
     }
 }
 
@@ -1154,20 +1193,6 @@ struct CustomizePassanteView: View {
                     Label("Mostra Linee Suburbane", systemImage: "tram.fill")
                         .foregroundColor(.green)
                         .font(.headline)
-                }
-            }
-            
-            Section(header: Text("Vista Speciale Stazioni"), footer: Text("Quando attivo, il passante raggruppa le partenze in Ovest ed Est. Se disattivato, vedrai la lista classica Arrivi/Partenze.")) {
-                Toggle(isOn: Binding(
-                    get: { passanteManager.useSpecialPassanteView },
-                    set: { newValue in
-                        passanteManager.useSpecialPassanteView = newValue
-                        manager.saveFavorites()
-                        Haptics.play(.medium)
-                    }
-                )) {
-                    Label("Mostra Vista Speciale Passante", systemImage: "eye.fill")
-                        .foregroundColor(.orange)
                 }
             }
             
@@ -1360,7 +1385,20 @@ struct CustomizeWidgetView: View {
 struct NotificationsSettingsView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
+    @ObservedObject private var commuteManager = SupporterCommuteManager.shared
     @State private var selectedTrainForConfig: SavedTrain? = nil
+    @State private var showPaywallSheet = false
+    @State private var isSummaryDaysExpanded = false
+
+    private let summaryWeekdays: [(Int, String)] = [
+        (1, "Lunedì"),
+        (2, "Martedì"),
+        (3, "Mercoledì"),
+        (4, "Giovedì"),
+        (5, "Venerdì"),
+        (6, "Sabato"),
+        (7, "Domenica")
+    ]
     
     var body: some View {
         List {
@@ -1379,6 +1417,156 @@ struct NotificationsSettingsView: View {
                     Label("Abilita Notifiche", systemImage: "bell.fill")
                         .foregroundColor(.orange)
                         .font(.headline)
+                }
+            }
+
+            Section(
+                header: HStack(spacing: 6) {
+                    Text("Riepilogo Programmato")
+                    if !manager.hasSupport() {
+                        Text("(Solo Pro)")
+                            .font(.caption2.bold())
+                            .foregroundColor(.orange)
+                    }
+                },
+                footer: Text("Ricevi un punto situazione automatico sulla tua tratta abituale prima della tua fascia oraria di viaggio nei giorni scelti, basato sullo stato reale della linea e dei treni.")
+            ) {
+                if !manager.hasSupport() {
+                    Button {
+                        Haptics.notify(.warning)
+                        showPaywallSheet = true
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Label("Riepilogo sulle abitudini di viaggio", systemImage: "calendar.badge.clock")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("Solo Pro")
+                                    .font(.caption2.bold())
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange.opacity(0.14))
+                                    .cornerRadius(6)
+                                Image(systemName: "lock.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Text("Verifica automatica della linea prima della tua fascia di andata e ritorno (tutto regolare o eventuali disservizi).")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                        .opacity(0.6)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Toggle(isOn: Binding(
+                        get: { commuteManager.scheduledSummaryEnabled },
+                        set: { newValue in
+                            Haptics.play(.light)
+                            commuteManager.scheduledSummaryEnabled = newValue
+                            if !newValue {
+                                isSummaryDaysExpanded = false
+                            }
+                            Task {
+                                await commuteManager.syncRoutineWithServer()
+                            }
+                        }
+                    )) {
+                        Label("Abilita riepilogo programmato", systemImage: "calendar.badge.clock")
+                            .foregroundColor(.pink)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .disabled(!manager.remoteNotificationsEnabled)
+
+                    if commuteManager.origins.isEmpty || commuteManager.destinations.isEmpty {
+                        NavigationLink(destination: CommuteSetupView()) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "clock.arrow.2.circlepath")
+                                    .foregroundColor(.pink)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Configura Abitudini di Viaggio")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(.primary)
+                                    Text("Imposta stazioni e orari per attivare il riepilogo.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    } else {
+                        if commuteManager.scheduledSummaryEnabled {
+                            Button {
+                                Haptics.play(.light)
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    isSummaryDaysExpanded.toggle()
+                                }
+                            } label: {
+                                HStack {
+                                    Text("Avvisami")
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    Text(commuteManager.scheduledSummaryDaysSummaryText)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                    Image(systemName: isSummaryDaysExpanded ? "chevron.up" : "chevron.down")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!manager.remoteNotificationsEnabled)
+                            .id("summary_avvisami_header")
+
+                            if isSummaryDaysExpanded {
+                                ForEach(summaryWeekdays, id: \.0) { dayIndex, dayName in
+                                    summaryDayRow(dayIndex: dayIndex, dayName: dayName)
+                                        .id("summary_day_\(dayIndex)")
+                                }
+                            }
+
+                            Picker("Anticipo", selection: $commuteManager.scheduledSummaryLeadMinutes) {
+                                Text("10 min prima").tag(10)
+                                Text("15 min prima").tag(15)
+                                Text("30 min prima").tag(30)
+                                Text("45 min prima").tag(45)
+                                Text("60 min prima").tag(60)
+                            }
+                            .disabled(!manager.remoteNotificationsEnabled)
+                            .onChange(of: commuteManager.scheduledSummaryLeadMinutes) { _, _ in
+                                Task { await commuteManager.syncRoutineWithServer() }
+                            }
+
+                            Picker("Fasce", selection: $commuteManager.scheduledSummaryScope) {
+                                Text("Andata e Ritorno").tag("both")
+                                Text("Solo Andata").tag("outbound")
+                                Text("Solo Ritorno").tag("return")
+                            }
+                            .disabled(!manager.remoteNotificationsEnabled)
+                            .onChange(of: commuteManager.scheduledSummaryScope) { _, _ in
+                                Task { await commuteManager.syncRoutineWithServer() }
+                            }
+                        }
+
+                        NavigationLink(destination: CommuteSetupView()) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "clock.arrow.2.circlepath")
+                                    .foregroundColor(.pink)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(formatCityOrStationSummary(commuteManager.origins)) ↔ \(formatCityOrStationSummary(commuteManager.destinations))")
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                    Text("Personalizza stazioni e giorni")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
                 }
             }
             
@@ -1469,6 +1657,10 @@ struct NotificationsSettingsView: View {
                 ))
             }
         }
+        .sheet(isPresented: $showPaywallSheet) {
+            SupportPaywallSheet()
+                .environmentObject(manager)
+        }
         .onAppear {
             // Enrich any existing favorites that are missing departure/arrival times
             Task {
@@ -1479,6 +1671,74 @@ struct NotificationsSettingsView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func summaryDayRow(dayIndex: Int, dayName: String) -> some View {
+        let isCommuteActive = commuteManager.isCommuteDayActive(dayIndex)
+        let isSelected = commuteManager.isScheduledSummaryActive(on: dayIndex)
+        let bands = commuteManager.commuteBandsForDay(dayIndex)
+        let outCompact = bands.outbound.replacingOccurrences(of: " - ", with: "-")
+        let retCompact = bands.returnBand.replacingOccurrences(of: " - ", with: "-")
+        let timeLabel: String = {
+            switch commuteManager.scheduledSummaryScope {
+            case "outbound":
+                return outCompact
+            case "return":
+                return retCompact
+            default:
+                return "\(outCompact)  •  \(retCompact)"
+            }
+        }()
+
+        Button {
+            guard isCommuteActive else { return }
+            if isSelected {
+                if commuteManager.effectiveScheduledSummaryWeekdays.count <= 1 {
+                    Haptics.notify(.warning)
+                    return
+                }
+                commuteManager.scheduledSummaryExcludedWeekdays.insert(dayIndex)
+            } else {
+                commuteManager.scheduledSummaryExcludedWeekdays.remove(dayIndex)
+            }
+            Haptics.play(.light)
+            Task {
+                await commuteManager.syncRoutineWithServer()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16))
+                    .foregroundColor(isSelected ? .pink : .secondary)
+                Text(dayName)
+                    .font(.subheadline)
+                    .foregroundColor(isCommuteActive ? .primary : .secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+
+                Spacer(minLength: 8)
+
+                if isCommuteActive {
+                    Text(timeLabel)
+                        .font(.caption.weight(.medium))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundColor(isSelected ? .primary : .secondary)
+                } else {
+                    Text("Non attivo")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.leading, 10)
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isCommuteActive || !manager.remoteNotificationsEnabled)
+        .opacity(isCommuteActive ? 1.0 : 0.45)
     }
 }
 
@@ -1608,12 +1868,14 @@ struct TrainNotificationConfigSheet: View {
                                             let hadNotif = (manager.favoriteTrains[i].notifyDelay == true) ||
                                                            (manager.favoriteTrains[i].notifyDeparture == true) ||
                                                            (manager.favoriteTrains[i].notifyStationPass == true) ||
-                                                           (manager.favoriteTrains[i].notifyPlatformChange == true)
+                                                           (manager.favoriteTrains[i].notifyPlatformChange == true) ||
+                                                           (manager.favoriteTrains[i].notifyScheduledTime == true)
                                             if hadNotif {
                                                 manager.favoriteTrains[i].notifyDelay = false
                                                 manager.favoriteTrains[i].notifyDeparture = false
                                                 manager.favoriteTrains[i].notifyStationPass = false
                                                 manager.favoriteTrains[i].notifyPlatformChange = false
+                                                manager.favoriteTrains[i].notifyScheduledTime = false
                                                 disabledAnyOther = true
                                             }
                                         }
@@ -1639,6 +1901,7 @@ struct TrainNotificationConfigSheet: View {
                                 train.notifyDeparture = false
                                 train.notifyStationPass = false
                                 train.notifyPlatformChange = false
+                                train.notifyScheduledTime = false
                             }
                             saveAndSync()
                         }
@@ -1771,6 +2034,51 @@ struct TrainNotificationConfigSheet: View {
                                 loadStops()
                             }
                         }
+                        
+                        Toggle(isOn: Binding(
+                            get: { manager.hasSupport() && (train.notifyScheduledTime ?? false) },
+                            set: { newValue in
+                                if !manager.hasSupport() {
+                                    Haptics.notify(.warning)
+                                    train.notifyScheduledTime = false
+                                    showPaywallSheet = true
+                                    return
+                                }
+                                train.notifyScheduledTime = newValue
+                                if newValue && (train.scheduledNotificationTime ?? "").isEmpty {
+                                    train.scheduledNotificationTime = defaultScheduledTime()
+                                }
+                                saveAndSync()
+                            }
+                        )) {
+                            HStack(spacing: 6) {
+                                Text("Notifica a un orario specifico")
+                                if !manager.hasSupport() {
+                                    Text("(Solo Pro)")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
+                                }
+                            }
+                        }
+                        
+                        if (train.notifyScheduledTime ?? false) && manager.hasSupport() {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("Orario notifica:")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    DatePicker("", selection: scheduledTimeBinding, displayedComponents: .hourAndMinute)
+                                        .labelsHidden()
+                                        .environment(\.locale, Locale(identifier: "it_IT"))
+                                        .environment(\.timeZone, TimeZone(identifier: "Europe/Rome") ?? .current)
+                                }
+                                Text("Riceverai un riepilogo sullo stato del treno (in orario, ritardo o soppressione) all'orario scelto.")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 8)
+                        }
                     }
                 }
             }
@@ -1797,6 +2105,51 @@ struct TrainNotificationConfigSheet: View {
     private func saveAndSync() {
         manager.saveFavorites()
         manager.syncRemoteNotifications()
+    }
+    
+    private var scheduledTimeBinding: Binding<Date> {
+        Binding<Date>(
+            get: {
+                let raw = train.scheduledNotificationTime ?? defaultScheduledTime()
+                if let d = SharedFormatters.time.date(from: raw) {
+                    return d
+                }
+                let cleaned = raw.replacingOccurrences(of: "\u{202F}", with: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+                let f12 = DateFormatter()
+                f12.locale = Locale(identifier: "en_US_POSIX")
+                f12.timeZone = TimeZone(identifier: "Europe/Rome")
+                f12.dateFormat = "h:mm a"
+                return f12.date(from: cleaned)
+                    ?? SharedFormatters.time.date(from: "07:30")
+                    ?? Date()
+            },
+            set: { newDate in
+                train.scheduledNotificationTime = SharedFormatters.time.string(from: newDate)
+                saveAndSync()
+            }
+        )
+    }
+    
+    private func defaultScheduledTime() -> String {
+        if let depStr = train.departureTime?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !depStr.isEmpty {
+            var parsedDate = SharedFormatters.time.date(from: depStr)
+            if parsedDate == nil {
+                let f12 = DateFormatter()
+                f12.locale = Locale(identifier: "en_US_POSIX")
+                f12.timeZone = TimeZone(identifier: "Europe/Rome")
+                f12.dateFormat = "h:mm a"
+                parsedDate = f12.date(from: depStr)
+            }
+            if let depDate = parsedDate {
+                var cal = Calendar(identifier: .gregorian)
+                cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+                if let minus15 = cal.date(byAdding: .minute, value: -15, to: depDate) {
+                    return SharedFormatters.time.string(from: minus15)
+                }
+            }
+        }
+        return "07:30"
     }
     
     private func loadStops() {
