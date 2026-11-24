@@ -19,6 +19,7 @@ struct AISettingsView: View {
                     Haptics.play(.light)
                     aiManager.aiModeChoice = .none
                     aiManager.preferLocalAI = false
+                    aiManager.hasUserChosenAIMode = true
                     manager.syncRemoteNotifications()
                 } label: {
                     HStack(spacing: 12) {
@@ -59,6 +60,7 @@ struct AISettingsView: View {
                     aiManager.aiModeChoice = .local
                     aiManager.selectedModelID = "apple_intelligence"
                     aiManager.preferLocalAI = true
+                    aiManager.hasUserChosenAIMode = true
                     manager.syncRemoteNotifications()
                 } label: {
                     HStack(spacing: 12) {
@@ -112,9 +114,10 @@ struct AISettingsView: View {
                         Haptics.play(.medium)
                         aiManager.aiModeChoice = .cloud
                         aiManager.preferLocalAI = false
+                        aiManager.hasUserChosenAIMode = true
                         manager.syncRemoteNotifications()
                     } else {
-                        Haptics.play(.light)
+                        Haptics.notify(.warning)
                         showPaywallSheet = true
                     }
                 } label: {
@@ -127,12 +130,14 @@ struct AISettingsView: View {
                                 .foregroundColor(.blue)
                                 .font(.subheadline)
                         }
+                        .saturation(manager.hasSupport() ? 1.0 : 0.0)
+                        .opacity(manager.hasSupport() ? 1.0 : 0.55)
                         
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 6) {
                                 Text("Cloud In Orario")
                                     .font(.subheadline.bold())
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(manager.hasSupport() ? .primary : .secondary)
                                 
                                 Text(cloudBadgeText)
                                     .font(.system(size: 10, weight: .semibold))
@@ -146,6 +151,7 @@ struct AISettingsView: View {
                             Text("Elaborazione rapida ed avanzata con modelli IA dedicati ad alta precisione.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                                .opacity(manager.hasSupport() ? 1.0 : 0.75)
                         }
                         
                         Spacer()
@@ -156,7 +162,7 @@ struct AISettingsView: View {
                                 .font(.subheadline.bold())
                         } else if !manager.hasSupport() {
                             Image(systemName: "lock.fill")
-                                .foregroundColor(.secondary.opacity(0.5))
+                                .foregroundColor(.secondary.opacity(0.7))
                                 .font(.caption)
                         }
                     }
@@ -166,10 +172,7 @@ struct AISettingsView: View {
             }
             
             // MARK: Sezione 2: Funzionalità IA
-            Section(
-                header: Text("Funzionalità IA"),
-                footer: Text("Le funzionalità avanzate contrassegnate con Pro sono incluse nel piano In Orario Pro.")
-            ) {
+            Section(header: Text("Funzionalità IA")) {
                 // 1. Notizie e Scioperi
                 AIFeatureRow(
                     icon: "megaphone.fill",
@@ -177,7 +180,7 @@ struct AISettingsView: View {
                     iconBg: Color.red.opacity(0.12),
                     title: "Sintesi Notizie e Scioperi",
                     description: "Riassunti chiari e formattati delle agitazioni sindacali e degli avvisi Trenitalia/Trenord.",
-                    status: (manager.strikeRegion == "Lombardia" || manager.hasSupport()) ? .active : .disabled
+                    status: .active
                 )
                 
                 // 2. Info Lavori
@@ -187,29 +190,22 @@ struct AISettingsView: View {
                     iconBg: Color.orange.opacity(0.12),
                     title: "Riepilogo Info Lavori",
                     description: "Estrazione automatica dei cantieri, delle date e delle linee ferroviarie interessate.",
-                    status: (manager.strikeRegion == "Lombardia" || manager.hasSupport()) ? .active : .disabled
+                    status: .active
                 )
                 
                 // 3. Suggerimenti Intelligenti
-                Button {
-                    if !manager.hasSupport() {
-                        showPaywallSheet = true
-                    }
-                } label: {
-                    AIFeatureRow(
-                        icon: "sparkles",
-                        iconColor: .indigo,
-                        iconBg: Color.indigo.opacity(0.12),
-                        title: "Suggerimenti Intelligenti",
-                        description: "Anticipa stazioni, treni e tratte frequenti mostrandoli nella schermata Home al momento opportuno.",
-                        status: manager.hasSupport() ? .active : .supporter
-                    )
-                }
-                .buttonStyle(.plain)
+                AIFeatureRow(
+                    icon: "sparkles",
+                    iconColor: .indigo,
+                    iconBg: Color.indigo.opacity(0.12),
+                    title: "Suggerimenti Intelligenti",
+                    description: "Anticipa stazioni, treni e tratte frequenti mostrandoli nella schermata Home al momento opportuno.",
+                    status: .active
+                )
                 
-                // 4. Suggerimenti Percorso
+                // 4. Alternative smart
                 Button {
-                    if !manager.hasSupport() {
+                    if !manager.hasSupport() && !hasCloudOrAppleAI {
                         showPaywallSheet = true
                     }
                 } label: {
@@ -217,9 +213,9 @@ struct AISettingsView: View {
                         icon: "arrow.triangle.branch",
                         iconColor: .purple,
                         iconBg: Color.purple.opacity(0.12),
-                        title: "Suggerimenti Percorso",
+                        title: "Alternative smart",
                         description: "Consigli intelligenti di itinerari alternativi in caso di ritardi significativi o cancellazioni.",
-                        status: manager.hasSupport() ? .active : .supporter
+                        status: hasCloudOrAppleAI ? .active : .disabled
                     )
                 }
                 .buttonStyle(.plain)
@@ -227,15 +223,24 @@ struct AISettingsView: View {
 
             // MARK: Sezione 3: Assistente di ricerca
             Section(header: Text("Assistente di ricerca")) {
-                AIFeatureRow(
-                    icon: "waveform.and.magnifyingglass",
-                    iconColor: .purple,
-                    iconBg: Color.purple.opacity(0.12),
-                    title: "Assistente di ricerca",
-                    description: "Cerca treni, tratte, orari e tabelloni scrivendo o parlando in linguaggio naturale con dati ferroviari reali.",
-                    status: assistantSearchStatus,
-                    showBetaBadge: true
-                )
+                Button {
+                    if !manager.hasSupport() {
+                        Haptics.notify(.warning)
+                        showPaywallSheet = true
+                    }
+                } label: {
+                    AIFeatureRow(
+                        icon: "waveform.and.magnifyingglass",
+                        iconColor: .purple,
+                        iconBg: Color.purple.opacity(0.12),
+                        title: "Assistente di ricerca",
+                        description: "Cerca treni, tratte, orari e tabelloni scrivendo o parlando in linguaggio naturale con dati ferroviari reali. Per gli utenti Free usa l'elaborazione locale sul dispositivo, mentre per gli utenti Pro usa l'elaborazione Cloud tramite motore Google AI.",
+                        status: assistantSearchStatus,
+                        showBetaBadge: true
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
 
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "lock.shield.fill")
@@ -268,15 +273,16 @@ struct AISettingsView: View {
         }
     }
     
+    private var hasCloudOrAppleAI: Bool {
+        (aiManager.aiModeChoice == .cloud && manager.hasSupport()) ||
+        (aiManager.aiModeChoice == .local && aiManager.isAppleIntelligenceAvailable)
+    }
+
     private var assistantSearchStatus: AIFeatureStatus {
-        if (aiManager.aiModeChoice == .cloud && manager.hasSupport()) ||
-           (aiManager.aiModeChoice == .local && aiManager.isAppleIntelligenceAvailable) {
+        if hasCloudOrAppleAI {
             return .active
         }
-        if aiManager.isAppleIntelligenceAvailable || manager.hasSupport() {
-            return .disabled
-        }
-        return .supporter
+        return .disabled
     }
 
     private var cloudBadgeText: String {
@@ -296,30 +302,7 @@ struct AISettingsView: View {
     }
     
     private func setupDefaultSelection() {
-        if aiManager.aiModeChoice == .cloud && !manager.hasSupport() {
-            if aiManager.isAppleIntelligenceAvailable {
-                aiManager.aiModeChoice = .local
-                aiManager.selectedModelID = "apple_intelligence"
-                aiManager.preferLocalAI = true
-            } else {
-                aiManager.aiModeChoice = .none
-                aiManager.preferLocalAI = false
-            }
-            return
-        }
-        
-        if aiManager.isAppleIntelligenceAvailable {
-            if aiManager.aiModeChoice != .cloud && aiManager.aiModeChoice != .none {
-                aiManager.aiModeChoice = .local
-                aiManager.selectedModelID = "apple_intelligence"
-                aiManager.preferLocalAI = true
-            }
-        } else {
-            if aiManager.aiModeChoice == .local {
-                aiManager.aiModeChoice = .none
-                aiManager.preferLocalAI = false
-            }
-        }
+        aiManager.reconcileDefaultAIMode(hasSupport: manager.hasSupport())
     }
 }
 

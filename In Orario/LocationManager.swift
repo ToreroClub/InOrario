@@ -243,16 +243,51 @@ class LocationManager: ObservableObject {
         guard let userLoc = userLocation else { return nil }
         loadStationsIfNeeded()
         
+        func compact(_ s: String) -> String {
+            s.lowercased()
+                .replacingOccurrences(of: "p.za ", with: "piazza")
+                .replacingOccurrences(of: "p.za", with: "piazza")
+                .replacingOccurrences(of: "p.ta ", with: "porta")
+                .replacingOccurrences(of: "p.ta", with: "porta")
+                .replacingOccurrences(of: "p. ", with: "porta")
+                .replacingOccurrences(of: "p.", with: "porta")
+                .replacingOccurrences(of: "sant'", with: "san")
+                .replacingOccurrences(of: "sant ", with: "san")
+                .replacingOccurrences(of: "s. ", with: "san")
+                .replacingOccurrences(of: "s.", with: "san")
+                .replacingOccurrences(of: "santa ", with: "san")
+                .replacingOccurrences(of: "santa", with: "san")
+                .replacingOccurrences(of: "santo ", with: "san")
+                .replacingOccurrences(of: "santo", with: "san")
+                .replacingOccurrences(of: "c.le", with: "centrale")
+                .replacingOccurrences(of: " ", with: "")
+                .replacingOccurrences(of: "-", with: "")
+                .replacingOccurrences(of: "'", with: "")
+                .replacingOccurrences(of: ".", with: "")
+                .folding(options: .diacriticInsensitive, locale: .current)
+        }
+
         var matches: [(String, Double)] = []
         for cand in candidateNames {
             let norm = cand.lowercased().trimmingCharacters(in: .whitespaces)
             let isCandGaribaldi = norm.contains("garibaldi") && !norm.contains("pavia") && !norm.contains("casalecchio") && !norm.contains("napoli")
-            let found = allReferenceStations.first { st in
-                let sNorm = st.name.lowercased()
-                if isCandGaribaldi && sNorm.contains("garibaldi") && !sNorm.contains("pavia") && !sNorm.contains("casalecchio") && !sNorm.contains("napoli") {
-                    return true
+            let candCompact = compact(cand)
+
+            let found: Station?
+            if isCandGaribaldi {
+                found = allReferenceStations.first { st in
+                    let sNorm = st.name.lowercased()
+                    return sNorm.contains("garibaldi") && !sNorm.contains("pavia") && !sNorm.contains("casalecchio") && !sNorm.contains("napoli")
                 }
-                return sNorm == norm || sNorm.contains(norm) || norm.contains(sNorm)
+            } else {
+                found = allReferenceStations.first { $0.name.lowercased() == norm }
+                    ?? allReferenceStations.first { $0.name.lowercased() == "milano " + norm }
+                    ?? allReferenceStations.first { compact($0.name) == candCompact }
+                    ?? allReferenceStations.first { st in
+                        let sNorm = st.name.lowercased()
+                        if norm == "certosa" && sNorm.contains("pavia") { return false }
+                        return sNorm.contains(norm)
+                    }
             }
             if let st = found, let coord = st.coordinate {
                 let d = userLoc.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))

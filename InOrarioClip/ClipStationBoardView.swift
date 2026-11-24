@@ -5,6 +5,7 @@ import Combine
 public struct ClipStationBoardView: View {
     @Binding var station: Station
     
+    @StateObject private var pinnedManager = ClipPinnedStationManager.shared
     @State private var showingDepartures = true
     @State private var trains: [Train] = []
     @State private var alerts: String? = nil
@@ -12,6 +13,8 @@ public struct ClipStationBoardView: View {
     @State private var selectedTrain: Train? = nil
     @State private var showSearchSheet = false
     @State private var showStoreOverlay = false
+    @State private var showAppStorePromptAlert = false
+    @AppStorage("clip_has_shown_appstore_prompt_v1") private var hasShownAppStorePrompt = false
     @State private var isAlertExpanded = false
     @State private var lastUpdated = Date()
     
@@ -135,6 +138,24 @@ public struct ClipStationBoardView: View {
             .background(Color(.systemGroupedBackground))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    let isPinned = pinnedManager.isPinned(station)
+                    Button {
+                        pinnedManager.togglePin(station)
+                        if pinnedManager.isPinned(station) {
+                            ClipRecentStationsManager.shared.addStation(station)
+                            Haptics.notify(.success)
+                        } else {
+                            Haptics.play(.light)
+                        }
+                    } label: {
+                        Image(systemName: isPinned ? "pin.fill" : "pin")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(isPinned ? .green : .orange)
+                            .accessibilityLabel(isPinned ? "Stazione fissata" : "Imposta stazione")
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showSearchSheet = true
@@ -145,11 +166,14 @@ public struct ClipStationBoardView: View {
                             Text("Cerca treno/stazione")
                         }
                         .font(.subheadline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                     }
                 }
             }
             .sheet(item: $selectedTrain) { train in
                 ClipTrainDetailView(train: train, currentStation: station) { newStation in
+                    ClipRecentStationsManager.shared.addStation(newStation)
                     self.station = newStation
                 }
             }
@@ -157,6 +181,23 @@ public struct ClipStationBoardView: View {
                 ClipSearchSheetView(selectedStation: $station) { selected in
                     self.selectedTrain = selected
                 }
+            }
+            .onChange(of: selectedTrain) { oldValue, newValue in
+                if oldValue != nil && newValue == nil && !hasShownAppStorePrompt {
+                    hasShownAppStorePrompt = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        showAppStorePromptAlert = true
+                    }
+                }
+            }
+            .alert("Scarica In Orario", isPresented: $showAppStorePromptAlert) {
+                Button("Scarica da App Store") {
+                    Haptics.play(.medium)
+                    openInOrarioAppStore()
+                }
+                Button("Non ora", role: .cancel) {}
+            } message: {
+                Text("Scarica l'app completa dall'App Store per avere notifiche in tempo reale, Live Activities, widget e pianificazione viaggi.")
             }
             .task(id: "\(station.id)_\(showingDepartures)") {
                 await loadBoard(force: false)

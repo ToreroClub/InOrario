@@ -8,6 +8,12 @@ struct CommuteSetupView: View {
     @EnvironmentObject var cache: MetroCache
     @EnvironmentObject var usageTracker: UsageTracker
     @StateObject private var commuteManager = SupporterCommuteManager.shared
+    var showCloseButton: Bool = false
+    @State private var showPaywallSheet: Bool = false
+
+    private var isPro: Bool {
+        manager.hasSupport()
+    }
     
     @State private var origins: [String] = []
     @State private var destinations: [String] = []
@@ -50,6 +56,40 @@ struct CommuteSetupView: View {
     
     var body: some View {
         Form {
+            if !isPro {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.fill")
+                                .foregroundColor(.orange)
+                            Text("Funzionalità In Orario Pro")
+                                .font(.headline)
+                        }
+                        Text("Imposta le tue stazioni abituali e gli orari per ricevere avvisi proattivi e alternative in tempo reale con In Orario Pro.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button {
+                            Haptics.play(.medium)
+                            showPaywallSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "crown.fill")
+                                Text("Passa a In Orario Pro")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+
             // Header pulito
             Section {
                 Text("Il server monitora la tua tratta abituale in caso di cancellazioni o gravi ritardi e riceverai un'alternativa. Personalizza le tue stazioni di partenza, arrivo e viceversa e gli orari per ogni singolo giorno.")
@@ -64,37 +104,43 @@ struct CommuteSetupView: View {
                 footer: Text("Usate anche per il filtro \"Portami a Casa\" nei tabelloni stazione.")
             ) {
                 if origins.isEmpty {
-                    Text("Nessuna stazione di partenza impostata")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                    lockedControl {
+                        Text("Nessuna stazione di partenza impostata")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
                 } else {
                     ForEach(origins, id: \.self) { st in
-                        HStack {
-                            Image(systemName: "house.fill")
-                                .foregroundColor(.blue)
-                            Text(st)
-                                .font(.body)
-                            Spacer()
-                            Button {
-                                origins.removeAll { $0 == st }
-                                pruneStationFromExclusions(st)
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
+                        lockedControl {
+                            HStack {
+                                Image(systemName: "house.fill")
+                                    .foregroundColor(.blue)
+                                Text(st)
+                                    .font(.body)
+                                Spacer()
+                                Button {
+                                    origins.removeAll { $0 == st }
+                                    pruneStationFromExclusions(st)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                }
+                                .buttonStyle(.borderless)
                             }
-                            .buttonStyle(.borderless)
                         }
                     }
                 }
                 
-                Button {
-                    showOriginPicker = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.blue)
-                        Text("Aggiungi stazione di partenza...")
-                            .foregroundColor(.blue)
+                lockedControl {
+                    Button {
+                        showOriginPicker = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.blue)
+                            Text("Aggiungi stazione di partenza...")
+                                .foregroundColor(.blue)
+                        }
                     }
                 }
             }
@@ -105,90 +151,104 @@ struct CommuteSetupView: View {
                 footer: Text("Usate anche per il filtro \"Portami al Lavoro\" nei tabelloni stazione.")
             ) {
                 if destinations.isEmpty {
-                    Text("Nessuna stazione di arrivo impostata")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                    lockedControl {
+                        Text("Nessuna stazione di arrivo impostata")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
                 } else {
                     ForEach(destinations, id: \.self) { st in
-                        HStack {
-                            Image(systemName: "briefcase.fill")
-                                .foregroundColor(.green)
-                            Text(st)
-                                .font(.body)
-                            Spacer()
-                            Button {
-                                destinations.removeAll { $0 == st }
-                                pruneStationFromExclusions(st)
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
+                        lockedControl {
+                            HStack {
+                                Image(systemName: "briefcase.fill")
+                                    .foregroundColor(.green)
+                                Text(st)
+                                    .font(.body)
+                                Spacer()
+                                Button {
+                                    destinations.removeAll { $0 == st }
+                                    pruneStationFromExclusions(st)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                }
+                                .buttonStyle(.borderless)
                             }
-                            .buttonStyle(.borderless)
                         }
                     }
                 }
                 
-                Button {
-                    showDestPicker = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.green)
-                        Text("Aggiungi stazione di arrivo...")
-                            .foregroundColor(.green)
+                lockedControl {
+                    Button {
+                        showDestPicker = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Aggiungi stazione di arrivo...")
+                                .foregroundColor(.green)
+                        }
                     }
                 }
             }
             
             // ORARI E GIORNI DI VIAGGIO (SCHEDA UNICA)
             Section(header: Text("Orari di viaggio")) {
-                Toggle("Personalizza per singolo giorno", isOn: $customizePerDay.animation(.easeInOut(duration: 0.2)))
+                lockedControl {
+                    Toggle("Personalizza per singolo giorno", isOn: $customizePerDay.animation(.easeInOut(duration: 0.2)))
+                }
                 
                 if !customizePerDay {
-                    CommuteTimeRangeRow(
-                        title: "Andata",
-                        accentColor: .blue,
-                        bandString: $defaultOutboundBand
-                    )
+                    lockedControl {
+                        CommuteTimeRangeRow(
+                            title: "Andata",
+                            accentColor: .blue,
+                            bandString: $defaultOutboundBand
+                        )
+                    }
                     
-                    CommuteTimeRangeRow(
-                        title: "Ritorno",
-                        accentColor: .purple,
-                        bandString: $defaultReturnBand
-                    )
+                    lockedControl {
+                        CommuteTimeRangeRow(
+                            title: "Ritorno",
+                            accentColor: .purple,
+                            bandString: $defaultReturnBand
+                        )
+                    }
                     
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Giorni di viaggio")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 6) {
-                            ForEach(weekdayNames, id: \.0) { day, shortName, _ in
-                                let isSelected = selectedWeekdays.contains(day)
-                                Button {
-                                    Haptics.play(.light)
-                                    if isSelected {
-                                        if selectedWeekdays.count > 1 {
-                                            selectedWeekdays.remove(day)
+                    lockedControl {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Giorni di viaggio")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 6) {
+                                ForEach(weekdayNames, id: \.0) { day, shortName, _ in
+                                    let isSelected = selectedWeekdays.contains(day)
+                                    Button {
+                                        Haptics.play(.light)
+                                        if isSelected {
+                                            if selectedWeekdays.count > 1 {
+                                                selectedWeekdays.remove(day)
+                                            }
+                                        } else {
+                                            selectedWeekdays.insert(day)
                                         }
-                                    } else {
-                                        selectedWeekdays.insert(day)
+                                    } label: {
+                                        Text(shortName)
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 8)
+                                            .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
+                                            .foregroundColor(isSelected ? .white : .primary)
+                                            .cornerRadius(8)
                                     }
-                                } label: {
-                                    Text(shortName)
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
-                                        .foregroundColor(isSelected ? .white : .primary)
-                                        .cornerRadius(8)
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 } else {
                     ForEach(weekdayNames, id: \.0) { dayIndex, shortName, fullName in
                         let sched = daySchedules[dayIndex] ?? DayCommuteSchedule(
@@ -201,102 +261,106 @@ struct CommuteSetupView: View {
                         let ret = sched.returnBand
                         let isExpanded = expandedDays.contains(dayIndex)
 
-                        HStack(alignment: .center, spacing: 8) {
-                            Button {
-                                if isEnabled {
-                                    let enabledCount = weekdayNames.filter { daySchedules[$0.0]?.isEnabled ?? selectedWeekdays.contains($0.0) }.count
-                                    if enabledCount <= 1 {
-                                        Haptics.notify(.warning)
-                                        return
-                                    }
-                                }
-                                Haptics.play(.light)
-                                withAnimation(.easeInOut(duration: 0.18)) {
-                                    var cur = sched
-                                    cur.isEnabled.toggle()
-                                    daySchedules[dayIndex] = cur
-                                    if !cur.isEnabled {
-                                        expandedDays.remove(dayIndex)
-                                    }
-                                }
-                                if !isEnabled {
-                                    scheduleDiscoverForDayIfEmpty(dayIndex)
-                                }
-                            } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 13, weight: .bold))
-                                    Text(fullName)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .lineLimit(1)
-                                        .fixedSize(horizontal: true, vertical: false)
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(isEnabled ? Color.blue.opacity(0.15) : Color(.tertiarySystemFill))
-                                .foregroundColor(isEnabled ? .blue : .secondary)
-                                .clipShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-
-                            Spacer(minLength: 6)
-
-                            if !isEnabled {
-                                Text("Nessun viaggio")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary.opacity(0.6))
-                                    .strikethrough(true, color: .secondary.opacity(0.5))
-                                    .lineLimit(1)
-                                    .padding(.trailing, 4)
-                            } else {
+                        lockedControl {
+                            HStack(alignment: .center, spacing: 8) {
                                 Button {
-                                    Haptics.play(.light)
-                                    withAnimation(.easeInOut(duration: 0.22)) {
-                                        if isExpanded {
-                                            expandedDays.remove(dayIndex)
-                                        } else {
-                                            expandedDays.insert(dayIndex)
+                                    if isEnabled {
+                                        let enabledCount = weekdayNames.filter { daySchedules[$0.0]?.isEnabled ?? selectedWeekdays.contains($0.0) }.count
+                                        if enabledCount <= 1 {
+                                            Haptics.notify(.warning)
+                                            return
                                         }
+                                    }
+                                    Haptics.play(.light)
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        var cur = sched
+                                        cur.isEnabled.toggle()
+                                        daySchedules[dayIndex] = cur
+                                        if !cur.isEnabled {
+                                            expandedDays.remove(dayIndex)
+                                        }
+                                    }
+                                    if !isEnabled {
+                                        scheduleDiscoverForDayIfEmpty(dayIndex)
                                     }
                                 } label: {
-                                    HStack(spacing: 6) {
-                                        VStack(alignment: .trailing, spacing: 2) {
-                                            Text("\(compactBand(outbound))  •  \(compactBand(ret))")
-                                                .font(.caption.weight(.semibold))
-                                                .monospacedDigit()
-                                                .lineLimit(1)
-                                                .minimumScaleFactor(0.8)
-                                                .foregroundColor(.primary)
-                                            if sched.hasCustomStationExclusions {
-                                                Text("Stazioni personalizzate")
-                                                    .font(.caption2.bold())
-                                                    .foregroundColor(.orange)
-                                            } else {
-                                                Text("Tutte le stazioni")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                        }
-                                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundColor(.secondary)
-                                            .frame(width: 18, height: 18)
+                                    HStack(spacing: 5) {
+                                        Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: 13, weight: .bold))
+                                        Text(fullName)
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
                                     }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(isEnabled ? Color.blue.opacity(0.15) : Color(.tertiarySystemFill))
+                                    .foregroundColor(isEnabled ? .blue : .secondary)
+                                    .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
+
+                                Spacer(minLength: 6)
+
+                                if !isEnabled {
+                                    Text("Nessun viaggio")
+                                        .font(.footnote)
+                                        .foregroundColor(.secondary.opacity(0.6))
+                                        .strikethrough(true, color: .secondary.opacity(0.5))
+                                        .lineLimit(1)
+                                        .padding(.trailing, 4)
+                                } else {
+                                    Button {
+                                        Haptics.play(.light)
+                                        withAnimation(.easeInOut(duration: 0.22)) {
+                                            if isExpanded {
+                                                expandedDays.remove(dayIndex)
+                                            } else {
+                                                expandedDays.insert(dayIndex)
+                                            }
+                                        }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            VStack(alignment: .trailing, spacing: 2) {
+                                                Text("\(compactBand(outbound))  •  \(compactBand(ret))")
+                                                    .font(.caption.weight(.semibold))
+                                                    .monospacedDigit()
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.8)
+                                                    .foregroundColor(.primary)
+                                                if sched.hasCustomStationExclusions {
+                                                    Text("Stazioni personalizzate")
+                                                        .font(.caption2.bold())
+                                                        .foregroundColor(.orange)
+                                                } else {
+                                                    Text("Tutte le stazioni")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            }
+                                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundColor(.secondary)
+                                                .frame(width: 18, height: 18)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                         .id("day_hdr_\(dayIndex)")
 
                         if isEnabled && isExpanded {
-                            dayDetailCard(
-                                dayIndex: dayIndex,
-                                sched: sched,
-                                outbound: outbound,
-                                ret: ret
-                            )
+                            lockedControl {
+                                dayDetailCard(
+                                    dayIndex: dayIndex,
+                                    sched: sched,
+                                    outbound: outbound,
+                                    ret: ret
+                                )
+                            }
                             .listRowSeparator(.hidden, edges: .top)
                             .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 10, trailing: 16))
                             .id("day_det_\(dayIndex)")
@@ -310,60 +374,85 @@ struct CommuteSetupView: View {
             
             // VERIFICA ALTERNATIVE (CON SELEZIONE ANDATA / RITORNO)
             Section(header: Text("Verifica alternative")) {
-                Picker("Direzione", selection: $simulationTripType) {
-                    Text("Andata").tag(false)
-                    Text("Ritorno").tag(true)
+                lockedControl {
+                    Picker("Direzione", selection: $simulationTripType) {
+                        Text("Andata").tag(false)
+                        Text("Ritorno").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.vertical, 2)
                 }
-                .pickerStyle(.segmented)
-                .padding(.vertical, 2)
                 
-                Button {
-                    Task {
-                        commuteManager.activePlanB = nil
-                        await saveSettings()
-                        let loc = await locationManager.getCurrentLocation(maxAge: 30)
-                        let coord = loc?.coordinate
-                        await commuteManager.requestManualPlanB(
-                            for: simulationTripType,
-                            userLat: coord?.latitude,
-                            userLon: coord?.longitude
-                        )
-                        if commuteManager.activePlanB != nil {
-                            showPlanBSheet = true
-                        } else if let err = commuteManager.lastSyncError {
-                            errorMessage = err
-                            showErrorAlert = true
+                lockedControl {
+                    Button {
+                        Task {
+                            commuteManager.activePlanB = nil
+                            await saveSettings()
+                            let loc = await locationManager.getCurrentLocation(maxAge: 30)
+                            let coord = loc?.coordinate
+                            await commuteManager.requestManualPlanB(
+                                for: simulationTripType,
+                                userLat: coord?.latitude,
+                                userLon: coord?.longitude
+                            )
+                            if commuteManager.activePlanB != nil {
+                                showPlanBSheet = true
+                            } else if let err = commuteManager.lastSyncError {
+                                errorMessage = err
+                                showErrorAlert = true
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.triangle.swap")
+                            Text("Verifica alternative adesso")
+                            if commuteManager.isCalculatingPlanB {
+                                Spacer()
+                                ProgressView()
+                            }
                         }
                     }
-                } label: {
-                    HStack {
-                        Image(systemName: "arrow.triangle.swap")
-                        Text("Verifica alternative adesso")
-                        if commuteManager.isCalculatingPlanB {
-                            Spacer()
-                            ProgressView()
-                        }
-                    }
+                    .disabled(origins.isEmpty || destinations.isEmpty || commuteManager.isCalculatingPlanB)
                 }
-                .disabled(origins.isEmpty || destinations.isEmpty || commuteManager.isCalculatingPlanB)
             }
         }
         .navigationTitle("Abitudini di viaggio")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Salva") {
-                    Task {
-                        await saveSettings()
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Chiudi") {
                         dismiss()
                     }
+                    .fontWeight(.bold)
                 }
-                .fontWeight(.bold)
-                .disabled(origins.isEmpty || destinations.isEmpty || isSaving)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                if isPro {
+                    Button("Salva") {
+                        Task {
+                            await saveSettings()
+                            dismiss()
+                        }
+                    }
+                    .fontWeight(.bold)
+                    .disabled(origins.isEmpty || destinations.isEmpty || isSaving)
+                } else {
+                    Button("Sblocca Pro") {
+                        Haptics.play(.medium)
+                        showPaywallSheet = true
+                    }
+                    .fontWeight(.bold)
+                }
             }
         }
         .onAppear {
             loadInitialState()
+        }
+        .onChange(of: isPro) { _, newValue in
+            if newValue {
+                scheduleDiscoverMissingTrains()
+            }
         }
         .onDisappear {
             discoveryTask?.cancel()
@@ -371,7 +460,7 @@ struct CommuteSetupView: View {
                 task.cancel()
             }
             perDayDiscoveryTasks.removeAll()
-            if applyLocalSettingsToManager() {
+            if manager.hasSupport() && applyLocalSettingsToManager() {
                 Task {
                     await commuteManager.syncRoutineWithServer()
                 }
@@ -512,6 +601,33 @@ struct CommuteSetupView: View {
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $showPaywallSheet) {
+            SupportPaywallSheet()
+                .environmentObject(manager)
+        }
+    }
+
+    @ViewBuilder
+    private func lockedControl<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        if isPro {
+            content()
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+                    .allowsHitTesting(false)
+                    .saturation(0.0)
+                    .opacity(0.45)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        Haptics.notify(.warning)
+                        showPaywallSheet = true
+                    }
+            }
+        }
     }
     
     @State private var hasLoadedInitialState: Bool = false
@@ -549,7 +665,9 @@ struct CommuteSetupView: View {
 
         DispatchQueue.main.async {
             isHydratingInitialState = false
-            scheduleDiscoverMissingTrains()
+            if manager.hasSupport() {
+                scheduleDiscoverMissingTrains()
+            }
         }
     }
     
@@ -672,32 +790,38 @@ struct CommuteSetupView: View {
                 Text("Treni")
                 Spacer()
                 if !origins.isEmpty && !destinations.isEmpty {
-                    Button {
-                        Haptics.play(.light)
-                        scheduleDiscoverAllActive(forceRefresh: true)
-                    } label: {
-                        if !discoveringKeys.isEmpty {
-                            ProgressView()
-                                .scaleEffect(0.75)
-                        } else {
-                            Label("Aggiorna", systemImage: "arrow.clockwise")
-                                .font(.caption.weight(.semibold))
-                                .textCase(nil)
+                    lockedControl {
+                        Button {
+                            Haptics.play(.light)
+                            scheduleDiscoverAllActive(forceRefresh: true)
+                        } label: {
+                            if !discoveringKeys.isEmpty {
+                                ProgressView()
+                                    .scaleEffect(0.75)
+                            } else {
+                                Label("Aggiorna", systemImage: "arrow.clockwise")
+                                    .font(.caption.weight(.semibold))
+                                    .textCase(nil)
+                            }
                         }
+                        .disabled(!discoveringKeys.isEmpty)
                     }
-                    .disabled(!discoveringKeys.isEmpty)
                 }
             },
             footer: Text("I treni vengono cercati direttamente dal tuo iPhone in base alle fasce orarie sopra. Tocca la matita per modificare i treni di un giorno: le notifiche monitoreranno questi treni evitando falsi avvisi per altre corse.")
         ) {
             if origins.isEmpty || destinations.isEmpty {
-                Text("Imposta le stazioni di partenza e arrivo per trovare automaticamente i tuoi treni.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                lockedControl {
+                    Text("Imposta le stazioni di partenza e arrivo per trovare automaticamente i tuoi treni.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
             } else if activeDaysForDisplay.isEmpty {
-                Text("Seleziona almeno un giorno di viaggio.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                lockedControl {
+                    Text("Seleziona almeno un giorno di viaggio.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
             } else {
                 ForEach(activeDaysForDisplay, id: \.0) { dayIndex, _, fullName in
                     let sched = daySchedules[dayIndex] ?? DayCommuteSchedule(
@@ -710,49 +834,51 @@ struct CommuteSetupView: View {
                     let outOrigins = effectiveStationsForUI(dayIndex: dayIndex, isReturn: false).origins
                     let retOrigins = effectiveStationsForUI(dayIndex: dayIndex, isReturn: true).origins
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text(fullName)
-                                .font(.subheadline.weight(.semibold))
-                            Spacer()
-                            Button {
-                                Haptics.play(.light)
-                                editingTrainsDayTarget = CommuteDayTrainEditorTarget(id: dayIndex)
-                            } label: {
-                                Image(systemName: "pencil")
-                                    .font(.caption.bold())
-                                    .foregroundColor(.blue)
-                                    .frame(width: 28, height: 28)
-                                    .background(Color.blue.opacity(0.12))
-                                    .clipShape(Circle())
+                    lockedControl {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text(fullName)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Button {
+                                    Haptics.play(.light)
+                                    editingTrainsDayTarget = CommuteDayTrainEditorTarget(id: dayIndex)
+                                } label: {
+                                    Image(systemName: "pencil")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.blue)
+                                        .frame(width: 28, height: 28)
+                                        .background(Color.blue.opacity(0.12))
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel("Modifica treni di \(fullName)")
                             }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel("Modifica treni di \(fullName)")
+
+                            dayDirectionTrainsBlock(
+                                title: "Andata",
+                                iconName: "sun.max.fill",
+                                accentColor: .blue,
+                                band: outBand,
+                                trains: sched.outboundTrains,
+                                isDiscovering: discoveringKeys.contains("\(dayIndex)_out"),
+                                showOriginPrefix: outOrigins.count > 1
+                            )
+
+                            Divider()
+
+                            dayDirectionTrainsBlock(
+                                title: "Ritorno",
+                                iconName: "moon.stars.fill",
+                                accentColor: .purple,
+                                band: retBand,
+                                trains: sched.returnTrains,
+                                isDiscovering: discoveringKeys.contains("\(dayIndex)_ret"),
+                                showOriginPrefix: retOrigins.count > 1
+                            )
                         }
-
-                        dayDirectionTrainsBlock(
-                            title: "Andata",
-                            iconName: "sun.max.fill",
-                            accentColor: .blue,
-                            band: outBand,
-                            trains: sched.outboundTrains,
-                            isDiscovering: discoveringKeys.contains("\(dayIndex)_out"),
-                            showOriginPrefix: outOrigins.count > 1
-                        )
-
-                        Divider()
-
-                        dayDirectionTrainsBlock(
-                            title: "Ritorno",
-                            iconName: "moon.stars.fill",
-                            accentColor: .purple,
-                            band: retBand,
-                            trains: sched.returnTrains,
-                            isDiscovering: discoveringKeys.contains("\(dayIndex)_ret"),
-                            showOriginPrefix: retOrigins.count > 1
-                        )
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
                 }
             }
         }
@@ -1193,6 +1319,7 @@ struct PlanBDetailView: View {
     
     let plan: PlanBReportDTO
     var initialFocusedAlternativeId: String? = nil
+    var customTitle: String? = nil
     @State private var selectedDetailTrain: Train? = nil
     @State private var selectedOriginStation: String? = nil
     
@@ -1278,7 +1405,8 @@ struct PlanBDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                if let incType = currentPlan.incident_type,
+                if customTitle == nil,
+                   let incType = currentPlan.incident_type,
                    incType.hasPrefix("summary_") || incType == "cancelled" || incType == "delay" {
                     let bannerStyle: (icon: String, color: Color) = {
                         switch incType {
@@ -1805,7 +1933,7 @@ struct PlanBDetailView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(currentPlan.incident_type?.hasPrefix("summary_") == true ? "Riepilogo Tratta" : "Alternative di viaggio")
+        .navigationTitle(customTitle ?? (currentPlan.incident_type?.hasPrefix("summary_") == true ? "Riepilogo Tratta" : "Alternative di viaggio"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

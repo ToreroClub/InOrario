@@ -300,8 +300,8 @@ enum SmartQueryPostProcessor {
             return String(format: "%02d:%02d", hh, mm)
         }
 
-        // 2. Parlato con preposizione + ora e minuti: "alle 18 e 19", "delle 18 19", "alle 8 e 5"
-        if let regexSpokenHM = try? NSRegularExpression(pattern: #"\b(?:alle|delle|verso\s+le|dopo\s+le|prima\s+delle|intorno\s+alle|ore)\s+(\d{1,2})\s*(?:e\s+(\d{1,2})|(\d{2}))\b"#),
+        // 2. Parlato con preposizione + ora e minuti: "alle 18 e 19", "delle 18 19", "dalle 18 e 30", "alle 8 e 5"
+        if let regexSpokenHM = try? NSRegularExpression(pattern: #"\b(?:(?:a\s+partire\s+)?(?:dalle|alle)(?:\s+ore)?|delle|verso\s+le|dopo\s+le|prima\s+delle|entro\s+le|intorno\s+alle|ore)\s+(\d{1,2})\s*(?:e\s+(\d{1,2})|(\d{2}))\b"#),
            let match = regexSpokenHM.firstMatch(in: lower, range: range),
            let rH = Range(match.range(at: 1), in: lower),
            let rawH = Int(lower[rH]), (0...23).contains(rawH) {
@@ -326,7 +326,7 @@ enum SmartQueryPostProcessor {
         let hourWordPattern = #"(\d{1,2}|l'una|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|undici|dodici|tredici|quattordici|quindici|sedici|diciassette|diciotto|diciannove|venti|ventuno|ventidue|ventitre|ventitré|mezzogiorno|mezzanotte)"#
 
         // 4. Frazioni dell'ora: "alle 8 meno un quarto" -> 07:45
-        if let regexMenoQuarto = try? NSRegularExpression(pattern: #"\b(?:all'|alle|delle|verso\s+le|dopo\s+le|prima\s+delle|ore)\s*"# + hourWordPattern + #"\s+meno\s+(?:un\s+quarto|15|quindici)\b"#),
+        if let regexMenoQuarto = try? NSRegularExpression(pattern: #"\b(?:(?:a\s+partire\s+)?(?:dall'|dalle(?:\s+ore)?|all'|alle(?:\s+ore)?)|delle|verso\s+le|dopo\s+le|prima\s+delle|ore)\s*"# + hourWordPattern + #"\s+meno\s+(?:un\s+quarto|15|quindici)\b"#),
            let match = regexMenoQuarto.firstMatch(in: lower, range: range),
            let rH = Range(match.range(at: 1), in: lower),
            let rawH = parseHourToken(String(lower[rH])) {
@@ -335,7 +335,7 @@ enum SmartQueryPostProcessor {
         }
 
         // 5. "alle 8 e mezza / e un quarto / e tre quarti"
-        if let regexFraction = try? NSRegularExpression(pattern: #"\b(?:all'|alle|delle|verso\s+le|dopo\s+le|prima\s+delle|ore)\s*"# + hourWordPattern + #"\s+e\s+(mezz[ao]|un\s+quarto|quarto|tre\s+quarti)\b"#),
+        if let regexFraction = try? NSRegularExpression(pattern: #"\b(?:(?:a\s+partire\s+)?(?:dall'|dalle(?:\s+ore)?|all'|alle(?:\s+ore)?)|delle|verso\s+le|dopo\s+le|prima\s+delle|ore)\s*"# + hourWordPattern + #"\s+e\s+(mezz[ao]|un\s+quarto|quarto|tre\s+quarti)\b"#),
            let match = regexFraction.firstMatch(in: lower, range: range),
            let rH = Range(match.range(at: 1), in: lower),
            let rF = Range(match.range(at: 2), in: lower),
@@ -399,12 +399,12 @@ enum SmartQueryPostProcessor {
         if lower.range(of: #"\bmezzanotte\b"#, options: .regularExpression) != nil {
             return "00:00"
         }
-        if lower.range(of: #"\ball'\s*(?:1|una)\b"#, options: .regularExpression) != nil {
+        if lower.range(of: #"\b(?:a\s+partire\s+)?(?:all'|dall')\s*(?:1|una)\b"#, options: .regularExpression) != nil {
             return lower.contains("notte") ? "01:00" : "13:00"
         }
 
-        // 8. Ora intera ("domani alle 12", "alle 4 del pomeriggio", "verso le nove", "entro le 9")
-        if let regexHour = try? NSRegularExpression(pattern: #"\b(?:alle|delle|verso\s+le|dopo\s+le|prima\s+delle|entro\s+le|intorno\s+alle|ore)\s+"# + hourWordPattern + #"\b"#),
+        // 8. Ora intera ("domani alle 12", "a partire dalle 18", "dalle 18", "alle 4 del pomeriggio", "verso le nove", "entro le 9")
+        if let regexHour = try? NSRegularExpression(pattern: #"\b(?:(?:a\s+partire\s+)?(?:dalle|alle)(?:\s+ore)?|delle|verso\s+le|dopo\s+le|prima\s+delle|entro\s+le|intorno\s+alle|ore)\s+"# + hourWordPattern + #"\b"#),
            let match = regexHour.firstMatch(in: lower, range: range),
            let rH = Range(match.range(at: 1), in: lower),
            let rawH = parseHourToken(String(lower[rH])) {
@@ -547,17 +547,18 @@ enum SmartQueryPostProcessor {
             #"\b(?:di|nel|nella|il|la)?\s*(?:pomeriggio|mattina|sera|notte)\b"#,
             #"\b(?:di\s+)?(?:luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato|domenica)(?:\s+prossim[oa])?\b"#,
             #"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b"#,
-            #"\b(?:alle|delle|verso\s+le|dopo\s+le|prima\s+delle|entro\s+le|intorno\s+alle|ore)\s+(?:\d{1,2}|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|undici|dodici)(?:[:.,]\d{2}|\s+e\s+(?:\d{1,2}|mezz[ao]|un\s+quarto|tre\s+quarti)|\s+meno\s+(?:un\s+quarto|15|quindici))?\b"#,
-            #"\ball'\s*(?:1|una)(?:\s+e\s+(?:mezz[ao]|un\s+quarto))?\b"#,
+            #"\b(?:(?:a\s+partire\s+)?(?:dalle|alle)(?:\s+ore)?|delle|verso\s+le|dopo\s+le|prima\s+delle|entro\s+le|intorno\s+alle|ore)\s+(?:\d{1,2}|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|undici|dodici|tredici|quattordici|quindici|sedici|diciassette|diciotto|diciannove|venti|ventuno|ventidue|ventitre|ventitré)(?:[:.,]\d{2}|\s+e\s+(?:\d{1,2}|mezz[ao]|un\s+quarto|tre\s+quarti)|\s+meno\s+(?:un\s+quarto|15|quindici))?\b"#,
+            #"\b(?:a\s+partire\s+)?(?:all'|dall')\s*(?:1|una)(?:\s+e\s+(?:mezz[ao]|un\s+quarto|tre\s+quarti))?\b"#,
+            #"\b\d{1,2}[:.]\d{2}\b"#,
             #"\b(?:a|verso|dopo|prima\s+di)?\s*(?:mezzogiorno|mezzanotte)(?:\s+e\s+mezz[ao])?\b"#,
             #"\b(?:tra|fra)\s+(?:un\s+quarto\s+d'?ora|mezz'?ora|un'?ora(?:\s+e\s+mezz[ao])?|\d{1,3}\s+(?:minut[oi]|or[ea]))\b"#,
-            #"\b(?:per\s+favore|per\s+piacere|grazie|subito|adesso)\b"#
+            #"\b(?:a\s+partire\s+(?:da|dal|dalla|dall'|dalle)|per\s+favore|per\s+piacere|grazie|subito|adesso)\b"#
         ]
         for p in patterns {
             s = s.replacingOccurrences(of: p, with: " ", options: [.regularExpression, .caseInsensitive])
         }
         s = s.replacingOccurrences(of: #"[?!.,]+"#, with: " ", options: .regularExpression)
-        s = s.replacingOccurrences(of: #"\b(?:di|il|lo|la|per|alle|delle|entro|ora)\s*$"#, with: "", options: [.regularExpression, .caseInsensitive])
+        s = s.replacingOccurrences(of: #"\b(?:di|il|lo|la|per|alle|delle|dalle|entro|ora|a\s+partire)\s*$"#, with: "", options: [.regularExpression, .caseInsensitive])
         s = s.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -2096,17 +2097,19 @@ final class SmartQueryParser {
         wdFmt.dateFormat = "EEEE"
         let currWeekday = wdFmt.string(from: now).capitalized
 
-        // Layer 1 Locale Addestrato: istantaneo, gratuito, offline-ready
-        if let localMatch = LocalExactQueryParser.parse(
-            query: trimmed,
-            knownStations: knownStations,
-            nearbyStation: nearbyStation,
-            homeStations: homeStations,
-            workStations: workStations,
-            favoriteStations: favoriteStations,
-            favoriteTrains: favoriteTrains,
-            now: now
-        ) {
+        func tryLocalExact(requireComplete: Bool) -> SmartQueryParseReport? {
+            guard let localMatch = LocalExactQueryParser.parse(
+                query: trimmed,
+                knownStations: knownStations,
+                nearbyStation: nearbyStation,
+                homeStations: homeStations,
+                workStations: workStations,
+                favoriteStations: favoriteStations,
+                favoriteTrains: favoriteTrains,
+                now: now
+            ) else {
+                return nil
+            }
             let refinedLocal = SmartQueryPostProcessor.refine(
                 parsed: localMatch,
                 rawQuery: trimmed,
@@ -2126,13 +2129,14 @@ final class SmartQueryParser {
                 case .unknown: return false
                 }
             }()
-            if isCompleteLocal || engineChoice == .localExactOnly {
+            if isCompleteLocal || !requireComplete {
                 return SmartQueryParseReport(
                     outcome: validateOutcome(refinedLocal),
                     parsedSnapshot: refinedLocal,
                     engineUsed: "local_exact"
                 )
             }
+            return nil
         }
 
         let hints = LocalExactQueryParser.preScanHints(
@@ -2147,6 +2151,7 @@ final class SmartQueryParser {
 
         switch engineChoice {
         case .geminiCloud:
+            // Utente Cloud (Pro): passa SEMPRE dal motore Cloud prima di qualsiasi fallback locale
             if let cloudResult = await callCloudParser(
                 query: trimmed,
                 currentDate: currDate,
@@ -2202,6 +2207,9 @@ final class SmartQueryParser {
                     engineUsed: "apple_intelligence"
                 )
             }
+            if let localFallback = tryLocalExact(requireComplete: true) {
+                return localFallback
+            }
             return SmartQueryParseReport(
                 outcome: .error("Non sono riuscito a contattare l'assistente Cloud in questo momento. Riprova o usa la ricerca standard."),
                 parsedSnapshot: nil,
@@ -2209,6 +2217,7 @@ final class SmartQueryParser {
             )
 
         case .appleIntelligence:
+            // Utente base con Apple Intelligence: usa Apple Intelligence prima del fallback locale
             if let aiResult = await AppleIntelligenceQueryParser.parse(
                 query: trimmed,
                 currentDate: currDate,
@@ -2230,11 +2239,16 @@ final class SmartQueryParser {
                     favoriteStations: favoriteStations,
                     now: now
                 )
-                return SmartQueryParseReport(
-                    outcome: validateOutcome(refined),
-                    parsedSnapshot: refined,
-                    engineUsed: "apple_intelligence"
-                )
+                if refined.kind != .unknown {
+                    return SmartQueryParseReport(
+                        outcome: validateOutcome(refined),
+                        parsedSnapshot: refined,
+                        engineUsed: "apple_intelligence"
+                    )
+                }
+            }
+            if let localFallback = tryLocalExact(requireComplete: true) {
+                return localFallback
             }
             return SmartQueryParseReport(
                 outcome: .clarification("Non ho capito con certezza la richiesta. Prova a indicare chiaramente stazione di partenza, arrivo o orario (es. \"Da Magenta a Milano alle 16\")."),
@@ -2243,6 +2257,9 @@ final class SmartQueryParser {
             )
 
         case .localExactOnly:
+            if let localReport = tryLocalExact(requireComplete: false) {
+                return localReport
+            }
             if effectiveChoice == .none && (hasSupport || AIFeatureManager.shared.isAppleIntelligenceAvailable) {
                 return SmartQueryParseReport(
                     outcome: .clarification("L'elaborazione IA è disattivata nelle Impostazioni IA. Seleziona Apple Intelligence o Cloud per comprendere richieste in linguaggio naturale."),
@@ -2530,7 +2547,7 @@ final class SmartQueryExecutor {
             "milano": ("Milano", "830001650", "Milano Centrale", "S01700"),
             "roma": ("Roma", nil, "Roma Termini", "S08409"),
             "torino": ("Torino", nil, "Torino Porta Nuova", "S00219"),
-            "venezia": ("Venezia", nil, "Venezia Santa Lucia", "S02593"),
+            "venezia": ("Venezia", nil, "Venezia S.Lucia", "S02593"),
             "firenze": ("Firenze", nil, "Firenze Santa Maria Novella", "S06421"),
             "napoli": ("Napoli", nil, "Napoli Centrale", "S09218"),
             "bologna": ("Bologna", nil, "Bologna Centrale", "S05043"),

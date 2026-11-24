@@ -144,6 +144,7 @@ actor ItaloTrackingProvider {
         var status = TrainStatus()
         status.isDeparted = isDeparted
         status.isArrived = isArrived
+        status.detectedCategory = "Italo"
         
         if runningState == 3 {
             status.cancellationNote = "TRENO ITALO SOPPRESSO"
@@ -344,6 +345,7 @@ actor ItaloTrackingProvider {
             status.statusMessage = globalDelayMin > 0 ? "ritardo \(globalDelayMin) min." : (hasDeparted ? "in orario" : "Non ancora partito")
             status.lastStation = lastPassedStopName
             status.lastTime = lastPassedTime
+            status.detectedCategory = "Italo"
             
             return StopsResult(stops: mappedStops, status: status, errorMessage: nil)
         } catch {

@@ -340,19 +340,21 @@ struct TrainStopsView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(Color(.secondarySystemFill))
+                                .fill(Color(.tertiarySystemFill))
                                 .frame(width: 30, height: 30)
-                            Image(systemName: "multiply")
+                            Image(systemName: "xmark")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.primary)
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Chiudi")
                 }
             }
             
             ToolbarItem(placement: .principal) {
-                let cat = train.isItalo ? "Italo" : cleanTrainCategory(train.category)
+                let rawCat = manager.currentTrainStatus.detectedCategory ?? train.category
+                let cat = train.isItalo ? "Italo" : resolveTrainCategory(number: train.number, rawCategory: rawCat, description: train.destination)
                 let titleText = cat.isEmpty ? train.number : "\(cat) \(train.number)"
                 Text(titleText)
                     .font(.headline)
@@ -434,7 +436,7 @@ struct TrainStopsView: View {
         }
         .task { await manager.fetchStops(for: train) }
         .onAppear {
-            manager.addToViewedRecentTrains(number: train.number, description: train.destination, departureTime: train.time)
+            manager.addToViewedRecentTrains(number: train.number, description: train.destination, departureTime: train.time, category: train.category)
             usageTracker.recordTrainCheck(number: train.number, category: train.category, destination: train.destination, location: locationManager.userLocation?.coordinate)
             loadLocalReports()
         }
@@ -641,6 +643,8 @@ struct TrainStopsView: View {
 ///   1. Match esatto su `allRFIStations.name`  → preferisce `rfiID` (Trenitalia)
 ///   2. Match parziale su `allRFIStations.name` → idem
 ///   3. Fallback su `passanteOuterStationLookup` (vtID ViaggiaTreno) per stazioni non coperte dal DB RFI
+/// Risolve una fermata di AndamentoTreno in una `Station` con rfiID/vtID autorevoli.
+/// Usa `TrainManager.resolveStation(name:)` per normalizzare abbreviazioni ed evitare match ambigui.
 @MainActor private func stationFromStopName(_ name: String, manager: TrainManager, passanteManager: PassanteManager) -> Station {
     var clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -653,21 +657,12 @@ struct TrainStopsView: View {
         clean = "Reggio Emilia AV Mediopadana"
     }
 
-    // 1. Corrispondenza esatta (case-insensitive)
-    if let rfi = manager.allRFIStations.first(where: { $0.name.lowercased() == clean.lowercased() }) {
-        return Station(name: rfi.name, rfiID: rfi.rfiID, vtID: rfi.vtID, lat: nil, lon: nil)
+    let resolved = manager.resolveStation(name: clean)
+    if (resolved.rfiID?.isEmpty == false) || (resolved.vtID?.isEmpty == false) {
+        return resolved
     }
 
-    // 2. Corrispondenza parziale: preferisce il match più specifico (nome più lungo) per evitare che "Susa" batta "Torino Porta Susa" o "Rho" batta "Rho Fiera"
-    let matches = manager.allRFIStations.filter {
-        $0.name.lowercased().contains(clean.lowercased()) ||
-        clean.lowercased().contains($0.name.lowercased())
-    }
-    if let best = matches.max(by: { $0.name.count < $1.name.count }) {
-        return Station(name: best.name, rfiID: best.rfiID, vtID: best.vtID, lat: nil, lon: nil)
-    }
-
-    // 3. Fallback: lookup del Passante (vtID ViaggiaTreno)
+    // Fallback: lookup del Passante (vtID ViaggiaTreno)
     return stationForName(clean, manager: manager, passanteManager: passanteManager)
 }
 
@@ -788,6 +783,16 @@ enum FeasibilityStatus {
 
 func getFeasibility(stationName: String, margin: Double) -> FeasibilityStatus {
     let name = stationName.lowercased()
+
+    // Non applicare le soglie della metro di Milano a stazioni di altre città
+    if name.contains("napoli") || name.contains("torino") || name.contains("roma") || name.contains("bologna") ||
+       name.contains("pavia") || name.contains("casalecchio") || name.contains("viterbo") || name.contains("potenza") ||
+       (name.contains("venezia") && !name.contains("porta") && !name.contains("p.ta") && !name.contains("p.") && !name.contains("milano")) {
+        if margin >= 4.0 { return .ok }
+        if margin >= 3.0 { return .hurry }
+        if margin >= 2.0 { return .run }
+        return .miss
+    }
     
     // M1 (Rossa)
     if name.contains("sesto") {

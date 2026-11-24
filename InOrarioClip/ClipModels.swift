@@ -115,23 +115,37 @@ public struct Station: Identifiable, Codable, Hashable, Sendable {
         guard let lat = lat, let lon = lon else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
+
+    public func isSameStation(as other: Station) -> Bool {
+        if let v1 = vtID?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), !v1.isEmpty,
+           let v2 = other.vtID?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), !v2.isEmpty {
+            return v1 == v2
+        }
+        if let r1 = rfiID?.trimmingCharacters(in: .whitespacesAndNewlines), !r1.isEmpty,
+           let r2 = other.rfiID?.trimmingCharacters(in: .whitespacesAndNewlines), !r2.isEmpty {
+            return r1 == r2
+        }
+        return name.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() ==
+               other.name.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
     
     public var formattedName: String {
-        let lower = name.lowercased()
-        if lower.contains("garibaldi") {
+        let lower = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let isMilanoGaribaldi = lower.contains("garibaldi") && !lower.contains("pavia") && !lower.contains("casalecchio") && !lower.contains("napoli")
+        if isMilanoGaribaldi {
             if rfiID == "1714" || vtID == "S01647" || lower.contains("sotterranea") || lower.contains("passante") {
                 return "Milano Porta Garibaldi (Passante)"
             } else {
                 return "Milano Porta Garibaldi"
             }
         }
-        if lower.contains("centrale") {
-            if lower.contains("milano") { return "Milano Centrale" }
-            if lower.contains("napoli") { return "Napoli Centrale" }
-            if lower.contains("bologna") { return "Bologna Centrale" }
+        if lower == "milano centrale" || lower == "m. centrale" || lower == "m.centrale" || lower == "centrale" {
+            return "Milano Centrale"
         }
-        if lower.contains("termini") { return "Roma Termini" }
-        if lower.contains("tiburtina") { return "Roma Tiburtina" }
+        if lower == "napoli centrale" { return "Napoli Centrale" }
+        if lower == "bologna centrale" { return "Bologna Centrale" }
+        if lower == "roma termini" || lower == "termini" { return "Roma Termini" }
+        if lower == "roma tiburtina" || lower == "tiburtina" { return "Roma Tiburtina" }
         
         let words = name.split(separator: " ")
         let capitalized = words.map { word -> String in
@@ -242,6 +256,19 @@ public struct RFIStation: Codable, Identifiable, Hashable, Sendable {
     public var coordinate: CLLocationCoordinate2D? {
         guard let lat = lat, let lon = lon else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
+
+    public func isSameStation(as other: Station) -> Bool {
+        if let v1 = vtID?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), !v1.isEmpty,
+           let v2 = other.vtID?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(), !v2.isEmpty {
+            return v1 == v2
+        }
+        if let r1 = rfiID?.trimmingCharacters(in: .whitespacesAndNewlines), !r1.isEmpty,
+           let r2 = other.rfiID?.trimmingCharacters(in: .whitespacesAndNewlines), !r2.isEmpty {
+            return r1 == r2
+        }
+        return name.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() ==
+               other.name.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
     }
     
     enum CodingKeys: String, CodingKey {
@@ -396,6 +423,111 @@ public final class ClipRecentTrainsManager: ObservableObject {
     }
 }
 
+// MARK: - Pinned Station Manager
+
+@MainActor
+public final class ClipPinnedStationManager: ObservableObject {
+    public static let shared = ClipPinnedStationManager()
+
+    @Published public private(set) var pinnedStation: Station? = nil
+    private let storageKey = "clip_pinned_station_v1"
+
+    private init() {
+        load()
+    }
+
+    private func load() {
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return }
+        do {
+            pinnedStation = try JSONDecoder().decode(Station.self, from: data)
+        } catch {
+            print("ClipPinnedStationManager decode error: \(error)")
+        }
+    }
+
+    public func isPinned(_ station: Station) -> Bool {
+        guard let pinnedStation else { return false }
+        return pinnedStation.isSameStation(as: station)
+    }
+
+    public func pin(_ station: Station) {
+        pinnedStation = station
+        save()
+    }
+
+    public func unpin() {
+        pinnedStation = nil
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
+    public func togglePin(_ station: Station) {
+        if isPinned(station) {
+            unpin()
+        } else {
+            pin(station)
+        }
+    }
+
+    private func save() {
+        guard let pinnedStation else {
+            UserDefaults.standard.removeObject(forKey: storageKey)
+            return
+        }
+        do {
+            let data = try JSONEncoder().encode(pinnedStation)
+            UserDefaults.standard.set(data, forKey: storageKey)
+        } catch {
+            print("ClipPinnedStationManager encode error: \(error)")
+        }
+    }
+}
+
+// MARK: - Recent Stations Manager
+
+@MainActor
+public final class ClipRecentStationsManager: ObservableObject {
+    public static let shared = ClipRecentStationsManager()
+
+    @Published public private(set) var recentStations: [Station] = []
+    private let storageKey = "clip_recent_stations_v1"
+
+    private init() {
+        loadRecents()
+    }
+
+    private func loadRecents() {
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return }
+        do {
+            recentStations = try JSONDecoder().decode([Station].self, from: data)
+        } catch {
+            print("ClipRecentStationsManager decode error: \(error)")
+        }
+    }
+
+    public func addStation(_ station: Station) {
+        recentStations.removeAll { $0.isSameStation(as: station) }
+        recentStations.insert(station, at: 0)
+        if recentStations.count > 12 {
+            recentStations = Array(recentStations.prefix(12))
+        }
+        save()
+    }
+
+    public func clear() {
+        recentStations.removeAll()
+        save()
+    }
+
+    private func save() {
+        do {
+            let data = try JSONEncoder().encode(recentStations)
+            UserDefaults.standard.set(data, forKey: storageKey)
+        } catch {
+            print("ClipRecentStationsManager encode error: \(error)")
+        }
+    }
+}
+
 // MARK: - SharedFormatters (Exact from In Orario)
 
 public struct SharedFormatters {
@@ -413,7 +545,7 @@ public struct SharedFormatters {
         if lower == "milano centrale" || lower == "centrale" || lower == "cle" {
             return "Milano Centrale"
         }
-        if lower.contains("garibaldi") {
+        if lower.contains("garibaldi") && !lower.contains("pavia") && !lower.contains("casalecchio") && !lower.contains("napoli") {
             return "Milano P. Garibaldi"
         }
         if lower == "torino porta nuova" || lower == "torino p. nuova" || lower == "torino p.nuova" {
@@ -431,7 +563,7 @@ public struct SharedFormatters {
         if lower == "firenze s.m.n." || lower.contains("firenze santa maria") {
             return "Firenze S.M.N."
         }
-        if lower == "venezia s. lucia" || lower.contains("santa lucia") {
+        if lower == "venezia s. lucia" || lower == "venezia s.lucia" || lower == "venezia santa lucia" {
             return "Venezia S. Lucia"
         }
         

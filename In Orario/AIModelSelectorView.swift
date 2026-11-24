@@ -31,6 +31,7 @@ struct AIModelSelectorView: View {
                 Haptics.play(.light)
                 aiManager.aiModeChoice = .none
                 aiManager.preferLocalAI = false
+                aiManager.hasUserChosenAIMode = true
                 showCloudPaidBanner = false
                 manager.syncRemoteNotifications()
             }
@@ -51,6 +52,7 @@ struct AIModelSelectorView: View {
                         aiManager.aiModeChoice = .local
                         aiManager.selectedModelID = "apple_intelligence"
                         aiManager.preferLocalAI = true
+                        aiManager.hasUserChosenAIMode = true
                         showCloudPaidBanner = false
                         manager.syncRemoteNotifications()
                     }
@@ -68,7 +70,7 @@ struct AIModelSelectorView: View {
             VStack(alignment: .leading, spacing: 8) {
                 AIOptionCard(
                     icon: "cloud.fill",
-                    iconColor: .blue,
+                    iconColor: manager.hasSupport() ? .blue : .secondary,
                     title: "Cloud In Orario",
                     description: "Elaborazione istantanea ed avanzata sui server dedicati di In Orario.",
                     isSelected: aiManager.aiModeChoice == .cloud,
@@ -79,16 +81,18 @@ struct AIModelSelectorView: View {
                         Haptics.play(.medium)
                         aiManager.aiModeChoice = .cloud
                         aiManager.preferLocalAI = false
+                        aiManager.hasUserChosenAIMode = true
                         showCloudPaidBanner = false
                         manager.syncRemoteNotifications()
                     } else {
-                        Haptics.play(.light)
+                        Haptics.notify(.warning)
                         withAnimation {
                             showCloudPaidBanner = true
                         }
                         showPaywallSheet = true
                     }
                 }
+                .opacity(manager.hasSupport() ? 1.0 : 0.7)
                 
                 if showCloudPaidBanner && !manager.hasSupport() {
                     VStack(alignment: .leading, spacing: 8) {
@@ -163,44 +167,24 @@ struct AIModelSelectorView: View {
     
     private func setupDefaultSelection() {
         if isOnboarding {
-            if aiManager.isAppleIntelligenceAvailable {
-                aiManager.aiModeChoice = .local
+            let target = AIFeatureManager.defaultAIMode(
+                hasSupport: manager.hasSupport(),
+                hasAppleIntelligence: aiManager.isAppleIntelligenceAvailable
+            )
+            aiManager.aiModeChoice = target
+            switch target {
+            case .cloud:
+                aiManager.preferLocalAI = false
+            case .local:
                 aiManager.selectedModelID = "apple_intelligence"
                 aiManager.preferLocalAI = true
-            } else {
-                aiManager.aiModeChoice = .none
+            case .none:
                 aiManager.preferLocalAI = false
             }
             return
         }
         
-        // Se l'utente non ha il supporto ed era impostato su Cloud, reimpostiamo il default
-        if aiManager.aiModeChoice == .cloud && !manager.hasSupport() {
-            if aiManager.isAppleIntelligenceAvailable {
-                aiManager.aiModeChoice = .local
-                aiManager.selectedModelID = "apple_intelligence"
-                aiManager.preferLocalAI = true
-            } else {
-                aiManager.aiModeChoice = .none
-                aiManager.preferLocalAI = false
-            }
-            return
-        }
-        
-        // Se l'hardware supporta Apple Intelligence e non è stato ancora configurato Cloud, auto-selezioniamo Apple Intelligence
-        if aiManager.isAppleIntelligenceAvailable {
-            if aiManager.aiModeChoice != .cloud {
-                aiManager.aiModeChoice = .local
-                aiManager.selectedModelID = "apple_intelligence"
-                aiManager.preferLocalAI = true
-            }
-        } else {
-            // Se Apple Intelligence non è disponibile, reset a Nessuna IA
-            if aiManager.aiModeChoice == .local {
-                aiManager.aiModeChoice = .none
-                aiManager.preferLocalAI = false
-            }
-        }
+        aiManager.reconcileDefaultAIMode(hasSupport: manager.hasSupport())
     }
 }
 
@@ -272,7 +256,7 @@ struct SupportPaywallSheet: View {
     @Environment(\.locale) private var locale
     @ObservedObject var aiManager = AIFeatureManager.shared
     @EnvironmentObject var manager: TrainManager
-    @StateObject private var tipManager = TipManager()
+    @ObservedObject private var tipManager = TipManager.shared
 
     @State private var selectedProductID: String?
     @State private var activeLegalURL: LegalURLItem?
@@ -469,6 +453,7 @@ struct SupportPaywallSheet: View {
                     if manager.hasSupport() {
                         aiManager.aiModeChoice = .cloud
                         aiManager.preferLocalAI = false
+                        manager.syncRemoteNotifications()
                         dismiss()
                     }
                 }
@@ -483,6 +468,7 @@ struct SupportPaywallSheet: View {
                     if tipManager.restoreOutcome == .restored && manager.hasSupport() {
                         aiManager.aiModeChoice = .cloud
                         aiManager.preferLocalAI = false
+                        manager.syncRemoteNotifications()
                         dismiss()
                     }
                 }
@@ -559,6 +545,7 @@ struct SupportPaywallSheet: View {
                         if manager.hasSupport() {
                             aiManager.aiModeChoice = .cloud
                             aiManager.preferLocalAI = false
+                            manager.syncRemoteNotifications()
                         }
                     }
                 } label: {

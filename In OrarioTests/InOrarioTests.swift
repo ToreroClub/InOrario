@@ -920,6 +920,10 @@ final class InOrarioTests: XCTestCase {
         XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: true, aiModeChoice: .local), .appleIntelligence)
         XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: true, aiModeChoice: .cloud), .geminiCloud)
         XCTAssertEqual(SmartQueryEnginePolicy.resolve(hasSupport: true, hasAppleIntelligence: true, aiModeChoice: .none), .localExactOnly)
+        XCTAssertEqual(AIFeatureManager.defaultAIMode(hasSupport: true, hasAppleIntelligence: true), .cloud)
+        XCTAssertEqual(AIFeatureManager.defaultAIMode(hasSupport: true, hasAppleIntelligence: false), .cloud)
+        XCTAssertEqual(AIFeatureManager.defaultAIMode(hasSupport: false, hasAppleIntelligence: true), .local)
+        XCTAssertEqual(AIFeatureManager.defaultAIMode(hasSupport: false, hasAppleIntelligence: false), .none)
         XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("Torino"), "Torino Porta Nuova")
         XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("Rho Fiera"), "Rho Fiera")
         XCTAssertEqual(LocalExactQueryParser.applyKnownAlias("Milano Repubblica"), "Milano Repubblica")
@@ -1045,6 +1049,23 @@ final class InOrarioTests: XCTestCase {
         XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "treno delle 18 e 19", now: nowRef), "18:19")
         XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "domani alle 8 e mezza", now: nowRef), "08:30")
         XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "alle 4 del pomeriggio", now: nowRef), "16:00")
+        XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "treno da Magenta a Milano domani a partire dalle 18:00", now: nowRef), "18:00")
+        XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "treno da Magenta a Milano domani a partire dalle 18", now: nowRef), "18:00")
+        XCTAssertEqual(SmartQueryPostProcessor.extractExplicitTime(from: "da Magenta a Milano domani dalle 18 e 30", now: nowRef), "18:30")
+
+        let qFrom18WithColon = LocalExactQueryParser.parse(query: "treno da Magenta a Milano domani a partire dalle 18:00", knownStations: stations, now: nowRef)
+        XCTAssertEqual(qFrom18WithColon?.kind, .routeSolutions)
+        XCTAssertEqual(qFrom18WithColon?.originStation, "Magenta")
+        XCTAssertEqual(qFrom18WithColon?.destinationStation, "Milano")
+        XCTAssertEqual(qFrom18WithColon?.targetDate, "2026-11-22")
+        XCTAssertEqual(qFrom18WithColon?.targetTime, "18:00")
+
+        let qFrom18Bare = LocalExactQueryParser.parse(query: "treno da Magenta a Milano domani a partire dalle 18", knownStations: stations, now: nowRef)
+        XCTAssertEqual(qFrom18Bare?.kind, .routeSolutions)
+        XCTAssertEqual(qFrom18Bare?.originStation, "Magenta")
+        XCTAssertEqual(qFrom18Bare?.destinationStation, "Milano")
+        XCTAssertEqual(qFrom18Bare?.targetDate, "2026-11-22")
+        XCTAssertEqual(qFrom18Bare?.targetTime, "18:00")
 
         let qStartTime = LocalExactQueryParser.parse(query: "domani mattina alle 8 da Magenta a Milano", knownStations: stations, now: nowRef)
         XCTAssertEqual(qStartTime?.kind, .routeSolutions)
@@ -1882,5 +1903,430 @@ final class InOrarioTests: XCTestCase {
         mgr.activePlanB = criticalPlan
         XCTAssertNotNil(mgr.homeBannerPlanB)
         XCTAssertEqual(mgr.homeBannerPlanB?.incident_type, "summary_critical")
+    }
+
+    // MARK: - Metro Station Matching Exhaustive Audit
+
+    func testMetroLinesNeverAppearOnWrongStationsAcrossEntireRFICatalog() throws {
+        struct RawRFIStation: Decodable {
+            let id: String?
+            let name: String
+            let vtID: String?
+            let lat: Double?
+            let lon: Double?
+        }
+
+        let catalogURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("In Orario")
+            .appendingPathComponent("rfi_stations.json")
+        let data = try Data(contentsOf: catalogURL)
+        let catalog = try JSONDecoder().decode([RawRFIStation].self, from: data)
+        XCTAssertGreaterThan(catalog.count, 3000, "Expected full Italian RFI catalog")
+
+        let expectedByName: [String: (city: String, expectedPdfIDs: Set<String>)] = [
+            // Milano (18 stazioni RFI/FN)
+            "RHO FIERA": ("milano", ["RHO FIERAMILANO"]),
+            "MILANO PORTA GARIBALDI": ("milano", ["GARIBALDI FS"]),
+            "MILANO PORTA GARIBALDI SOTTERRANEA": ("milano", ["GARIBALDI FS"]),
+            "MILANO CENTRALE": ("milano", ["CENTRALE FS"]),
+            "MILANO REPUBBLICA": ("milano", ["REPUBBLICA"]),
+            "MILANO PORTA VENEZIA": ("milano", ["P.TA VENEZIA"]),
+            "MILANO DATEO": ("milano", ["DATEO"]),
+            "MILANO FORLANINI": ("milano", ["STAZIONE FORLANINI"]),
+            "SESTO S.GIOVANNI": ("milano", ["SESTO 1 MAGGIO FS"]),
+            "MILANO CADORNA": ("milano", ["CADORNA FN M1", "CADORNA FN M2"]),
+            "MILANO LAMBRATE": ("milano", ["LAMBRATE FS"]),
+            "MILANO PORTA GENOVA": ("milano", ["PORTA GENOVA FS"]),
+            "MILANO ROMOLO": ("milano", ["ROMOLO"]),
+            "MILANO AFFORI": ("milano", ["AFFORI FN"]),
+            "MILANO SCALO ROMANA": ("milano", ["LODI T.I.B.B."]),
+            "MILANO ROGOREDO": ("milano", ["ROGOREDO FS"]),
+            "MILANO S.CRISTOFORO": ("milano", ["SAN CRISTOFORO"]),
+            "MILANO DOMODOSSOLA": ("milano", ["DOMODOSSOLA FN"]),
+            // Napoli (3)
+            "NAPOLI CENTRALE": ("napoli", ["PIAZZA GARIBALDI"]),
+            "NAPOLI PIAZZA GARIBALDI": ("napoli", ["PIAZZA GARIBALDI"]),
+            "NAPOLI PIAZZA CAVOUR": ("napoli", ["MUSEO"]),
+            // Torino (3)
+            "TORINO PORTA NUOVA": ("torino", ["METRO PORTA NUOVA"]),
+            "TORINO PORTA SUSA": ("torino", ["METRO PORTA SUSA"]),
+            "TORINO LINGOTTO": ("torino", ["METRO LINGOTTO"]),
+            // Roma (4)
+            "ROMA TERMINI": ("roma", ["Termini"]),
+            "ROMA TIBURTINA": ("roma", ["Tiburtina F.s."]),
+            "ROMA OSTIENSE": ("roma", ["Piramide"]),
+            "VALLE AURELIA": ("roma", ["Valle Aurelia"])
+        ]
+
+        var matchedWithIDs = Set<String>()
+        var matchedByNameOnly = Set<String>()
+
+        for entry in catalog {
+            let stationWithIDs = Station(name: entry.name, rfiID: entry.id, vtID: entry.vtID, lat: entry.lat, lon: entry.lon)
+            let stationNameOnly = Station(name: entry.name, rfiID: nil, vtID: nil, lat: nil, lon: nil)
+
+            let linesWithIDs = stationWithIDs.metroLines
+            let linesNameOnly = stationNameOnly.metroLines
+
+            if let expected = expectedByName[entry.name] {
+                XCTAssertFalse(linesWithIDs.isEmpty, "Expected metro lines (by ID) for \(entry.name)")
+                XCTAssertFalse(linesNameOnly.isEmpty, "Expected metro lines (by name) for \(entry.name)")
+                XCTAssertEqual(Set(linesWithIDs.map(\.city)), [expected.city], "Wrong city (by ID) for \(entry.name)")
+                XCTAssertEqual(Set(linesNameOnly.map(\.city)), [expected.city], "Wrong city (by name) for \(entry.name)")
+                XCTAssertEqual(Set(linesWithIDs.compactMap(\.pdfID)), expected.expectedPdfIDs, "Wrong metro stop (by ID) for \(entry.name)")
+                XCTAssertEqual(Set(linesNameOnly.compactMap(\.pdfID)), expected.expectedPdfIDs, "Wrong metro stop (by name) for \(entry.name)")
+                matchedWithIDs.insert(entry.name)
+                matchedByNameOnly.insert(entry.name)
+            } else {
+                XCTAssertTrue(
+                    linesWithIDs.isEmpty,
+                    "FALSE POSITIVE (by ID): \(entry.name) (rfi=\(entry.id ?? "nil"), vt=\(entry.vtID ?? "nil")) unexpectedly got metro lines: \(linesWithIDs.map { "\($0.city):\($0.name)" })"
+                )
+                XCTAssertTrue(
+                    linesNameOnly.isEmpty,
+                    "FALSE POSITIVE (by name only): \(entry.name) unexpectedly got metro lines: \(linesNameOnly.map { "\($0.city):\($0.name)" })"
+                )
+            }
+        }
+
+        XCTAssertEqual(matchedWithIDs, Set(expectedByName.keys))
+        XCTAssertEqual(matchedByNameOnly, Set(expectedByName.keys))
+    }
+
+    func testMetroLinesForSuburbanPassanteAndProblematicAliases() {
+        // Stazioni che prima attivavano erroneamente la metro di Milano
+        let mustHaveNoMetro = [
+            "Venezia Mestre",
+            "Venezia S.Lucia",
+            "Venezia Santa Lucia",
+            "Venezia Carpenedo",
+            "Venezia Porto Marghera",
+            "Bologna Centrale",
+            "Trieste Centrale",
+            "Treviso Centrale",
+            "Bari Centrale",
+            "Palermo Centrale",
+            "Pisa Centrale",
+            "Pavia Porta Garibaldi",
+            "Casalecchio Garibaldi",
+            "Domodossola",
+            "S.Cristoforo al Lago-Ischia",
+            "Viterbo Porta Romana",
+            "Potenza Macchia Romana",
+            "Sesto Fiorentino",
+            "Sesto Calende",
+            "Sesto Campano",
+            "Rho",
+            "Genova Piazza Principe",
+            "Verona Porta Nuova",
+            "Termini Imerese",
+            "Roma Aurelia",
+            "Vittoria"
+        ]
+        for name in mustHaveNoMetro {
+            let s = Station(name: name, rfiID: nil, vtID: nil, lat: nil, lon: nil)
+            XCTAssertTrue(s.metroLines.isEmpty, "\(name) must NOT show any metro lines")
+        }
+
+        // Alias legittimi Passante / Milano / Napoli
+        XCTAssertEqual(Set(Station(name: "Porta Venezia", rfiID: "1723", vtID: "S01649").metroLines.compactMap(\.pdfID)), ["P.TA VENEZIA"])
+        XCTAssertEqual(Set(Station(name: "P. Garibaldi Passante", rfiID: "1714", vtID: "S01647").metroLines.compactMap(\.pdfID)), ["GARIBALDI FS"])
+        XCTAssertEqual(Set(Station(name: "Repubblica", rfiID: "1719", vtID: "S01648").metroLines.compactMap(\.pdfID)), ["REPUBBLICA"])
+        XCTAssertEqual(Set(Station(name: "Dateo", rfiID: "3468", vtID: "S01650").metroLines.compactMap(\.pdfID)), ["DATEO"])
+        XCTAssertEqual(Set(Station(name: "Forlanini", rfiID: "3169", vtID: "S01492").metroLines.compactMap(\.pdfID)), ["STAZIONE FORLANINI"])
+        XCTAssertEqual(Set(Station(name: "Napoli Centrale", rfiID: "1888", vtID: "S09218").metroLines.map(\.city)), ["napoli"])
+        XCTAssertEqual(Set(Station(name: "Napoli Piazza Garibaldi", rfiID: "1880", vtID: "S09109").metroLines.map(\.city)), ["napoli"])
+
+        // localResolveUrbanLeg non deve scambiare stazioni non milanesi per Milano Centrale
+        XCTAssertNil(TrainManager.localResolveUrbanLeg(orig: "Bologna Centrale", dest: "Milano Porta Garibaldi", time: "10:00"))
+        XCTAssertNil(TrainManager.localResolveUrbanLeg(orig: "Napoli Centrale", dest: "Milano Lambrate", time: "10:00"))
+        XCTAssertNotNil(TrainManager.localResolveUrbanLeg(orig: "Milano Centrale", dest: "Milano Porta Garibaldi", time: "10:00"))
+
+        // formatDestination non deve mai rinominare stazioni di altre città in stazioni di Milano
+        XCTAssertEqual(SharedFormatters.formatDestination("Venezia Mestre"), "Venezia Mestre")
+        XCTAssertEqual(SharedFormatters.formatDestination("Venezia"), "Venezia")
+        XCTAssertEqual(SharedFormatters.formatDestination("Vittoria"), "Vittoria")
+        XCTAssertEqual(SharedFormatters.formatDestination("Trieste Centrale"), "Trieste Centrale")
+        XCTAssertEqual(SharedFormatters.formatDestination("Bologna Centrale"), "Bologna Centrale")
+        XCTAssertEqual(SharedFormatters.formatDestination("Napoli Piazza Garibaldi"), "Napoli Piazza Garibaldi")
+        XCTAssertEqual(SharedFormatters.formatDestination("Milano Porta Venezia"), "Milano P. Venezia")
+        XCTAssertEqual(SharedFormatters.formatDestination("Porta Venezia"), "Milano P. Venezia")
+        XCTAssertEqual(SharedFormatters.formatDestination("Milano Porta Vittoria"), "Milano P. Vittoria")
+    }
+
+    func testStationMatchesDoesNotCollideAcrossCities() {
+        let milanoCentrale = Station(name: "MILANO CENTRALE", rfiID: "1728", vtID: "S01700")
+        let bolognaCentrale = Station(name: "BOLOGNA CENTRALE", rfiID: "683", vtID: "S05043")
+        let triesteCentrale = Station(name: "TRIESTE CENTRALE", rfiID: "2925", vtID: "S03317")
+        let napoliCentrale = Station(name: "NAPOLI CENTRALE", rfiID: "1888", vtID: "S09218")
+        let milanoCentraleNoID = Station(name: "Milano Centrale", rfiID: nil, vtID: nil)
+        let bolognaCentraleNoID = Station(name: "Bologna Centrale", rfiID: nil, vtID: nil)
+
+        XCTAssertFalse(milanoCentrale.matches(bolognaCentrale))
+        XCTAssertFalse(milanoCentrale.matches(triesteCentrale))
+        XCTAssertFalse(milanoCentrale.matches(napoliCentrale))
+        XCTAssertFalse(milanoCentrale.matches(bolognaCentraleNoID))
+        XCTAssertFalse(milanoCentraleNoID.matches(bolognaCentrale))
+        XCTAssertTrue(milanoCentrale.matches(milanoCentraleNoID))
+
+        let milanoDomodossola = Station(name: "MILANO DOMODOSSOLA", rfiID: nil, vtID: "S01067")
+        let domodossola = Station(name: "DOMODOSSOLA", rfiID: "1253", vtID: "S01003")
+        let domodossolaNoID = Station(name: "Domodossola", rfiID: nil, vtID: nil)
+        XCTAssertFalse(milanoDomodossola.matches(domodossola))
+        XCTAssertFalse(milanoDomodossola.matches(domodossolaNoID))
+
+        let milanoCristoforo = Station(name: "MILANO S.CRISTOFORO", rfiID: "1721", vtID: "S01630")
+        let trentinoCristoforo = Station(name: "S.CRISTOFORO AL LAGO-ISCHIA", rfiID: "2480", vtID: "S02306")
+        XCTAssertFalse(milanoCristoforo.matches(trentinoCristoforo))
+
+        let milanoRomana = Station(name: "Milano Porta Romana", rfiID: nil, vtID: nil)
+        let viterboRomana = Station(name: "VITERBO PORTA ROMANA", rfiID: "3116", vtID: "S08306")
+        XCTAssertFalse(milanoRomana.matches(viterboRomana))
+
+        let rho = Station(name: "RHO", rfiID: "2345", vtID: "S01037")
+        let rhoFiera = Station(name: "RHO FIERA", rfiID: "3098", vtID: "S01039")
+        XCTAssertFalse(rho.matches(rhoFiera))
+
+        let garibaldiSup = Station(name: "MILANO PORTA GARIBALDI", rfiID: "1715", vtID: "S01645")
+        let garibaldiPass = Station(name: "MILANO PORTA GARIBALDI SOTTERRANEA", rfiID: "1714", vtID: "S01647")
+        let napoliGaribaldi = Station(name: "NAPOLI PIAZZA GARIBALDI", rfiID: "1880", vtID: "S09109")
+        let paviaGaribaldi = Station(name: "PAVIA PORTA GARIBALDI", rfiID: "2301", vtID: "S01861")
+        XCTAssertFalse(garibaldiSup.matches(garibaldiPass))
+        XCTAssertFalse(garibaldiSup.matches(napoliGaribaldi))
+        XCTAssertFalse(garibaldiSup.matches(paviaGaribaldi))
+
+        let milanoVenezia = Station(name: "MILANO PORTA VENEZIA", rfiID: "1723", vtID: "S01649")
+        let passanteVenezia = Station(name: "Porta Venezia", rfiID: nil, vtID: nil)
+        let veneziaMestre = Station(name: "VENEZIA MESTRE", rfiID: "3002", vtID: "S02589")
+        XCTAssertTrue(milanoVenezia.matches(passanteVenezia))
+        XCTAssertFalse(milanoVenezia.matches(veneziaMestre))
+
+        let milanoCertosa = Station(name: "MILANO CERTOSA", rfiID: "1708", vtID: "S01640")
+        let passanteCertosa = Station(name: "Certosa", rfiID: nil, vtID: nil)
+        let certosaPavia = Station(name: "CERTOSA DI PAVIA", rfiID: "1069", vtID: "S01803")
+        XCTAssertTrue(milanoCertosa.matches(passanteCertosa))
+        XCTAssertFalse(milanoCertosa.matches(certosaPavia))
+
+        let milanoRepubblica = Station(name: "MILANO REPUBBLICA", rfiID: "1719", vtID: "S01648")
+        let passanteRepubblica = Station(name: "Repubblica", rfiID: nil, vtID: nil)
+        XCTAssertTrue(milanoRepubblica.matches(passanteRepubblica))
+    }
+
+    @MainActor
+    func testResolveStationIdentityAcrossEntireRFICatalog() async throws {
+        struct RawRFIStation: Decodable {
+            let id: String?
+            let name: String
+            let vtID: String?
+        }
+
+        let catalogURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("In Orario")
+            .appendingPathComponent("rfi_stations.json")
+        let data = try Data(contentsOf: catalogURL)
+        let catalog = try JSONDecoder().decode([RawRFIStation].self, from: data)
+        XCTAssertGreaterThan(catalog.count, 3000)
+
+        let manager = TrainManager()
+        await manager.loadRFIStationsAsync()
+
+        // Nessun hijack alfabetico o troncamento parola
+        for entry in catalog {
+            let resolved = manager.resolveStation(name: entry.name)
+            XCTAssertFalse(resolved.name.isEmpty)
+            // Se i codici esistono, o corrispondono esattamente all'entry o a una stazione omonima legittima
+            if let expectedRfi = entry.id, !expectedRfi.isEmpty {
+                XCTAssertEqual(resolved.rfiID, expectedRfi, "rfiID mismatch resolving \(entry.name): got \(resolved.name) (\(resolved.rfiID ?? "nil"))")
+            }
+        }
+
+        // Casi specifici critici dell'audit
+        XCTAssertEqual(manager.resolveStation(name: "RIVAROLO").name, "RIVAROLO")
+        XCTAssertEqual(manager.resolveStation(name: "S.BIAGIO").name, "S.BIAGIO")
+        XCTAssertEqual(manager.resolveStation(name: "S.LORENZO").name, "S.LORENZO")
+        XCTAssertEqual(manager.resolveStation(name: "GENOVA PIAZZA PRINCIPE SOTTERRANEA").rfiID, "255")
+        XCTAssertEqual(manager.resolveStation(name: "GENOVA PIAZZA PRINCIPE").rfiID, "257")
+        XCTAssertEqual(manager.resolveStation(name: "SAN PAOLO").rfiID, "3155")
+        XCTAssertEqual(manager.resolveStation(name: "S.PAOLO").vtID, "S12423")
+        XCTAssertEqual(manager.resolveStation(name: "REGGIO MEDIOPADANA", fallbackVtID: "S05195").vtID, "S05195")
+        XCTAssertEqual(manager.resolveStation(name: "MILANO SCALO ROMANA").name, "MILANO SCALO ROMANA")
+        XCTAssertEqual(manager.resolveStation(name: "MILANO DOMODOSSOLA").vtID, "S01067")
+        XCTAssertEqual(manager.resolveStation(name: "DOMODOSSOLA").vtID, "S01003")
+        XCTAssertEqual(manager.resolveStation(name: "S.CRISTOFORO AL LAGO-ISCHIA").rfiID, "2480")
+        XCTAssertEqual(manager.resolveStation(name: "VITERBO PORTA ROMANA").rfiID, "3116")
+        XCTAssertEqual(manager.resolveStation(name: "Sesto San Giovanni").rfiID, "2716")
+        XCTAssertEqual(manager.resolveStation(name: "Torino P. Susa").rfiID, "3163")
+        XCTAssertEqual(manager.resolveStation(name: "Firenze S. M. Novella").rfiID, "1325")
+        XCTAssertEqual(manager.resolveStation(name: "Venezia S. Lucia").rfiID, "3009")
+    }
+
+    @MainActor
+    func testSettingsUsageTrackerAndHabitCommuteSlot() {
+        // 1. Cancella abitudini apprese svuota davvero tutte le fasce anche con preferiti presenti
+        let tracker = UsageTracker()
+        tracker.clearHistory()
+        let favStations = [
+            Station(name: "Magenta", rfiID: "1564", vtID: "S01040", lat: nil, lon: nil),
+            Station(name: "Milano Centrale", rfiID: "1728", vtID: "S01700", lat: nil, lon: nil)
+        ]
+        let favTrains = [
+            SavedTrain(number: "24627", description: "Novara - Pioltello", departureTime: "08:15")
+        ]
+        let emptySlots = tracker.learnedHabitsByTimeSlot(favoriteTrains: favTrains, favoriteStations: favStations)
+        XCTAssertTrue(emptySlots.allSatisfy { $0.isEmpty }, "After clearHistory(), all learned habit slots must be empty")
+
+        // 2. Ordine deterministico delle stazioni con stesso punteggio
+        let now = Date()
+        tracker.stationVisits = [
+            StationVisit(stationName: "Novara", vtID: nil, rfiID: nil, date: now, weekday: 2, hour: 8, gpsConfirmed: false),
+            StationVisit(stationName: "Arona", vtID: nil, rfiID: nil, date: now, weekday: 2, hour: 8, gpsConfirmed: false),
+            StationVisit(stationName: "Magenta", vtID: nil, rfiID: nil, date: now, weekday: 2, hour: 8, gpsConfirmed: false)
+        ]
+        let run1 = tracker.learnedHabitsByTimeSlot(favoriteTrains: [], favoriteStations: [])[0].stations.map { $0.name }
+        let run2 = tracker.learnedHabitsByTimeSlot(favoriteTrains: [], favoriteStations: [])[0].stations.map { $0.name }
+        XCTAssertEqual(run1, ["Arona", "Magenta", "Novara"])
+        XCTAssertEqual(run1, run2)
+        tracker.clearHistory()
+
+        // 3. Finestra oraria Viaggio abituale (lead 45m, trail 30m)
+        XCTAssertTrue(SupporterCommuteManager.isMinute(6 * 60 + 20, withinBand: "07:00 - 08:00"))
+        XCTAssertTrue(SupporterCommuteManager.isMinute(7 * 60 + 30, withinBand: "07:00 - 08:00"))
+        XCTAssertTrue(SupporterCommuteManager.isMinute(8 * 60 + 25, withinBand: "07:00 - 08:00"))
+        XCTAssertFalse(SupporterCommuteManager.isMinute(6 * 60 + 00, withinBand: "07:00 - 08:00"))
+        XCTAssertFalse(SupporterCommuteManager.isMinute(9 * 60 + 00, withinBand: "07:00 - 08:00"))
+        XCTAssertTrue(SupporterCommuteManager.isMinute(0 * 60 + 15, withinBand: "23:00 - 00:00"))
+
+        // 4. Visibilità sezioni Dashboard
+        let tm = TrainManager()
+        tm.setSectionVisible(.favoriteRoutes, false)
+        XCTAssertFalse(tm.isSectionVisible(.favoriteRoutes))
+        tm.setSectionVisible(.favoriteRoutes, true)
+        XCTAssertTrue(tm.isSectionVisible(.favoriteRoutes))
+    }
+
+    func testTipManagerResolveEntitlementPriorityAndRevocation() {
+        let yearly = TipManager.resolveEntitlement(from: [
+            (productID: TipManager.yearlySubscriptionID, originalID: 101, isRevoked: false)
+        ])
+        XCTAssertTrue(yearly.isSupporter)
+        XCTAssertEqual(yearly.tier, .yearly)
+        XCTAssertEqual(yearly.originalID, 101)
+
+        let lifetime = TipManager.resolveEntitlement(from: [
+            (productID: TipManager.lifetimeProductID, originalID: 202, isRevoked: false)
+        ])
+        XCTAssertTrue(lifetime.isSupporter)
+        XCTAssertEqual(lifetime.tier, .lifetime)
+        XCTAssertEqual(lifetime.originalID, 202)
+
+        let legacy = TipManager.resolveEntitlement(from: [
+            (productID: TipManager.legacyProductID, originalID: 303, isRevoked: false)
+        ])
+        XCTAssertTrue(legacy.isSupporter)
+        XCTAssertEqual(legacy.tier, .legacy)
+        XCTAssertEqual(legacy.originalID, 303)
+
+        // Lifetime has priority over yearly regardless of StoreKit enumeration order
+        let combined = TipManager.resolveEntitlement(from: [
+            (productID: TipManager.yearlySubscriptionID, originalID: 101, isRevoked: false),
+            (productID: TipManager.lifetimeProductID, originalID: 202, isRevoked: false)
+        ])
+        XCTAssertTrue(combined.isSupporter)
+        XCTAssertEqual(combined.tier, .lifetime)
+        XCTAssertEqual(combined.originalID, 202)
+
+        // Revoked transactions are ignored
+        let revokedOnly = TipManager.resolveEntitlement(from: [
+            (productID: TipManager.lifetimeProductID, originalID: 202, isRevoked: true)
+        ])
+        XCTAssertFalse(revokedOnly.isSupporter)
+        XCTAssertNil(revokedOnly.tier)
+        XCTAssertNil(revokedOnly.originalID)
+
+        let empty = TipManager.resolveEntitlement(from: [])
+        XCTAssertFalse(empty.isSupporter)
+        XCTAssertNil(empty.tier)
+        XCTAssertNil(empty.originalID)
+    }
+
+    @MainActor
+    func testAIFeatureManagerUpgradeAutoUnlocksCloudAndPreservesManualChoice() {
+        let defaults = UserDefaults.standard
+        let keys = [
+            "aiModeChoice",
+            "aiModeUserExplicitlyChosen",
+            "aiModeLastObservedSupport",
+            "premium_preferLocalAI",
+            "selectedModelID",
+            "tip.colazionee"
+        ]
+        var savedValues: [String: Any] = [:]
+        for k in keys {
+            if let v = defaults.object(forKey: k) {
+                savedValues[k] = v
+            }
+        }
+        defer {
+            for k in keys {
+                if let v = savedValues[k] {
+                    defaults.set(v, forKey: k)
+                } else {
+                    defaults.removeObject(forKey: k)
+                }
+            }
+        }
+
+        let ai = AIFeatureManager.shared
+        // 1. Utente Free che aveva scelto manualmente "Senza IA"
+        defaults.set(false, forKey: "aiModeLastObservedSupport")
+        ai.hasUserChosenAIMode = true
+        ai.aiModeChoice = .none
+        ai.preferLocalAI = false
+        ai.reconcileDefaultAIMode(hasSupport: false)
+        XCTAssertEqual(ai.aiModeChoice, .none)
+
+        // 2. Passaggio a Pro -> sblocca automaticamente Cloud IA anche se hasUserChosenAIMode era true
+        ai.reconcileDefaultAIMode(hasSupport: true)
+        XCTAssertEqual(ai.aiModeChoice, .cloud)
+        XCTAssertFalse(ai.preferLocalAI)
+        XCTAssertTrue(defaults.bool(forKey: "aiModeLastObservedSupport"))
+
+        // 3. Da Pro già attivo, una scelta manuale successiva (es. .none) viene rispettata
+        ai.aiModeChoice = .none
+        ai.hasUserChosenAIMode = true
+        ai.reconcileDefaultAIMode(hasSupport: true)
+        XCTAssertEqual(ai.aiModeChoice, .none)
+
+        // 4. Downgrade da .cloud -> lascia .cloud
+        ai.aiModeChoice = .cloud
+        ai.reconcileDefaultAIMode(hasSupport: false)
+        XCTAssertNotEqual(ai.aiModeChoice, .cloud)
+        XCTAssertFalse(defaults.bool(forKey: "aiModeLastObservedSupport"))
+    }
+
+    func testNewsAlwaysPrefersGeminiBackendAcrossAllRegionsAndModes() {
+        let regions = ["Tutte", "Lombardia", "Puglia", "Friuli Venezia Giulia", "Sicilia", "Valle d'Aosta"]
+        let modes: [AIFeatureManager.AIMode] = [.none, .local, .cloud]
+        for reg in regions {
+            for mode in modes {
+                for hasSupport in [false, true] {
+                    for preferLocal in [false, true] {
+                        XCTAssertTrue(
+                            TrainManager.shouldPreferBackendNews(
+                                hasSupport: hasSupport,
+                                strikeRegion: reg,
+                                aiModeChoice: mode,
+                                preferLocalAI: preferLocal
+                            ),
+                            "Expected Gemini backend news for region=\(reg), mode=\(mode), support=\(hasSupport)"
+                        )
+                    }
+                }
+            }
+        }
     }
 }

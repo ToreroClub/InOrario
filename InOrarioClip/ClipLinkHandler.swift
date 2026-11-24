@@ -96,12 +96,28 @@ public final class ClipLinkHandler: @unchecked Sendable {
         guard !clean.isEmpty else { return nil }
         
         let lower = clean.lowercased()
-        if lower.contains("porta di susa") || lower.contains("porta susa") {
+        if lower.contains("porta di susa") || lower.contains("porta susa") || lower == "torino p. susa" || lower == "torino p.susa" {
             clean = "Torino Porta Susa"
+        } else if lower == "torino porta nuova" || lower == "torino p. nuova" || lower == "torino p.nuova" {
+            clean = "Torino Porta Nuova"
         } else if lower.contains("expo rho") || lower.contains("rho fiera") || lower.contains("rho-fiera") {
             clean = "Rho Fiera"
         } else if lower.contains("mediopadana") {
             clean = "Reggio Emilia AV Mediopadana"
+        } else if lower.contains("firenze") && (lower.contains("smn") || lower.contains("s.m.n") || lower.contains("novella")) {
+            clean = "Firenze Santa Maria Novella"
+        } else if lower.contains("venezia") && (lower.contains("s.lucia") || lower.contains("s. lucia") || lower.contains("santa lucia")) {
+            clean = "Venezia S.Lucia"
+        } else if lower == "roma termini" || lower == "termini" {
+            clean = "Roma Termini"
+        } else if lower.contains("garibaldi") && !lower.contains("pavia") && !lower.contains("casalecchio") && !lower.contains("napoli") {
+            if lower.contains("passante") || lower.contains("sotterranea") {
+                clean = "Milano Porta Garibaldi Sotterranea"
+            } else {
+                clean = "Milano Porta Garibaldi"
+            }
+        } else if lower == "porta venezia" || lower == "p.ta venezia" || lower == "p. venezia" || lower == "milano porta venezia" || lower == "milano p.ta venezia" || lower == "milano p. venezia" {
+            clean = "Milano Porta Venezia"
         }
         
         let upper = clean.uppercased()
@@ -112,11 +128,20 @@ public final class ClipLinkHandler: @unchecked Sendable {
         let norm = normalize(clean)
         if let st = byNormalizedName[norm] { return st }
         
-        let matches = stations.filter {
-            let stNorm = normalize($0.name)
-            return stNorm.contains(norm) || norm.contains(stNorm)
+        let forwardMatches = stations.filter { normalize($0.name).contains(norm) }
+        if let best = forwardMatches.max(by: { $0.name.count < $1.name.count }) {
+            return best
         }
-        if let best = matches.max(by: { $0.name.count < $1.name.count }) {
+
+        let cleanLower = clean.lowercased()
+        let reverseMatches = stations.filter { st in
+            let stNorm = normalize(st.name)
+            guard stNorm.count >= 6, norm.contains(stNorm) else { return false }
+            let stLower = st.name.lowercased()
+            let escaped = NSRegularExpression.escapedPattern(for: stLower)
+            return cleanLower.range(of: "\\b\(escaped)\\b", options: .regularExpression) != nil
+        }
+        if let best = reverseMatches.max(by: { $0.name.count < $1.name.count }) {
             return best
         }
         
@@ -144,11 +169,27 @@ public final class ClipLinkHandler: @unchecked Sendable {
     
     private func normalize(_ text: String) -> String {
         return text.lowercased()
+            .replacingOccurrences(of: "p.za ", with: "piazza")
+            .replacingOccurrences(of: "p.za", with: "piazza")
+            .replacingOccurrences(of: "p.ta ", with: "porta")
+            .replacingOccurrences(of: "p.ta", with: "porta")
+            .replacingOccurrences(of: "p. ", with: "porta")
+            .replacingOccurrences(of: "p.", with: "porta")
+            .replacingOccurrences(of: "sant'", with: "san")
+            .replacingOccurrences(of: "sant ", with: "san")
+            .replacingOccurrences(of: "s. ", with: "san")
+            .replacingOccurrences(of: "s.", with: "san")
+            .replacingOccurrences(of: "santa ", with: "san")
+            .replacingOccurrences(of: "santa", with: "san")
+            .replacingOccurrences(of: "santo ", with: "san")
+            .replacingOccurrences(of: "santo", with: "san")
+            .replacingOccurrences(of: "c.le", with: "centrale")
             .replacingOccurrences(of: "-", with: "")
             .replacingOccurrences(of: "_", with: "")
             .replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: ".", with: "")
             .replacingOccurrences(of: "'", with: "")
+            .replacingOccurrences(of: "`", with: "")
             .folding(options: .diacriticInsensitive, locale: .current)
     }
 }

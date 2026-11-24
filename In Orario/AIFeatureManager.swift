@@ -42,6 +42,8 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     @AppStorage("lastLocalAIExecutionDate") private var lastExecutionDateStr: String = ""
     @AppStorage("premium_preferLocalAI") var preferLocalAI: Bool = false
     @AppStorage("aiModeChoice") var aiModeChoice: AIMode = .none  // none / local / cloud
+    @AppStorage("aiModeUserExplicitlyChosen") var hasUserChosenAIMode: Bool = false
+    @AppStorage("aiModeLastObservedSupport") private var lastObservedSupportForAI: Bool = false
     @AppStorage("spaceAlertDismissedAt") private var spaceAlertDismissedAtStr: String = ""
     @AppStorage("pendingDownloadModelID") var pendingModelID: String = ""
     
@@ -85,31 +87,16 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     private override init() {
         super.init()
         
-        // Impostiamo il default corretto in base all'hardware e al supporto se non ancora configurato
-        let hasTip = UserDefaults.standard.bool(forKey: "tip.colazionee")
-        if UserDefaults.standard.object(forKey: "aiModeChoice") == nil {
-            if isAppleIntelligenceAvailable {
-                aiModeChoice = .local
-                selectedModelID = "apple_intelligence"
-                preferLocalAI = true
-            } else if hasTip {
-                aiModeChoice = .cloud
-                preferLocalAI = false
-            } else {
-                aiModeChoice = .none
-                preferLocalAI = false
-            }
-        } else if isAppleIntelligenceAvailable {
-            if selectedModelID == "qwen3-0.6b-q3" || selectedModelID.isEmpty || selectedModelID.starts(with: "qwen") {
-                selectedModelID = "apple_intelligence"
-                if aiModeChoice != .cloud && aiModeChoice != .none {
-                    aiModeChoice = .local
-                }
-            }
-        } else {
-            if aiModeChoice == .local || (!hasTip && aiModeChoice == .cloud) {
-                aiModeChoice = .none
-                preferLocalAI = false
+        reconcileDefaultAIMode(hasSupport: UserDefaults.standard.bool(forKey: "tip.colazionee"))
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("PurchasesUpdated"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.reconcileDefaultAIMode(hasSupport: UserDefaults.standard.bool(forKey: "tip.colazionee"))
             }
         }
         
@@ -144,6 +131,66 @@ class AIFeatureManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
         }
     }
     
+    // MARK: - Default AI Mode Selection
+    /// Priorità automatica:
+    /// 1. Utente Pro/Cloud -> Cloud
+    /// 2. Utente base con Apple Intelligence -> Apple Intelligence (.local)
+    /// 3. Utente base senza Apple Intelligence -> Elaborazione locale (.none in aiModeChoice -> .localExactOnly nell'assistente)
+    nonisolated static func defaultAIMode(hasSupport: Bool, hasAppleIntelligence: Bool) -> AIMode {
+        if hasSupport { return .cloud }
+        if hasAppleIntelligence { return .local }
+        return .none
+    }
+
+    func reconcileDefaultAIMode(hasSupport: Bool) {
+        let appleAvailable = isAppleIntelligenceAvailable
+        let upgradedToSupport = hasSupport && !lastObservedSupportForAI
+        lastObservedSupportForAI = hasSupport
+
+        if upgradedToSupport {
+            aiModeChoice = .cloud
+            preferLocalAI = false
+            return
+        }
+
+        if !hasUserChosenAIMode || UserDefaults.standard.object(forKey: "aiModeChoice") == nil {
+            let target = Self.defaultAIMode(hasSupport: hasSupport, hasAppleIntelligence: appleAvailable)
+            aiModeChoice = target
+            switch target {
+            case .cloud:
+                preferLocalAI = false
+            case .local:
+                selectedModelID = "apple_intelligence"
+                preferLocalAI = true
+            case .none:
+                preferLocalAI = false
+            }
+            return
+        }
+
+        // Anche se l'utente ha fatto una scelta manuale, correggi stati non validi
+        if aiModeChoice == .cloud && !hasSupport {
+            if appleAvailable {
+                aiModeChoice = .local
+                selectedModelID = "apple_intelligence"
+                preferLocalAI = true
+            } else {
+                aiModeChoice = .none
+                preferLocalAI = false
+            }
+        } else if aiModeChoice == .local && !appleAvailable {
+            if hasSupport {
+                aiModeChoice = .cloud
+                preferLocalAI = false
+            } else {
+                aiModeChoice = .none
+                preferLocalAI = false
+            }
+        } else if appleAvailable && (selectedModelID == "qwen3-0.6b-q3" || selectedModelID.isEmpty || selectedModelID.starts(with: "qwen")) {
+            selectedModelID = "apple_intelligence"
+        }
+    }
+
     // MARK: - Hardware Check
     var isHardwareCompatible: Bool {
         let bytesInGB: UInt64 = 1024 * 1024 * 1024

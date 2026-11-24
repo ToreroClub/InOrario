@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UserNotifications
 
 // MARK: - Remote In-App Alert Model
 
@@ -31,6 +32,9 @@ class AppUpdateManager: ObservableObject {
     
     @Published var showUpdatePrompt: Bool = false
     @Published var showSupporterCommuteAlert: Bool = false
+    @Published var showNotificationPermissionPrompt: Bool = false
+    @Published var notificationPermissionAuthStatus: UNAuthorizationStatus = .notDetermined
+    var pendingNotificationSettingsReturn: Bool = false
     
     // Avviso remoto personalizzabile da server
     @Published var activeRemoteAlert: RemoteAlertInfo? = nil
@@ -43,6 +47,7 @@ class AppUpdateManager: ObservableObject {
     private let supporterCommuteSnoozedUntilKey = "supporter_commute_alert_snoozed_until"
     private let hasLaunchedBeforeKey = "has_launched_before_key"
     private let lastSeenRemoteAlertIdKey = "last_seen_remote_alert_id"
+    private let notificationPromptCampaignKey = "post_update_notification_prompt_v3_3_handled"
     var hasCheckedSupporterPopupThisLaunch: Bool = false
     
     var currentVersion: String {
@@ -122,9 +127,45 @@ class AppUpdateManager: ObservableObject {
         return majorNew > majorOld || (majorNew == majorOld && minorNew > minorOld)
     }
     
+    // MARK: - Post-Update Notification Permission Prompt (v3.3)
+    
+    func markNotificationPermissionPromptHandled() {
+        UserDefaults.standard.set(true, forKey: notificationPromptCampaignKey)
+    }
+    
+    func evaluatePostUpdateNotificationPrompt(canPresent: @escaping @MainActor () -> Bool) async {
+        guard !UserDefaults.standard.bool(forKey: notificationPromptCampaignKey) else { return }
+        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return }
+        
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            markNotificationPermissionPromptHandled()
+            return
+        case .notDetermined, .denied:
+            self.notificationPermissionAuthStatus = settings.authorizationStatus
+            guard canPresent() else { return }
+            self.showNotificationPermissionPrompt = true
+        @unknown default:
+            return
+        }
+    }
+    
+    func openSystemNotificationSettings() {
+        pendingNotificationSettingsReturn = true
+        if let notifUrl = URL(string: UIApplication.openNotificationSettingsURLString),
+           UIApplication.shared.canOpenURL(notifUrl) {
+            UIApplication.shared.open(notifUrl)
+        } else if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsUrl)
+        }
+    }
+    
+    // MARK: - Roadmap v3.4: Post-update Location Permission Prompt (deferred to v3.4 so notifications and location prompts are spaced across releases)
+    
     // MARK: - App Store & Backend Update Check
     
-    func checkForAvailableUpdates(hasSupport: Bool = false, force: Bool = false) async {
+    func checkForAvailableUpdates(hasSupport: Bool = false, strikeRegion: String = "Tutte", force: Bool = false) async {
         let now = Date().timeIntervalSince1970
         let lastCheck = UserDefaults.standard.double(forKey: lastCheckKey)
         
@@ -135,14 +176,14 @@ class AppUpdateManager: ObservableObject {
         UserDefaults.standard.set(now, forKey: lastCheckKey)
         
         // 1. Prova prima il backend rapido di In Orario (immediato, bypassa i ritardi di cache App Store)
-        let backendFound = await checkBackendUpdate(hasSupport: hasSupport)
+        let backendFound = await checkBackendUpdate(hasSupport: hasSupport, strikeRegion: strikeRegion)
         if backendFound { return }
         
         // 2. Controllo ufficiale App Store via iTunes Lookup
         await checkAppStoreUpdate()
     }
     
-    private func checkBackendUpdate(hasSupport: Bool) async -> Bool {
+    private func checkBackendUpdate(hasSupport: Bool, strikeRegion: String) async -> Bool {
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/app/version") else { return false }
         var request = URLRequest(url: url)
         request.timeoutInterval = 3.5
@@ -164,7 +205,7 @@ class AppUpdateManager: ObservableObject {
             
             // Gestione avviso personalizzato da server (se presente ed abilitato)
             if let alert = decoded.remote_alert, (alert.enabled ?? true), !alert.id.isEmpty {
-                self.evaluateAndShowRemoteAlert(alert, hasSupport: hasSupport)
+                self.evaluateAndShowRemoteAlert(alert, hasSupport: hasSupport, strikeRegion: strikeRegion)
             }
             
             if let latest = decoded.latest_version, Self.isVersion(latest, greaterThan: currentVersion) {
@@ -188,7 +229,7 @@ class AppUpdateManager: ObservableObject {
     
     // MARK: - Remote In-App Alert Handling
     
-    func evaluateAndShowRemoteAlert(_ alert: RemoteAlertInfo, hasSupport: Bool) {
+    func evaluateAndShowRemoteAlert(_ alert: RemoteAlertInfo, hasSupport: Bool, strikeRegion: String = "Tutte") {
         let lastSeenId = UserDefaults.standard.string(forKey: lastSeenRemoteAlertIdKey)
         let isCritical = alert.is_critical ?? false
         let alreadySeen = (lastSeenId == alert.id)
@@ -198,13 +239,20 @@ class AppUpdateManager: ObservableObject {
             return
         }
         
-        // Filtro destinatari: all, supporters, free
+        // Filtro destinatari: all, supporters, free, unset_region
         if let target = alert.target?.lowercased(), !target.isEmpty && target != "all" {
             if (target == "supporters" || target == "premium") && !hasSupport {
                 return
             }
             if target == "free" && hasSupport {
                 return
+            }
+            if target == "unset_region" {
+                let normRegion = strikeRegion.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let unsetValues = ["", "tutte", "nazionale", "nazionale / tutte", "tutta italia", "non impostata"]
+                if !unsetValues.contains(normRegion) {
+                    return
+                }
             }
         }
         
@@ -239,7 +287,7 @@ class AppUpdateManager: ObservableObject {
             if let urlStr = alert.primary_button_url, let url = URL(string: urlStr) {
                 UIApplication.shared.open(url)
             }
-        case "commute_setup", "support":
+        case "commute_setup", "support", "open_region_settings":
             onCustomAction(action)
         default:
             break
@@ -393,5 +441,182 @@ struct AppUpdatePromptSheet: View {
         .padding(20)
         .presentationDetents([.height(310)])
         .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Post-Update Notification Permission Prompt Sheet
+
+struct NotificationPermissionPromptSheet: View {
+    @ObservedObject var updateManager = AppUpdateManager.shared
+    @EnvironmentObject var manager: TrainManager
+    
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.orange.opacity(0.22), Color.blue.opacity(0.18)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 72, height: 72)
+                    Image(systemName: "bell.badge.fill")
+                        .font(.system(size: 34))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.orange, .red],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+                .padding(.top, 8)
+                
+                VStack(spacing: 6) {
+                    Text("Attiva le notifiche di In Orario")
+                        .font(.title3.bold())
+                        .multilineTextAlignment(.center)
+                    
+                    Text("Le notifiche risultano disattivate. Attivale per ricevere solo gli avvisi davvero utili per i tuoi viaggi:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                
+                VStack(spacing: 10) {
+                    NotificationFeatureRow(
+                        icon: "exclamationmark.triangle.fill",
+                        color: .orange,
+                        title: "Scioperi ferroviari",
+                        subtitle: "Avvisi in anticipo sugli scioperi nazionali e della tua regione, con orari e fasce garantite."
+                    )
+                    
+                    NotificationFeatureRow(
+                        icon: "tram.fill",
+                        color: .blue,
+                        title: "Monitoraggio treni",
+                        subtitle: "Ritardi, cambi di binario, partenze e aggiornamenti in tempo reale dei tuoi treni preferiti."
+                    )
+                    
+                    NotificationFeatureRow(
+                        icon: "megaphone.fill",
+                        color: .indigo,
+                        title: "Avvisi di circolazione",
+                        subtitle: "Guasti sulla linea, interruzioni improvvise e comunicazioni importanti sui trasporti."
+                    )
+                }
+                
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                    Text("Nessuna pubblicità o spam: puoi gestirle o disattivarle quando vuoi.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
+                
+                VStack(spacing: 10) {
+                    if updateManager.notificationPermissionAuthStatus == .denied {
+                        Button {
+                            Haptics.play(.medium)
+                            updateManager.markNotificationPermissionPromptHandled()
+                            updateManager.showNotificationPermissionPrompt = false
+                            updateManager.openSystemNotificationSettings()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "gearshape.fill")
+                                Text("Apri Impostazioni per attivarle")
+                                    .fontWeight(.bold)
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        
+                        Text("Ti porteremo nelle Impostazioni di iOS alla sezione Notifiche.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Button {
+                            Haptics.play(.medium)
+                            updateManager.markNotificationPermissionPromptHandled()
+                            updateManager.showNotificationPermissionPrompt = false
+                            manager.requestNotificationPermission()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "bell.badge.fill")
+                                Text("Attiva le notifiche")
+                                    .fontWeight(.bold)
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                    }
+                    
+                    Button {
+                        Haptics.play(.light)
+                        updateManager.markNotificationPermissionPromptHandled()
+                        updateManager.showNotificationPermissionPrompt = false
+                    } label: {
+                        Text("Non ora")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                    }
+                }
+            }
+            .padding(20)
+        }
+        .presentationDetents([.height(540), .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+private struct NotificationFeatureRow: View {
+    let icon: String
+    let color: Color
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(color.opacity(0.14))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.subheadline.bold())
+                    .foregroundColor(color)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.primary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

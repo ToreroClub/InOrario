@@ -619,10 +619,20 @@ struct StationBoardWidgetEntryView: View {
     
     private func formatDestination(_ name: String) -> String {
         let lower = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        if lower.contains("centrale") { return "Milano Centrale" }
-        if lower.contains("garibaldi") { return "Milano P. Garibaldi" }
-        if lower.contains("venezia") { return "Milano P. Venezia" }
-        if lower.contains("vittoria") { return "Milano P. Vittoria" }
+        if lower == "milano centrale" || lower == "centrale" || lower == "m. centrale" || lower == "m.centrale" || lower == "milano c.le" || lower == "milano cle" {
+            return "Milano Centrale"
+        }
+        if lower.contains("garibaldi") && !lower.contains("pavia") && !lower.contains("casalecchio") && !lower.contains("napoli") {
+            return "Milano P. Garibaldi"
+        }
+        if lower == "milano porta venezia" || lower == "milano p. venezia" || lower == "milano p.venezia" || lower == "milano p.ta venezia" ||
+           lower == "porta venezia" || lower == "p. venezia" || lower == "p.venezia" || lower == "p.ta venezia" {
+            return "Milano P. Venezia"
+        }
+        if lower == "milano porta vittoria" || lower == "milano p. vittoria" || lower == "milano p.vittoria" || lower == "milano p.ta vittoria" ||
+           lower == "porta vittoria" || lower == "p. vittoria" || lower == "p.vittoria" || lower == "p.ta vittoria" {
+            return "Milano P. Vittoria"
+        }
         if lower.contains("malpensa") {
             if lower.contains("2") { return "Malpensa T2" }
             return "Malpensa T1"

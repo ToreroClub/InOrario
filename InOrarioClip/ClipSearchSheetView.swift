@@ -8,6 +8,8 @@ public struct ClipSearchSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var locationManager = ClipLocationManager.shared
     @StateObject private var recentManager = ClipRecentTrainsManager.shared
+    @StateObject private var recentStationsManager = ClipRecentStationsManager.shared
+    @StateObject private var pinnedManager = ClipPinnedStationManager.shared
     @State private var searchQuery = ""
     
     public init(selectedStation: Binding<Station>, onSelectTrain: ((Train) -> Void)? = nil) {
@@ -28,6 +30,7 @@ public struct ClipSearchSheetView: View {
                                 HStack(spacing: 8) {
                                     ForEach(locationManager.nearbyStations.prefix(5)) { nearby in
                                         Button {
+                                            recentStationsManager.addStation(nearby.station)
                                             self.selectedStation = nearby.station
                                             Haptics.play(.medium)
                                             dismiss()
@@ -80,7 +83,62 @@ public struct ClipSearchSheetView: View {
                         }
                     }
                     
-                    // 2. Cronologia Treni Recenti (Verticale, occupa tutto lo spazio)
+                    // 2. Stazioni Recenti (Riga orizzontale dedicata)
+                    if !recentStationsManager.recentStations.isEmpty {
+                        Section {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(recentStationsManager.recentStations) { recentStation in
+                                        let isPinned = pinnedManager.isPinned(recentStation)
+                                        let isCurrent = recentStation.isSameStation(as: selectedStation)
+                                        Button {
+                                            recentStationsManager.addStation(recentStation)
+                                            self.selectedStation = recentStation
+                                            Haptics.play(.medium)
+                                            dismiss()
+                                        } label: {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: isPinned ? "pin.fill" : "clock.arrow.circlepath")
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundColor(.orange)
+                                                
+                                                Text(recentStation.formattedName)
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundColor(.primary)
+                                            }
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(isCurrent ? Color.orange.opacity(0.14) : Color(.secondarySystemGroupedBackground))
+                                            .clipShape(Capsule())
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(isCurrent ? Color.orange.opacity(0.5) : Color.primary.opacity(0.08), lineWidth: isCurrent ? 1 : 0.5)
+                                            )
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                }
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                            }
+                            .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 4, trailing: 0))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        } header: {
+                            HStack {
+                                Text("Stazioni Recenti")
+                                Spacer()
+                                Button("Cancella") {
+                                    Haptics.play(.light)
+                                    recentStationsManager.clear()
+                                }
+                                .font(.caption)
+                                .textCase(.none)
+                            }
+                        }
+                    }
+                    
+                    // 3. Cronologia Treni Recenti (Verticale, occupa tutto lo spazio)
                     if !recentManager.recentTrains.isEmpty {
                         Section {
                             ForEach(recentManager.recentTrains) { train in
@@ -220,6 +278,7 @@ public struct ClipSearchSheetView: View {
                         Section(header: Text("Stazioni")) {
                             ForEach(results) { station in
                                 Button {
+                                    recentStationsManager.addStation(station)
                                     self.selectedStation = station
                                     Haptics.play(.medium)
                                     dismiss()
@@ -236,7 +295,7 @@ public struct ClipSearchSheetView: View {
                                         
                                         Spacer()
                                         
-                                        if station.id == selectedStation.id || station.name.uppercased() == selectedStation.name.uppercased() {
+                                        if station.isSameStation(as: selectedStation) {
                                             Image(systemName: "checkmark")
                                                 .foregroundColor(.blue)
                                                 .fontWeight(.bold)

@@ -82,12 +82,14 @@ struct Haptics {
     @Published var searchRFIStationResults: [RFIStation] = []
     @Published var allRFIStations: [RFIStation] = []
     @Published var sectionOrder: [AppSection] = AppSection.allCases
+    @Published var hiddenSections: Set<AppSection> = []
     @Published var isSearching: Bool = false
     @Published var isLoading = false
     @Published var isStopsLoading = false
     @Published var stopErrorMessage: String? = nil
     @Published var deepLinkTrain: Train? = nil
     @Published var deepLinkStation: Station? = nil
+    @Published var pendingOpenRegionSettings: Bool = false
     @Published var lastFetchedStationKey: String = ""
     
     @Published var stationAlerts: String? = nil
@@ -96,6 +98,10 @@ struct Haptics {
     @Published var currentTrainBlockedLocations: [String] = []
     
     @Published var travelSolutions: [TravelSolution] = []
+    @Published var travelSolutionsSource: TravelSolutionsSource = .none
+    @Published var lastSearchSolutionsOriginID: String = ""
+    @Published var lastSearchSolutionsDestID: String = ""
+    @Published var lastSearchSolutionsDate: Date? = nil
     @Published var favoriteRoutes: [FavoriteRoute] = []
     @Published var savedTrips: [SavedTrip] = []
     @Published var isSearchingSolutions: Bool = false
@@ -109,10 +115,14 @@ struct Haptics {
     @Published var viewedRecentTrains: [SavedTrain] = []
     @Published var viewedRecentStations: [VTSearchStation] = []
     @Published var recentAssistantQueries: [String] = []
+    @Published var recentRoutes: [FavoriteRoute] = []
+    @Published var recentViewedTrips: [SavedTrip] = []
     
     private let viewedRecentTrainsKey = "viewedRecentTrains_v2"
     private let viewedRecentStationsKey = "viewedRecentStations_v2"
     private let recentAssistantQueriesKey = "recentAssistantQueries_v1"
+    private let recentRoutesKey = "recentRoutes_v1"
+    private let recentViewedTripsKey = "recentViewedTrips_v1"
     
     @Published var userName: String = ""
     @Published var iCloudSyncEnabled: Bool = false
@@ -122,6 +132,7 @@ struct Haptics {
     private let favoritesKey = "savedFavoriteTrains_v3"
     private let myStationsKey = "savedMyStations_v3"
     private let sectionOrderKey = "savedSectionOrder_v3"
+    private let hiddenSectionsKey = "hiddenDashboardSections_v1"
     private let favoriteRoutesKey = "savedFavoriteRoutes_v1"
     private let savedTripsKey = "savedTrips_v1"
     private let smartRoutesKey = "savedSmartRoutes_v1"
@@ -233,10 +244,10 @@ struct Haptics {
             if dest.isEmpty { return "" }
             
             let lower = dest.lowercased()
-            if lower.contains("milano") { return "Milano" }
-            if lower.contains("torino") { return "Torino" }
-            if lower.contains("venezia") { return "Venezia" }
-            if lower.contains("roma") { return "Roma" }
+            if lower.contains("milano") && !lower.contains("marittima") { return "Milano" }
+            if lower.contains("torino") && !lower.contains("sangro") { return "Torino" }
+            if lower.contains("venezia") && !lower.contains("porta") && !lower.contains("p.ta") && !lower.contains("p.") { return "Venezia" }
+            if lower == "roma" || lower.hasPrefix("roma ") || lower.contains(" roma") { return "Roma" }
             if lower.contains("genova") { return "Genova" }
             if lower.contains("bologna") { return "Bologna" }
             if lower.contains("napoli") { return "Napoli" }
@@ -268,6 +279,7 @@ struct Haptics {
     
     init() { 
         loadFavorites()
+        UserDefaults(suiteName: "group.carlo.InOrario")?.set(hasSupport(), forKey: "tip.colazionee")
         // Carica le stazioni RFI in background per non bloccare il main thread all'avvio
         Task { await loadRFIStationsAsync() }
         observeAllLiveActivityPushTokens()
@@ -275,8 +287,13 @@ struct Haptics {
         NotificationCenter.default.addObserver(forName: NSNotification.Name("PurchasesUpdated"), object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             Task { @MainActor in
+                let support = self.hasSupport()
+                UserDefaults(suiteName: "group.carlo.InOrario")?.set(support, forKey: "tip.colazionee")
+                AIFeatureManager.shared.reconcileDefaultAIMode(hasSupport: support)
                 self.objectWillChange.send()
                 self.syncRemoteNotifications()
+                self.syncLiveActivities()
+                WidgetCenter.shared.reloadAllTimelines()
             }
         }
         
@@ -293,6 +310,8 @@ struct Haptics {
         loadViewedRecentTrains()
         loadViewedRecentStations()
         loadRecentAssistantQueries()
+        loadRecentRoutes()
+        loadRecentViewedTrips()
         checkAndCleanOneShotNotifications()
     }
     
@@ -328,7 +347,7 @@ struct Haptics {
     
     /// Versione async di loadRFIStations: carica il JSON su un thread in background
     /// e poi aggiorna le proprietà pubblicate sul MainActor, evitando freeze all'avvio.
-    private func loadRFIStationsAsync() async {
+    func loadRFIStationsAsync() async {
         guard let url = Bundle.main.url(forResource: "rfi_stations", withExtension: "json") else { return }
         
         // Lettura e parsing su thread in background (nonisolated context di Task.detached)
@@ -614,6 +633,9 @@ struct Haptics {
         }
         
         if lower.contains("mediopadana") || (lower.contains("reggio") && lower.contains("av")) {
+            if validFallbackVt == "S05195" {
+                return Station(name: "REGGIO MEDIOPADANA", rfiID: nil, vtID: "S05195", lat: 44.7798, lon: 10.7441)
+            }
             return Station(name: "REGGIO EMILIA AV MEDIOPADANA", rfiID: "4054", vtID: "S05254", lat: 44.7798, lon: 10.7441)
         }
         if lower.contains("reggio") && lower.contains("calabria") && lower.contains("centrale") {
@@ -621,6 +643,9 @@ struct Haptics {
         }
         
         if lower.contains("piazza principe") || lower.contains("p.za principe") {
+            if lower.contains("sotterranea") {
+                return Station(name: "GENOVA PIAZZA PRINCIPE SOTTERRANEA", rfiID: "255", vtID: "S04701", lat: 44.414803, lon: 8.918041)
+            }
             return Station(name: "GENOVA PIAZZA PRINCIPE", rfiID: "257", vtID: "S04700", lat: 44.4172, lon: 8.9217)
         }
         if lower == "brignole" || lower == "genova brignole" {
@@ -643,46 +668,63 @@ struct Haptics {
             return Station(name: "PALERMO NOTARBARTOLO", rfiID: "1992", vtID: "S12134", lat: 38.1333, lon: 13.3444)
         }
         
-        // 3. Pulizia prefissi/suffissi urbani comuni aggiunti da Trenitalia/LeFrecce (es. " - Milano", " Milano", " - Roma", etc.)
-        let cleanedName = name
-            .replacingOccurrences(of: " - Milano", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: "-Milano", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " Milano", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " - Roma", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: "-Roma", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " Roma", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " - Torino", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: "-Torino", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " Torino", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " - Napoli", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: "-Napoli", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " Napoli", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " - Firenze", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: "-Firenze", with: "", options: .caseInsensitive)
-            .replacingOccurrences(of: " Firenze", with: "", options: .caseInsensitive)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // 3. Pulizia suffissi urbani espliciti aggiunti da Trenitalia/LeFrecce (es. " - Milano", "-Roma") senza intaccare parole interne (es. "Romana", "Romano")
+        var cleanedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trailingCitySuffixes = [
+            " - milano", "-milano",
+            " - roma", "-roma",
+            " - torino", "-torino",
+            " - napoli", "-napoli",
+            " - firenze", "-firenze"
+        ]
+        for suffix in trailingCitySuffixes {
+            if cleanedName.lowercased().hasSuffix(suffix) {
+                cleanedName = String(cleanedName.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+                break
+            }
+        }
         let cleanedLower = cleanedName.lowercased()
         let cleanedNorm = normalizeStationName(cleanedName)
         
         let cityPrefixes = ["milano", "roma", "torino", "firenze", "napoli", "genova", "bologna", "palermo", "venezia"]
-        
-        // 4. Ricerca nel catalogo ufficiale RFI (esatta, prefissata da città, o ripulita)
-        if let match = allRFIStations.first(where: { st in
-            let stLower = st.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            let stNorm = normalizeStationName(st.name)
-            if stLower == lower || stNorm == norm || stLower == cleanedLower || stNorm == cleanedNorm {
-                return true
-            }
-            for cp in cityPrefixes {
-                if stNorm == cp + norm || stNorm == cp + cleanedNorm {
-                    return true
-                }
-            }
-            return false
-        }) {
+
+        func buildStation(from match: RFIStation) -> Station {
             let rfi = (match.rfiID?.isEmpty == false ? match.rfiID : nil) ?? validFallbackRfi
             let vt = (match.vtID?.isEmpty == false ? match.vtID : nil) ?? validFallbackVt
             return Station(name: match.name, rfiID: rfi, vtID: vt, lat: match.lat, lon: match.lon)
+        }
+        
+        // 4a-1. Match esatto case-insensitive (es. distingue "SAN PAOLO" da "S.PAOLO")
+        if let literalMatch = allRFIStations.first(where: {
+            $0.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == lower
+        }) {
+            return buildStation(from: literalMatch)
+        }
+
+        // 4a-2. Match normalizzato nel catalogo ufficiale RFI (es. "Milano P. Venezia" -> "MILANO PORTA VENEZIA")
+        if let normalizedMatch = allRFIStations.first(where: {
+            normalizeStationName($0.name) == norm
+        }) {
+            return buildStation(from: normalizedMatch)
+        }
+
+        // 4b. Match esatto sul nome ripulito da suffisso città
+        if cleanedLower != lower, let cleanedMatch = allRFIStations.first(where: { st in
+            let stLower = st.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            let stNorm = normalizeStationName(st.name)
+            return stLower == cleanedLower || stNorm == cleanedNorm
+        }) {
+            return buildStation(from: cleanedMatch)
+        }
+
+        // 4c. Match con prefisso città (solo se non esiste un match esatto)
+        if let prefixMatch = allRFIStations.first(where: { st in
+            let stNorm = normalizeStationName(st.name)
+            return cityPrefixes.contains { cp in
+                stNorm == cp + norm || stNorm == cp + cleanedNorm
+            }
+        }) {
+            return buildStation(from: prefixMatch)
         }
         
         let rfi = getRfiID(for: name) ?? getRfiID(for: cleanedName) ?? validFallbackRfi
@@ -796,6 +838,10 @@ struct Haptics {
             self.sectionOrder = loaded
         }
         
+        if let data = UserDefaults.standard.data(forKey: hiddenSectionsKey), let decoded = try? JSONDecoder().decode([AppSection].self, from: data) {
+            self.hiddenSections = Set(decoded)
+        }
+        
         if let data = UserDefaults.standard.data(forKey: favoriteRoutesKey), let decoded = try? JSONDecoder().decode([FavoriteRoute].self, from: data) {
             self.favoriteRoutes = decoded
         }
@@ -845,6 +891,21 @@ struct Haptics {
         }
     }
     
+    func isSectionVisible(_ section: AppSection) -> Bool {
+        !hiddenSections.contains(section)
+    }
+
+    func setSectionVisible(_ section: AppSection, _ visible: Bool) {
+        if visible {
+            hiddenSections.remove(section)
+        } else {
+            hiddenSections.insert(section)
+        }
+        if let encoded = try? JSONEncoder().encode(Array(hiddenSections)) {
+            UserDefaults.standard.set(encoded, forKey: hiddenSectionsKey)
+        }
+    }
+
     func saveFavorites() {
         if let encoded = try? JSONEncoder().encode(favoriteTrains) { 
             UserDefaults.standard.set(encoded, forKey: favoritesKey) 
@@ -872,6 +933,9 @@ struct Haptics {
         }
         if let encoded = try? JSONEncoder().encode(sectionOrder) {
             UserDefaults.standard.set(encoded, forKey: sectionOrderKey)
+        }
+        if let encoded = try? JSONEncoder().encode(Array(hiddenSections)) {
+            UserDefaults.standard.set(encoded, forKey: hiddenSectionsKey)
         }
         
         do {
@@ -939,11 +1003,46 @@ struct Haptics {
     }
     
 
+    private func mergedRecentTrain(_ incoming: SavedTrain, existing: SavedTrain?) -> SavedTrain {
+        var merged = incoming
+        if let existing {
+            let incomingHasRange = incoming.description.contains(" - ") || incoming.description.contains(" → ") || incoming.description.contains(" ➔ ")
+            let existingHasRange = existing.description.contains(" - ") || existing.description.contains(" → ") || existing.description.contains(" ➔ ")
+            if !incomingHasRange && existingHasRange {
+                merged.description = existing.description
+            } else if merged.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                merged.description = existing.description
+            }
+            if merged.departureTime == nil || merged.departureTime == "--:--" || merged.departureTime?.isEmpty == true {
+                merged.departureTime = existing.departureTime
+            }
+            if merged.arrivalTime == nil || merged.arrivalTime == "--:--" || merged.arrivalTime?.isEmpty == true {
+                merged.arrivalTime = existing.arrivalTime
+            }
+            if let existingCat = existing.category, !existingCat.isEmpty {
+                let incomingCat = (merged.category ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if incomingCat.isEmpty || incomingCat.caseInsensitiveCompare("Treno") == .orderedSame {
+                    merged.category = existingCat
+                }
+            }
+        }
+        if let cat = merged.category {
+            merged.category = resolveTrainCategory(number: merged.number, rawCategory: cat, description: merged.description)
+        }
+        merged.lastViewedAt = Date()
+        return merged
+    }
+
+    private let maxHistoryItems = 200
+
     func addToRecentTrains(_ train: SavedTrain) {
+        let existing = recentTrains.first(where: { $0.number == train.number })
+            ?? viewedRecentTrains.first(where: { $0.number == train.number })
+        let merged = mergedRecentTrain(train, existing: existing)
         recentTrains.removeAll { $0.number == train.number }
-        recentTrains.insert(train, at: 0)
-        if recentTrains.count > 10 {
-            recentTrains.removeLast()
+        recentTrains.insert(merged, at: 0)
+        if recentTrains.count > maxHistoryItems {
+            recentTrains.removeLast(recentTrains.count - maxHistoryItems)
         }
         saveFavorites()
     }
@@ -951,11 +1050,11 @@ struct Haptics {
     func addToRecentStations(_ station: VTSearchStation) {
         let resolved = resolveStation(name: station.nomeLungo, fallbackVtID: station.vtID)
         let cleanVtID = resolved.vtID ?? station.vtID
-        let cleanStation = VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: cleanVtID)
+        let cleanStation = VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: cleanVtID, lastViewedAt: Date())
         recentStations.removeAll { $0.vtID == cleanStation.vtID || $0.nomeLungo.lowercased() == cleanStation.nomeLungo.lowercased() }
         recentStations.insert(cleanStation, at: 0)
-        if recentStations.count > 10 {
-            recentStations.removeLast()
+        if recentStations.count > maxHistoryItems {
+            recentStations.removeLast(recentStations.count - maxHistoryItems)
         }
         saveFavorites()
     }
@@ -970,12 +1069,23 @@ struct Haptics {
         saveFavorites()
     }
     
-    func addToViewedRecentTrains(number: String, description: String, departureTime: String?) {
-        let train = SavedTrain(number: number, description: description, notifyDelay: false, departureTime: departureTime)
-        viewedRecentTrains.removeAll { $0.number == train.number }
-        viewedRecentTrains.insert(train, at: 0)
-        if viewedRecentTrains.count > 10 {
-            viewedRecentTrains.removeLast()
+    func addToViewedRecentTrains(number: String, description: String, departureTime: String?, arrivalTime: String? = nil, category: String? = nil) {
+        let existing = viewedRecentTrains.first(where: { $0.number == number })
+            ?? recentTrains.first(where: { $0.number == number })
+        let incoming = SavedTrain(
+            number: number,
+            description: description,
+            notifyDelay: false,
+            departureTime: departureTime,
+            arrivalTime: arrivalTime,
+            category: category,
+            lastViewedAt: Date()
+        )
+        let merged = mergedRecentTrain(incoming, existing: existing)
+        viewedRecentTrains.removeAll { $0.number == number }
+        viewedRecentTrains.insert(merged, at: 0)
+        if viewedRecentTrains.count > maxHistoryItems {
+            viewedRecentTrains.removeLast(viewedRecentTrains.count - maxHistoryItems)
         }
         saveViewedRecentTrains()
         
@@ -1005,11 +1115,11 @@ struct Haptics {
     func addToViewedRecentStations(name: String, vtID: String) {
         let resolved = resolveStation(name: name, fallbackVtID: vtID)
         let cleanVtID = resolved.vtID ?? vtID
-        let station = VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: cleanVtID)
+        let station = VTSearchStation(nomeLungo: resolved.name, nomeBreve: resolved.name, vtID: cleanVtID, lastViewedAt: Date())
         viewedRecentStations.removeAll { $0.vtID == station.vtID || $0.nomeLungo.lowercased() == station.nomeLungo.lowercased() }
         viewedRecentStations.insert(station, at: 0)
-        if viewedRecentStations.count > 10 {
-            viewedRecentStations.removeLast()
+        if viewedRecentStations.count > maxHistoryItems {
+            viewedRecentStations.removeLast(viewedRecentStations.count - maxHistoryItems)
         }
         saveViewedRecentStations()
     }
@@ -1037,8 +1147,8 @@ struct Haptics {
         guard !trimmed.isEmpty else { return }
         recentAssistantQueries.removeAll { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
         recentAssistantQueries.insert(trimmed, at: 0)
-        if recentAssistantQueries.count > 15 {
-            recentAssistantQueries.removeLast(recentAssistantQueries.count - 15)
+        if recentAssistantQueries.count > 6 {
+            recentAssistantQueries.removeLast(recentAssistantQueries.count - 6)
         }
         saveRecentAssistantQueries()
     }
@@ -1066,6 +1176,95 @@ struct Haptics {
             self.recentAssistantQueries = decoded
         }
     }
+
+    func addRecentRoute(originName: String, originID: String, destName: String, destID: String) {
+        let cleanOrigin = originName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanDest = destName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanOrigin.isEmpty, !cleanDest.isEmpty, !originID.isEmpty, !destID.isEmpty else { return }
+
+        let normOrigin = normalizeStationName(cleanOrigin)
+        let normDest = normalizeStationName(cleanDest)
+        recentRoutes.removeAll { existing in
+            (existing.originID == originID && existing.destinationID == destID) ||
+            (normalizeStationName(existing.originName) == normOrigin && normalizeStationName(existing.destinationName) == normDest)
+        }
+        recentRoutes.insert(
+            FavoriteRoute(originName: cleanOrigin, originID: originID, destinationName: cleanDest, destinationID: destID, lastViewedAt: Date()),
+            at: 0
+        )
+        if recentRoutes.count > maxHistoryItems {
+            recentRoutes.removeLast(recentRoutes.count - maxHistoryItems)
+        }
+        saveRecentRoutes()
+    }
+
+    func removeRecentRoute(_ route: FavoriteRoute) {
+        recentRoutes.removeAll { $0.id == route.id }
+        saveRecentRoutes()
+    }
+
+    func clearRecentRoutes() {
+        recentRoutes = []
+        saveRecentRoutes()
+    }
+
+    func saveRecentRoutes() {
+        if let encoded = try? JSONEncoder().encode(recentRoutes) {
+            UserDefaults.standard.set(encoded, forKey: recentRoutesKey)
+        }
+    }
+
+    func loadRecentRoutes() {
+        if let data = UserDefaults.standard.data(forKey: recentRoutesKey),
+           let decoded = try? JSONDecoder().decode([FavoriteRoute].self, from: data) {
+            self.recentRoutes = decoded
+        }
+    }
+
+    func addRecentViewedTrip(solution: TravelSolution) {
+        let trip = SavedTrip.from(solution: solution, lastViewedAt: Date())
+        let cleanOrigin = trip.origin.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanDest = trip.destination.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanOrigin.isEmpty, !cleanDest.isEmpty else { return }
+
+        recentViewedTrips.removeAll { $0.id == trip.id }
+        recentViewedTrips.insert(trip, at: 0)
+        if recentViewedTrips.count > maxHistoryItems {
+            recentViewedTrips.removeLast(recentViewedTrips.count - maxHistoryItems)
+        }
+        saveRecentViewedTrips()
+    }
+
+    func removeRecentViewedTrip(id: String) {
+        recentViewedTrips.removeAll { $0.id == id }
+        saveRecentViewedTrips()
+    }
+
+    func clearRecentViewedTrips() {
+        recentViewedTrips = []
+        saveRecentViewedTrips()
+    }
+
+    func saveRecentViewedTrips() {
+        if let encoded = try? JSONEncoder().encode(recentViewedTrips) {
+            UserDefaults.standard.set(encoded, forKey: recentViewedTripsKey)
+        }
+    }
+
+    func loadRecentViewedTrips() {
+        if let data = UserDefaults.standard.data(forKey: recentViewedTripsKey),
+           let decoded = try? JSONDecoder().decode([SavedTrip].self, from: data) {
+            self.recentViewedTrips = decoded
+        }
+    }
+
+    func clearSearchSolutions() {
+        travelSolutions = []
+        travelSolutionsSource = .none
+        lastSearchSolutionsOriginID = ""
+        lastSearchSolutionsDestID = ""
+        lastSearchSolutionsDate = nil
+    }
     
     func removeRecentTrain(number: String) {
         recentTrains.removeAll { $0.number == number }
@@ -1090,7 +1289,20 @@ struct Haptics {
         var list: [VTSearchStation] = []
         var seenNames = Set<String>()
         var seenIDs = Set<String>()
-        let combined = viewedRecentStations + recentStations
+        let combined = (viewedRecentStations + recentStations).enumerated().sorted { lhs, rhs in
+            let ld = lhs.element.lastViewedAt
+            let rd = rhs.element.lastViewedAt
+            switch (ld, rd) {
+            case let (l?, r?) where l != r:
+                return l > r
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            default:
+                return lhs.offset < rhs.offset
+            }
+        }.map(\.element)
         for s in combined {
             let norm = normalizeStationName(s.nomeLungo)
             let id = s.vtID.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1106,13 +1318,21 @@ struct Haptics {
     var unifiedRecentTrains: [SavedTrain] {
         var list: [SavedTrain] = []
         var seen = Set<String>()
-        for t in viewedRecentTrains {
-            if !seen.contains(t.number) {
-                seen.insert(t.number)
-                list.append(t)
+        let combined = (viewedRecentTrains + recentTrains).enumerated().sorted { lhs, rhs in
+            let ld = lhs.element.lastViewedAt ?? lhs.element.addedDate
+            let rd = rhs.element.lastViewedAt ?? rhs.element.addedDate
+            switch (ld, rd) {
+            case let (l?, r?) where l != r:
+                return l > r
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            default:
+                return lhs.offset < rhs.offset
             }
-        }
-        for t in recentTrains {
+        }.map(\.element)
+        for t in combined {
             if !seen.contains(t.number) {
                 seen.insert(t.number)
                 list.append(t)
@@ -1267,34 +1487,68 @@ struct Haptics {
         saveFavorites()
     }
     
+    private func applyEnrichedStopsToSavedTrains(
+        trainNumber: String,
+        stops: [Stop],
+        detectedCategory: String?
+    ) {
+        guard let firstStop = stops.first, let lastStop = stops.last else { return }
+        let origin = firstStop.stationName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let destination = lastStop.stationName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fullDesc = (!origin.isEmpty && !destination.isEmpty) ? "\(origin) - \(destination)" : destination
+        let depTime = firstStop.time.trimmingCharacters(in: .whitespacesAndNewlines)
+        let arrTime = lastStop.time.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedCat = resolveTrainCategory(number: trainNumber, rawCategory: detectedCategory, description: fullDesc)
+
+        func apply(to item: inout SavedTrain) -> Bool {
+            var changed = false
+            if !fullDesc.isEmpty && item.description != fullDesc {
+                item.description = fullDesc
+                changed = true
+            }
+            if !depTime.isEmpty && depTime != "--:--" && item.departureTime != depTime {
+                item.departureTime = depTime
+                changed = true
+            }
+            if !arrTime.isEmpty && arrTime != "--:--" && item.arrivalTime != arrTime {
+                item.arrivalTime = arrTime
+                changed = true
+            }
+            if !resolvedCat.isEmpty && item.category != resolvedCat {
+                item.category = resolvedCat
+                changed = true
+            }
+            return changed
+        }
+
+        var viewedChanged = false
+        for idx in viewedRecentTrains.indices where viewedRecentTrains[idx].number == trainNumber {
+            if apply(to: &viewedRecentTrains[idx]) { viewedChanged = true }
+        }
+        if viewedChanged { saveViewedRecentTrains() }
+
+        var favOrRecentChanged = false
+        for idx in recentTrains.indices where recentTrains[idx].number == trainNumber {
+            if apply(to: &recentTrains[idx]) { favOrRecentChanged = true }
+        }
+        for idx in favoriteTrains.indices where favoriteTrains[idx].number == trainNumber {
+            if apply(to: &favoriteTrains[idx]) { favOrRecentChanged = true }
+        }
+        if favOrRecentChanged { saveFavorites() }
+    }
+
     /// Fetches live stops for a favorited train and updates departureTime (origin), arrivalTime (destination).
     func enrichFavoriteTrainData(trainNumber: String) async {
         let result = await fetchLiveStops(for: trainNumber)
         guard !result.stops.isEmpty else { return }
-        let firstStop = result.stops.first
-        let lastStop = result.stops.last
         await MainActor.run {
+            applyEnrichedStopsToSavedTrains(
+                trainNumber: trainNumber,
+                stops: result.stops,
+                detectedCategory: result.status.detectedCategory
+            )
             if let index = favoriteTrains.firstIndex(where: { $0.number == trainNumber }) {
                 var changed = false
-                if let newDep = firstStop?.time, favoriteTrains[index].departureTime != newDep {
-                    favoriteTrains[index].departureTime = newDep
-                    changed = true
-                }
-                if favoriteTrains[index].arrivalTime == nil, let newArr = lastStop?.time {
-                    favoriteTrains[index].arrivalTime = newArr
-                    changed = true
-                }
-                // Populate description with Origin - Destination if it's just the destination
-                let origin = firstStop?.stationName ?? ""
-                let destination = lastStop?.stationName ?? ""
-                if !origin.isEmpty && !destination.isEmpty {
-                    let newDesc = "\(origin) - \(destination)"
-                    if favoriteTrains[index].description != newDesc {
-                        favoriteTrains[index].description = newDesc
-                        changed = true
-                    }
-                }
-                
                 // Update cached delay for Widget fallback
                 let isCancelled = result.status.statusMessage.contains("Soppresso")
                 let stopDelay = result.stops.last?.delay ?? 0
@@ -1359,7 +1613,7 @@ struct Haptics {
                                 (train.notifyDeparture == true) ||
                                 (train.notifyStationPass == true) ||
                                 (train.notifyPlatformChange == true) ||
-                                (train.notifyScheduledTime == true && hasSupport())
+                                (train.notifyScheduledTime == true)
                 if isEnabled {
                     trainsPayload.append([
                         "train_number": train.number,
@@ -1372,7 +1626,7 @@ struct Haptics {
                         "active_days": train.activeDays ?? [],
                         "notify_platform_change": train.notifyPlatformChange ?? false,
                         "platform_change_station_name": train.platformChangeStationName ?? "",
-                        "notify_scheduled_time": hasSupport() ? (train.notifyScheduledTime ?? false) : false,
+                        "notify_scheduled_time": train.notifyScheduledTime ?? false,
                         "scheduled_notification_time": train.scheduledNotificationTime ?? ""
                     ])
                 }
@@ -1658,7 +1912,7 @@ struct Haptics {
         let notifyDeparture = trainPref?.notifyDeparture ?? false
         let notifyPlatformChange = trainPref?.notifyPlatformChange ?? false
         let platformChangeStationName = trainPref?.platformChangeStationName ?? ""
-        let notifyScheduledTime = hasSupport() ? (trainPref?.notifyScheduledTime ?? false) : false
+        let notifyScheduledTime = trainPref?.notifyScheduledTime ?? false
         let scheduledNotificationTime = trainPref?.scheduledNotificationTime ?? ""
         
         let limit = getLimit()
@@ -1742,12 +1996,12 @@ struct Haptics {
     func registerLiveActivityToken(pushToken: Data, trainNumber: String, deviceToken: String) {
         guard hasSupport() else { return }
         let tokenString = pushToken.map { String(format: "%02x", $0) }.joined()
+        let cacheKey = "\(deviceToken)|\(tokenString)"
         
-        // Evita chiamate duplicate per lo stesso token sullo stesso treno
-        if registeredLiveActivityTokens[trainNumber] == tokenString {
+        // Evita chiamate duplicate solo per la stessa coppia (deviceToken, pushToken) già confermata dal server
+        if registeredLiveActivityTokens[trainNumber] == cacheKey {
             return
         }
-        registeredLiveActivityTokens[trainNumber] = tokenString
         
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/liveactivity/register") else { return }
         let payload: [String: Any] = [
@@ -1755,12 +2009,14 @@ struct Haptics {
             "device_id": DeviceIdentityManager.shared.deviceID,
             "push_token": tokenString,
             "train_number": trainNumber,
-            "is_supporter": true
+            "is_supporter": true,
+            "has_support": true
         ]
         Task {
             do {
                 let (_, response) = try await NetworkService.shared.post(url: url, payload: payload)
                 if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                    self.registeredLiveActivityTokens[trainNumber] = cacheKey
                     print("Token LiveActivity registrato per treno \(trainNumber)")
                 }
             } catch {
@@ -1858,13 +2114,11 @@ struct Haptics {
     }
     
     func toggleSavedTrip(solution: TravelSolution) {
-        let tripId = "\(solution.origin)-\(solution.destination)-\(solution.departureTime)"
-        if let index = savedTrips.firstIndex(where: { $0.id == tripId }) {
+        let saved = SavedTrip.from(solution: solution)
+        if let index = savedTrips.firstIndex(where: { $0.id == saved.id }) {
             savedTrips.remove(at: index)
             Haptics.notify(.warning)
         } else {
-            let segs = solution.segments.map { SavedTripSegment(origin: $0.origin, destination: $0.destination, departureTime: $0.departureTime, arrivalTime: $0.arrivalTime, trainNumber: $0.trainNumber, trainCategory: $0.trainCategory) }
-            let saved = SavedTrip(id: tripId, origin: solution.origin, destination: solution.destination, departureTime: solution.departureTime, arrivalTime: solution.arrivalTime, duration: solution.duration, segments: segs)
             savedTrips.append(saved)
             Haptics.notify(.success)
         }
@@ -1906,6 +2160,11 @@ struct Haptics {
     
     func moveMyStations(from source: IndexSet, to destination: Int) {
         myStations.move(fromOffsets: source, toOffset: destination)
+        saveFavorites()
+    }
+    
+    func moveFavoriteRoutes(from source: IndexSet, to destination: Int) {
+        favoriteRoutes.move(fromOffsets: source, toOffset: destination)
         saveFavorites()
     }
     
@@ -2169,9 +2428,9 @@ nonisolated static func localResolveUrbanLeg(orig: String, dest: String, time: S
     
     func cleanStation(_ s: String) -> String {
         var str = s.uppercased()
-        let toRemove = ["MILANO ", "PASSANTE", "SUPERFICIE", "SOTTERRANEA", "FS", "F.S.", "POLITECNICO", "PORTA ", "P.TA ", "P. ", "P "]
-        for w in toRemove { str = str.replacingOccurrences(of: w, with: "") }
-        return str.trimmingCharacters(in: .whitespacesAndNewlines)
+        let toRemove = ["MILANO ", "PASSANTE", "SUPERFICIE", "SOTTERRANEA", "FS", "F.S.", "POLITECNICO", "PORTA ", "P.TA ", "P. ", "P ", "(", ")"]
+        for w in toRemove { str = str.replacingOccurrences(of: w, with: " ") }
+        return str.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
     
     var c1 = cleanStation(orig)
@@ -2183,20 +2442,20 @@ nonisolated static func localResolveUrbanLeg(orig: String, dest: String, time: S
         return nil
     }
     
-    if c1.contains("GARIBALDI") && !c1.contains("PAVIA") && !c1.contains("CASALECCHIO") && !c1.contains("NAPOLI") { c1 = "GARIBALDI" }
-    if c2.contains("GARIBALDI") && !c2.contains("PAVIA") && !c2.contains("CASALECCHIO") && !c2.contains("NAPOLI") { c2 = "GARIBALDI" }
-    if c1.contains("CENTRALE") { c1 = "CENTRALE" }
-    if c2.contains("CENTRALE") { c2 = "CENTRALE" }
-    if c1.contains("CADORNA") { c1 = "CADORNA" }
-    if c2.contains("CADORNA") { c2 = "CADORNA" }
-    if c1.contains("REPUBBLICA") { c1 = "REPUBBLICA" }
-    if c2.contains("REPUBBLICA") { c2 = "REPUBBLICA" }
-    if c1.contains("DATEO") { c1 = "DATEO" }
-    if c2.contains("DATEO") { c2 = "DATEO" }
-    if c1.contains("LAMBRATE") { c1 = "LAMBRATE" }
-    if c2.contains("LAMBRATE") { c2 = "LAMBRATE" }
-    if c1.contains("ROGOREDO") { c1 = "ROGOREDO" }
-    if c2.contains("ROGOREDO") { c2 = "ROGOREDO" }
+    if c1 == "GARIBALDI" { c1 = "GARIBALDI" }
+    if c2 == "GARIBALDI" { c2 = "GARIBALDI" }
+    if c1 == "CENTRALE" || c1 == "C.LE" { c1 = "CENTRALE" }
+    if c2 == "CENTRALE" || c2 == "C.LE" { c2 = "CENTRALE" }
+    if c1 == "CADORNA" || c1 == "NORD CADORNA" || c1 == "FN CADORNA" || c1 == "CADORNA FN" { c1 = "CADORNA" }
+    if c2 == "CADORNA" || c2 == "NORD CADORNA" || c2 == "FN CADORNA" || c2 == "CADORNA FN" { c2 = "CADORNA" }
+    if c1 == "REPUBBLICA" { c1 = "REPUBBLICA" }
+    if c2 == "REPUBBLICA" { c2 = "REPUBBLICA" }
+    if c1 == "DATEO" { c1 = "DATEO" }
+    if c2 == "DATEO" { c2 = "DATEO" }
+    if c1 == "LAMBRATE" { c1 = "LAMBRATE" }
+    if c2 == "LAMBRATE" { c2 = "LAMBRATE" }
+    if c1 == "ROGOREDO" { c1 = "ROGOREDO" }
+    if c2 == "ROGOREDO" { c2 = "ROGOREDO" }
     
     let routes: [String: [String: MetroDirectRoute]] = [
         "GARIBALDI": [
@@ -2402,7 +2661,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         
         // Risoluzione rapida alias noti per Trenitalia
         let uName = query.uppercased()
-        if uName.contains("GARIBALDI") {
+        if uName.contains("GARIBALDI") && !uName.contains("PAVIA") && !uName.contains("CASALECCHIO") && !uName.contains("NAPOLI") {
             if uName.contains("PASSANTE") || uName.contains("SOTTERRANEA") {
                 return 830001662 // Milano Porta Garibaldi Passante
             }
@@ -2504,10 +2763,12 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         date: Date,
         originName: String? = nil,
         destName: String? = nil,
+        source: TravelSolutionsSource = .favoriteRoute,
         onResolvedIDs: (@Sendable (String, String) -> Void)? = nil
     ) async {
         self.isSearchingSolutions = true
         self.travelSolutions = []
+        self.travelSolutionsSource = source
 
         let result = await queryTravelSolutionsDirect(
             originID: originID,
@@ -2526,6 +2787,12 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
             return
         }
         self.travelSolutions = result.solutions
+        self.travelSolutionsSource = source
+        if source == .searchView {
+            self.lastSearchSolutionsOriginID = result.resolvedOriginID
+            self.lastSearchSolutionsDestID = result.resolvedDestID
+            self.lastSearchSolutionsDate = date
+        }
         self.isSearchingSolutions = false
     }
     
@@ -2809,6 +3076,14 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
             self.currentTrainStatus = result.status
             self.stopErrorMessage = result.errorMessage
         }
+
+        if result.errorMessage == nil && !result.stops.isEmpty {
+            applyEnrichedStopsToSavedTrains(
+                trainNumber: cleanNumber,
+                stops: result.stops,
+                detectedCategory: result.status.detectedCategory ?? train.category
+            )
+        }
         
         self.fetchComfortReports(for: cleanNumber)
         
@@ -2995,7 +3270,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
             for await activity in Activity<TrainLiveActivityAttributes>.activityUpdates {
                 Task {
                     for await tokenData in activity.pushTokenUpdates {
-                        guard self.hasSupport() else { break }
+                        guard self.hasSupport() else { continue }
                         let deviceToken = self.getEffectiveDeviceToken()
                         self.registerLiveActivityToken(pushToken: tokenData, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
                     }
@@ -3016,7 +3291,7 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         for activity in Activity<TrainLiveActivityAttributes>.activities {
             Task {
                 for await tokenData in activity.pushTokenUpdates {
-                    guard self.hasSupport() else { break }
+                    guard self.hasSupport() else { continue }
                     let deviceToken = self.getEffectiveDeviceToken()
                     self.registerLiveActivityToken(pushToken: tokenData, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
                 }
@@ -3044,15 +3319,22 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     }
     
     func createDummyTrain(from saved: SavedTrain) -> Train {
-        var cat = "REG"
-        if isItaloTrain(category: nil, number: saved.number) || saved.description.localizedCaseInsensitiveContains("Italo") { cat = "Italo" }
-        else if saved.number.hasPrefix("20") || saved.number.hasPrefix("21") { cat = "RV" }
-        else if saved.number.hasPrefix("24") || saved.number.hasPrefix("10") { cat = "S" }
-        else if saved.number.hasPrefix("9") { cat = "FR" }
-        return Train(category: cat, number: saved.number, destination: saved.description.capitalized, time: "--:--", delay: "In orario", platform: "--")
+        let cat = saved.resolvedCategoryCode()
+        let depTime = (saved.departureTime?.isEmpty == false) ? saved.departureTime! : "--:--"
+        return Train(category: cat, number: saved.number, destination: saved.description.capitalized, time: depTime, delay: "In orario", platform: "--")
     }
     // MARK: - Hybrid AI / Fetching News
     
+    nonisolated static func shouldPreferBackendNews(
+        hasSupport: Bool,
+        strikeRegion: String,
+        aiModeChoice: AIFeatureManager.AIMode,
+        preferLocalAI: Bool
+    ) -> Bool {
+        // Il server genera già tramite Gemini scioperi e info lavori per TUTTE le regioni e li serve a tutti gli utenti.
+        return true
+    }
+
     func fetchStrikesAndNews(forceRefresh: Bool = false) async -> [NewsItem] {
         let strikeRegion = self.strikeRegion
         let isPremium = hasSupport()
@@ -3070,25 +3352,34 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         
         var result: [NewsItem]
         let aiManager = AIFeatureManager.shared
-        // Gli utenti con supporto attivo, oppure TUTTI gli utenti su "Lombardia" o "Tutte" (Nazionale), usano il Cloud backend con Gemini
-        let isFreeCloudEligible = strikeRegion == "Lombardia" || strikeRegion == "Tutte" || strikeRegion.lowercased().contains("nazional")
-        let canUseCloudBackend = (isPremium || isFreeCloudEligible) && !aiManager.preferLocalAI && aiManager.aiModeChoice != .none
+        let preferBackend = Self.shouldPreferBackendNews(
+            hasSupport: isPremium,
+            strikeRegion: strikeRegion,
+            aiModeChoice: aiManager.aiModeChoice,
+            preferLocalAI: aiManager.preferLocalAI
+        )
         
-        if canUseCloudBackend {
+        if preferBackend {
             let regionParam = strikeRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
             async let backendTask = fetchFromBackend(regionParam: regionParam)
             async let trenitaliaTask = LocalScrapingService.shared.scrapeTrenitalia(region: strikeRegion)
             let backendItems = await backendTask
             let localItems = await trenitaliaTask
-            result = backendItems + localItems.filter { $0.category == "realtime" }
-            
-            saveCache(items: result)
-        } else if aiManager.aiModeChoice == .local && (aiManager.isAppleIntelligenceAvailable || (aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled)) && smartSummaryEnabled {
+            if let backendItems = backendItems, !backendItems.isEmpty {
+                result = backendItems + localItems.filter { $0.category == "realtime" }
+                saveCache(items: result)
+                return Self.sortAndFilterNews(result)
+            }
+        }
+        
+        if aiManager.aiModeChoice == .local && (aiManager.isAppleIntelligenceAvailable || (aiManager.isHardwareCompatible && aiManager.isLocalModelInstalled)) && smartSummaryEnabled {
             let canRun = isPremium || aiManager.canRunFreeLocalAI()
             if canRun {
                 let items = await executeLocalScrapingAndAI(region: strikeRegion)
-                if !isPremium && !items.isEmpty {
-                    aiManager.recordLocalAIExecution()
+                if !items.isEmpty {
+                    if !isPremium {
+                        aiManager.recordLocalAIExecution()
+                    }
                     saveCache(items: items)
                 }
                 result = items
@@ -3165,15 +3456,18 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         return await trenitalia + ministero
     }
     
-    private func fetchFromBackend(regionParam: String) async -> [NewsItem] {
-        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)") else { return [] }
+    private func fetchFromBackend(regionParam: String) async -> [NewsItem]? {
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)") else { return nil }
         do {
-            let (data, _) = try await NetworkService.shared.get(url: url)
+            let (data, response) = try await NetworkService.shared.get(url: url)
+            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                return nil
+            }
             return try JSONDecoder().decode([NewsItem].self, from: data)
         } catch {
             AppLogger.decodingError(context: "NewsBackend:\(regionParam)", error: error)
             AppLogger.refreshFailed(target: "NewsBackend:\(regionParam)", error: error)
-            return []
+            return nil
         }
     }
     
@@ -3222,6 +3516,8 @@ enum RestoreOutcome: Equatable {
 
 @MainActor
 class TipManager: ObservableObject {
+    static let shared = TipManager()
+
     @Published var products: [Product] = []
     @Published var isLoadingProducts: Bool = true
     @Published var purchaseState: PurchaseState = .idle
@@ -3240,6 +3536,38 @@ class TipManager: ObservableObject {
     static let yearlySubscriptionID = "sub.supporter.yearly"
     static let lifetimeProductID = "tip.supporter.lifetime"
     static let subscriptionGroupID = "22552666"
+
+    nonisolated static func resolveEntitlement(
+        from entries: [(productID: String, originalID: UInt64, isRevoked: Bool)]
+    ) -> (isSupporter: Bool, tier: SupporterTierType?, originalID: UInt64?) {
+        func priority(for productID: String) -> (tier: SupporterTierType, rank: Int)? {
+            switch productID {
+            case lifetimeProductID:
+                return (.lifetime, 3)
+            case legacyProductID:
+                return (.legacy, 2)
+            case yearlySubscriptionID:
+                return (.yearly, 1)
+            default:
+                return nil
+            }
+        }
+
+        var bestTier: SupporterTierType? = nil
+        var bestRank = 0
+        var bestOriginalID: UInt64? = nil
+
+        for entry in entries where !entry.isRevoked {
+            guard let info = priority(for: entry.productID) else { continue }
+            if info.rank > bestRank {
+                bestRank = info.rank
+                bestTier = info.tier
+                bestOriginalID = entry.originalID
+            }
+        }
+
+        return (bestTier != nil, bestTier, bestOriginalID)
+    }
 
     var activeSubscriptionGroupID: String {
         products.first(where: { $0.subscription != nil })?.subscription?.subscriptionGroupID
@@ -3269,37 +3597,33 @@ class TipManager: ObservableObject {
     }
     
     func updatePurchases() async {
-        var isSupporter = false
-        var originalID: UInt64? = nil
-        var detectedTier: SupporterTierType? = nil
-        
+        var entries: [(productID: String, originalID: UInt64, isRevoked: Bool)] = []
         for await result in StoreKit.Transaction.currentEntitlements {
             if case .verified(let transaction) = result {
-                if transaction.productID == Self.legacyProductID {
-                    isSupporter = true
-                    originalID = transaction.originalID
-                    detectedTier = .legacy
-                } else if transaction.productID == Self.lifetimeProductID {
-                    isSupporter = true
-                    originalID = transaction.originalID
-                    detectedTier = .lifetime
-                } else if transaction.productID == Self.yearlySubscriptionID {
-                    isSupporter = true
-                    originalID = transaction.originalID
-                    detectedTier = .yearly
-                }
+                entries.append((
+                    productID: transaction.productID,
+                    originalID: transaction.originalID,
+                    isRevoked: transaction.revocationDate != nil
+                ))
             }
         }
-        
-        self.activeProductType = detectedTier
+
+        let resolved = Self.resolveEntitlement(from: entries)
+        let prevSupport = UserDefaults.standard.bool(forKey: "tip.colazionee")
+        let isSupporter = resolved.isSupporter
+
+        self.activeProductType = resolved.tier
         UserDefaults.standard.set(isSupporter, forKey: "tip.colazionee")
-        if let origID = originalID {
+        if let origID = resolved.originalID {
             let supporterKey = "sup_\(origID)"
             UserDefaults.standard.set(supporterKey, forKey: "supporter_eternal_id")
             NSUbiquitousKeyValueStore.default.set(supporterKey, forKey: "supporter_eternal_id")
         }
         if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
             groupDefaults.set(isSupporter, forKey: "tip.colazionee")
+        }
+        if prevSupport != isSupporter {
+            WidgetCenter.shared.reloadAllTimelines()
         }
         NotificationCenter.default.post(name: NSNotification.Name("PurchasesUpdated"), object: nil)
     }
@@ -3399,24 +3723,23 @@ class TipManager: ObservableObject {
     }
     
     private func deliver(_ transaction: StoreKit.Transaction) async {
-        let isSupporter = transaction.productID == Self.legacyProductID ||
-                          transaction.productID == Self.lifetimeProductID ||
-                          transaction.productID == Self.yearlySubscriptionID
+        let isSupporter = transaction.revocationDate == nil && (
+            transaction.productID == Self.legacyProductID ||
+            transaction.productID == Self.lifetimeProductID ||
+            transaction.productID == Self.yearlySubscriptionID
+        )
         
         if isSupporter {
             UserDefaults.standard.set(true, forKey: "tip.colazionee")
             let supporterKey = "sup_\(transaction.originalID)"
             UserDefaults.standard.set(supporterKey, forKey: "supporter_eternal_id")
             NSUbiquitousKeyValueStore.default.set(supporterKey, forKey: "supporter_eternal_id")
-        }
-        
-        if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
-            if isSupporter {
+            if let groupDefaults = UserDefaults(suiteName: "group.carlo.InOrario") {
                 groupDefaults.set(true, forKey: "tip.colazionee")
             }
         }
+        
         await updatePurchases()
-        NotificationCenter.default.post(name: NSNotification.Name("PurchasesUpdated"), object: nil)
     }
     
     func resetState() {

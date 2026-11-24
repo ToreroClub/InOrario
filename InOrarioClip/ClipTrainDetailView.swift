@@ -470,8 +470,9 @@ public struct ClipStationModalView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Imposta come stazione") {
+                    Button("Apri stazione") {
                         Haptics.play(.medium)
+                        ClipRecentStationsManager.shared.addStation(station)
                         onSelectStation?(station)
                         dismiss()
                     }

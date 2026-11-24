@@ -167,7 +167,7 @@ struct SavedTripsView: View {
                                         .fixedSize(horizontal: true, vertical: false)
                                         .layoutPriority(1)
                                         
-                                        let compactSummary = formatCompactTrainSegments(trip.segments)
+                                        let compactSummary = trip.compactTrainsSummary
                                         if !compactSummary.isEmpty {
                                             Text("•")
                                                 .font(.caption)
@@ -223,63 +223,6 @@ struct SavedTripsView: View {
                 .environmentObject(manager)
                 .environmentObject(locationManager)
         }
-    }
-    
-    private func formatCompactTrainSegments(_ segments: [SavedTripSegment]) -> String {
-        let formatted = segments.compactMap { seg -> String? in
-            let cat = seg.trainCategory.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            let num = seg.trainNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            // IMPORTANTE: 'suburbano' deve essere controllato PRIMA di 'urbano',
-            // altrimenti la parola 'suburbano' contiene la sottostringa 'urbano' e viene scambiata per mezzo urbano!
-            var prefix = ""
-            if cat.contains("suburbano") || cat == "s" {
-                prefix = "S"
-            } else if cat.contains("regionale veloce") || cat == "rv" {
-                prefix = "RV"
-            } else if cat.contains("regioexpress") || cat == "re" {
-                prefix = "RE"
-            } else if cat.contains("regionale") || cat == "r" || cat == "reg" {
-                prefix = "R"
-            } else if cat.contains("frecciarossa") || cat == "fr" {
-                prefix = "FR"
-            } else if cat.contains("frecciargento") || cat == "fa" {
-                prefix = "FA"
-            } else if cat.contains("frecciabianca") || cat == "fb" {
-                prefix = "FB"
-            } else if cat.contains("frecce") {
-                prefix = "FR"
-            } else if cat.contains("alta velocit") || cat == "av" {
-                prefix = "AV"
-            } else if cat.contains("intercity notte") || cat == "icn" {
-                prefix = "ICN"
-            } else if cat.contains("intercity") || cat == "ic" {
-                prefix = "IC"
-            } else if cat.contains("eurocity") || cat == "ec" {
-                prefix = "EC"
-            } else if cat.contains("euronight") || cat == "en" {
-                prefix = "EN"
-            } else if cat.contains("malpensa") || cat == "mxp" {
-                prefix = "MXP"
-            } else if cat.contains("italo") {
-                prefix = "Italo"
-            } else if cat.contains("urbano") || cat.contains("metro") || num.lowercased().contains("urbano") || num.lowercased().contains("metro") {
-                return "Urb"
-            } else if !seg.trainCategory.isEmpty && seg.trainCategory != "Treno" {
-                prefix = String(seg.trainCategory.prefix(3)).uppercased()
-            }
-            
-            if num.isEmpty {
-                return prefix.isEmpty ? nil : prefix
-            }
-            if !prefix.isEmpty && num.uppercased().hasPrefix(prefix.uppercased()) {
-                return num
-            }
-            return "\(prefix)\(num)"
-        }
-        
-        if formatted.isEmpty { return "" }
-        return formatted.joined(separator: " + ")
     }
 }
 
@@ -426,7 +369,8 @@ struct FavoriteRouteSolutionView: View {
             destID: currentDestID,
             date: Date(),
             originName: currentOriginName,
-            destName: currentDestName
+            destName: currentDestName,
+            source: .favoriteRoute
         )
         usageTracker.recordRouteSearch(originID: currentOriginID, originName: currentOriginName, destID: currentDestID, destName: currentDestName, location: locationManager.userLocation?.coordinate)
     }

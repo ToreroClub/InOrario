@@ -3,6 +3,7 @@ import StoreKit
 import EventKit
 import ActivityKit
 import WidgetKit
+import CoreLocation
 
 enum NewsCategory: String, CaseIterable, Identifiable {
     case sciopero = "Scioperi"
@@ -340,23 +341,41 @@ struct SuburbanFavoriteRouteCardView: View {
 }
 
 struct ProfileView: View {
+    var highlightRegionSelector: Bool = false
+
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
     @EnvironmentObject var usageTracker: UsageTracker
+    @EnvironmentObject var locationManager: LocationManager
     @Environment(\.dismiss) var dismiss
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @AppStorage("metroMilanoBetaEnabled") private var metroMilanoBetaEnabled = false
 
-    @StateObject private var tipManager = TipManager()
+    @ObservedObject private var tipManager = TipManager.shared
     @ObservedObject private var updateManager = AppUpdateManager.shared
     @State private var showPaywallSheet = false
     @State private var showFeedbackSheet = false
     @State private var showManageSubscriptions = false
+    @State private var detectedGPSRegion: String? = nil
+    @State private var didSelectRegionFromHighlight: Bool = false
+
+    private let italianRegions: [String] = [
+        "Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna",
+        "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche",
+        "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana",
+        "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"
+    ]
     
     var body: some View {
         NavigationStack {
-            List {
-                if !manager.hasSupport() {
+            ScrollViewReader { scrollProxy in
+                List {
+                    if highlightRegionSelector {
+                        prominentRegionSelectorSection
+                            .id("region_selector_top")
+                    }
+
+                    if !manager.hasSupport() {
                     Section(header: Text("In Orario Pro")) {
                         Button {
                             Haptics.play(.light)
@@ -424,21 +443,23 @@ struct ProfileView: View {
                 }
 
                 Section(header: Text("Generali e notifiche")) {
-                    HStack {
-                        Label("Regione", systemImage: "globe")
-                            .foregroundColor(.blue)
-                            .font(.headline)
-                        Spacer()
-                        Picker("", selection: $manager.strikeRegion) {
-                            Text("Nazionale / Tutte").tag("Tutte")
-                            ForEach(["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"], id: \.self) { region in
-                                Text(region).tag(region)
+                    if !highlightRegionSelector {
+                        HStack {
+                            Label("Regione", systemImage: "globe")
+                                .foregroundColor(.blue)
+                                .font(.headline)
+                            Spacer()
+                            Picker("", selection: $manager.strikeRegion) {
+                                Text("Nazionale / Tutte").tag("Tutte")
+                                ForEach(italianRegions, id: \.self) { region in
+                                    Text(region).tag(region)
+                                }
                             }
+                            .pickerStyle(.menu)
                         }
-                        .pickerStyle(.menu)
-                    }
-                    .onChange(of: manager.strikeRegion) { _, _ in
-                        manager.saveFavorites()
+                        .onChange(of: manager.strikeRegion) { _, _ in
+                            manager.saveFavorites()
+                        }
                     }
                     
                     NavigationLink(destination: NotificationsSettingsView()) {
@@ -470,11 +491,25 @@ struct ProfileView: View {
                             .font(.headline)
                     }
                     
-                    if manager.hasSupport() {
-                        NavigationLink(destination: CommuteSetupView()) {
+                    NavigationLink(destination: CommuteSetupView()) {
+                        HStack(spacing: 8) {
                             Label("Abitudini di viaggio", systemImage: "clock.arrow.2.circlepath")
-                                .foregroundColor(.pink)
+                                .foregroundColor(manager.hasSupport() ? .pink : .secondary)
                                 .font(.headline)
+                            if !manager.hasSupport() {
+                                Spacer()
+                                HStack(spacing: 4) {
+                                    Text("Pro")
+                                        .font(.caption2.bold())
+                                    Image(systemName: "lock.fill")
+                                        .font(.caption2)
+                                }
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.14))
+                                .clipShape(Capsule())
+                            }
                         }
                     }
                 }
@@ -597,6 +632,27 @@ struct ProfileView: View {
                 }
                 
             }
+            .onAppear {
+                if highlightRegionSelector {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            scrollProxy.scrollTo("region_selector_top", anchor: .top)
+                        }
+                    }
+                    tryDetectGPSRegion()
+                }
+            }
+            .onChange(of: highlightRegionSelector) { _, highlighted in
+                if highlighted {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            scrollProxy.scrollTo("region_selector_top", anchor: .top)
+                        }
+                    }
+                    tryDetectGPSRegion()
+                }
+            }
+            }
             .navigationTitle("Impostazioni")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -657,6 +713,166 @@ struct ProfileView: View {
         }
     }
     
+    private var prominentRegionSelectorSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .center, spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.blue, .teal],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "globe.europe.africa.fill")
+                            .font(.title3.bold())
+                            .foregroundColor(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Seleziona la tua regione")
+                            .font(.title3.bold())
+                            .foregroundColor(.primary)
+                        Text("Scegli la regione in cui viaggi di più per ricevere solo scioperi, avvisi e notizie ferroviarie rilevanti per te.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Menu {
+                    Button {
+                        selectHighlightedRegion("Tutte")
+                    } label: {
+                        HStack {
+                            Text("🇮🇹 Nazionale / Tutte")
+                            if manager.strikeRegion == "Tutte" {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    Divider()
+                    ForEach(italianRegions, id: \.self) { region in
+                        Button {
+                            selectHighlightedRegion(region)
+                        } label: {
+                            HStack {
+                                Text(region)
+                                if manager.strikeRegion == region {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .font(.headline)
+                        Text(manager.strikeRegion == "Tutte" ? "🇮🇹 Nazionale / Tutte" : manager.strikeRegion)
+                            .font(.headline.bold())
+                            .lineLimit(1)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.subheadline.bold())
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 52)
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .indigo],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: Color.blue.opacity(0.25), radius: 6, x: 0, y: 3)
+                }
+
+                if let detected = detectedGPSRegion, detected != manager.strikeRegion {
+                    Button {
+                        selectHighlightedRegion(detected)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "location.fill")
+                                .font(.caption.bold())
+                            Text("Usa regione rilevata: \(detected)")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.subheadline)
+                        }
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color.green.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if manager.strikeRegion != "Tutte" || didSelectRegionFromHighlight {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(manager.strikeRegion == "Tutte"
+                             ? "Preferenza salvata: Nazionale / Tutte."
+                             : "Regione impostata: \(manager.strikeRegion). Ora riceverai avvisi mirati!")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.green.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private func selectHighlightedRegion(_ region: String) {
+        manager.strikeRegion = region
+        manager.saveFavorites()
+        didSelectRegionFromHighlight = (region != "Tutte")
+        Haptics.notify(.success)
+    }
+
+    private func tryDetectGPSRegion() {
+        let auth = locationManager.authorizationStatus
+        guard auth == .authorizedWhenInUse || auth == .authorizedAlways else { return }
+
+        let regionsList = italianRegions
+        Task {
+            let loc: CLLocation?
+            if let existing = locationManager.userLocation {
+                loc = existing
+            } else {
+                loc = await locationManager.getCurrentLocation(maxAge: 300, timeout: 3)
+            }
+            guard let loc else { return }
+            CLGeocoder().reverseGeocodeLocation(loc) { placemarks, _ in
+                guard let admin = placemarks?.first?.administrativeArea else { return }
+                let matched = regionsList.first {
+                    $0.localizedCaseInsensitiveCompare(admin) == .orderedSame ||
+                    admin.localizedCaseInsensitiveContains($0) ||
+                    $0.localizedCaseInsensitiveContains(admin)
+                }
+                if let matched {
+                    DispatchQueue.main.async {
+                        self.detectedGPSRegion = matched
+                    }
+                }
+            }
+        }
+    }
+
     private var supporterRoleTitle: LocalizedStringKey {
         switch tipManager.activeProductType {
         case .yearly:
@@ -1079,27 +1295,29 @@ struct CustomizeHubView: View {
 struct CustomizeDashboardView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
-    @State private var showNewSmartRouteSheet = false
     
     @AppStorage("rememberNearbyState") private var rememberNearbyState = true
     @AppStorage("rememberMyStationsState") private var rememberMyStationsState = false
     @AppStorage("rememberFavoriteTrainsState") private var rememberFavoriteTrainsState = true
+    @AppStorage("rememberFavoriteRoutesState") private var rememberFavoriteRoutesState = true
     @AppStorage("rememberPassanteState") private var rememberPassanteState = true
-    @AppStorage("showSuburbanLines") private var showSuburbanLines = true
     
     var body: some View {
         List {
-            Section(header: Text("Visualizzazione")) {
-                Toggle(isOn: $showSuburbanLines) {
-                    Label("Mostra Linee Suburbane", systemImage: "tram.fill")
-                        .foregroundColor(.green)
-                        .font(.headline)
-                }
-            }
-
-            Section(header: Text("Ordine Sezioni Dashboard")) {
+            Section(
+                header: Text("Ordine Sezioni Dashboard"),
+                footer: Text("Trascina le sezioni per riordinarle e usa gli interruttori per mostrarle o nasconderle nella Home.")
+            ) {
                 ForEach(manager.sectionOrder, id: \.self) { section in
-                    Text(section.rawValue).font(.headline)
+                    Toggle(isOn: Binding(
+                        get: { manager.isSectionVisible(section) },
+                        set: { newValue in
+                            Haptics.play(.medium)
+                            manager.setSectionVisible(section, newValue)
+                        }
+                    )) {
+                        Text(section.rawValue).font(.headline)
+                    }
                 }
                 .onMove { from, to in
                     Haptics.play(.medium)
@@ -1108,7 +1326,7 @@ struct CustomizeDashboardView: View {
                 }
             }
             
-            Section(header: Text("Comportamento Espansione"), footer: Text("Scegli se mantenere in memoria lo stato aperto o chiuso delle varie sezioni.")) {
+            Section(header: Text("Comportamento Espansione"), footer: Text("Scegli se mantenere in memoria lo stato aperto o chiuso delle varie sezioni. Se disattivo, le sezioni si aprono di default (tranne il Passante, che resta chiuso).")) {
                 Toggle("Ricorda stato Stazioni Preferite", isOn: Binding(
                     get: { rememberMyStationsState },
                     set: { newValue in
@@ -1123,6 +1341,13 @@ struct CustomizeDashboardView: View {
                         Haptics.play(.medium)
                     }
                 ))
+                Toggle("Ricorda stato Tratte Abituali", isOn: Binding(
+                    get: { rememberFavoriteRoutesState },
+                    set: { newValue in
+                        rememberFavoriteRoutesState = newValue
+                        Haptics.play(.medium)
+                    }
+                ))
                 if !passanteManager.selectedSuburbanLines.isEmpty {
                     Toggle("Ricorda stato Passante", isOn: Binding(
                         get: { rememberPassanteState },
@@ -1133,67 +1358,27 @@ struct CustomizeDashboardView: View {
                     ))
                 }
             }
-            
-            Section(header: Text("Le Mie Tratte Preferite")) {
-                if manager.favoriteRoutes.isEmpty {
-                    Text("Nessuna tratta preferita configurata.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .italic()
-                } else {
-                    ForEach(manager.favoriteRoutes) { route in
-                        HStack {
-                            HStack(spacing: 6) {
-                                Image(systemName: "star.fill").foregroundColor(.yellow)
-                                Text("\(route.originName) ➔ \(route.destinationName)")
-                                    .font(.subheadline.bold())
-                            }
-                            Spacer()
-                            Button(role: .destructive) {
-                                Haptics.play(.medium)
-                                manager.toggleFavoriteRoute(originName: route.originName, originID: route.originID, destName: route.destinationName, destID: route.destinationID)
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-                        }
-                    }
-                }
-                
-                Button(action: {
-                    Haptics.play(.light)
-                    showNewSmartRouteSheet = true
-                }) {
-                    Label("Aggiungi Tratta Preferita", systemImage: "plus.circle")
-                        .foregroundColor(.orange)
-                        .font(.headline)
-                }
-                .buttonStyle(BorderlessButtonStyle())
-            }
         }
-        .navigationTitle("Dashboard")
+        .navigationTitle("Personalizza Home")
         .environment(\.editMode, .constant(.active))
-        .sheet(isPresented: $showNewSmartRouteSheet) {
-            PassanteQuickSetupView()
-                .environmentObject(manager)
-        }
     }
 }
 
 struct CustomizePassanteView: View {
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
-    @AppStorage("showSuburbanLines") private var showSuburbanLines = true
     
     var body: some View {
         List {
-            Section(header: Text("Visualizzazione sulla Dashboard"), footer: Text("Abilita la visualizzazione del Passante e delle linee suburbane nella schermata principale per consultarne partenze e stato della rete.")) {
-                Toggle(isOn: $showSuburbanLines) {
-                    Label("Mostra Linee Suburbane", systemImage: "tram.fill")
+            Section {
+                HStack(spacing: 10) {
+                    Image(systemName: "tram.fill")
                         .foregroundColor(.green)
-                        .font(.headline)
+                    Text("Attiva almeno una linea suburbana per mostrarla nella Home. Se tutte sono disattivate, la sezione non viene mostrata.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+                .padding(.vertical, 2)
             }
             
             ForEach(SuburbanData.shared.allLines) { line in
@@ -1383,9 +1568,11 @@ struct CustomizeWidgetView: View {
 }
 
 struct NotificationsSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
     @ObservedObject private var commuteManager = SupporterCommuteManager.shared
+    var showCloseButton: Bool = false
     @State private var selectedTrainForConfig: SavedTrain? = nil
     @State private var showPaywallSheet = false
     @State private var isSummaryDaysExpanded = false
@@ -1437,10 +1624,15 @@ struct NotificationsSettingsView: View {
                         showPaywallSheet = true
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Label("Riepilogo sulle abitudini di viaggio", systemImage: "calendar.badge.clock")
-                                    .foregroundColor(.secondary)
-                                Spacer()
+                            HStack(spacing: 8) {
+                                Toggle(isOn: .constant(false)) {
+                                    Label("Abilita riepilogo programmato", systemImage: "calendar.badge.clock")
+                                        .foregroundColor(.secondary)
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .allowsHitTesting(false)
+                                .tint(.secondary)
+
                                 Text("Solo Pro")
                                     .font(.caption2.bold())
                                     .foregroundColor(.orange)
@@ -1448,16 +1640,18 @@ struct NotificationsSettingsView: View {
                                     .padding(.vertical, 2)
                                     .background(Color.orange.opacity(0.14))
                                     .cornerRadius(6)
+
                                 Image(systemName: "lock.fill")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            Text("Verifica automatica della linea prima della tua fascia di andata e ritorno (tutto regolare o eventuali disservizi).")
+                            Text("Disponibile solo per gli utenti Pro. Tocca per attivare In Orario Pro.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 4)
                         .opacity(0.6)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 } else {
@@ -1649,6 +1843,16 @@ struct NotificationsSettingsView: View {
         }
         .navigationTitle("Notifiche")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Chiudi") {
+                        dismiss()
+                    }
+                    .fontWeight(.bold)
+                }
+            }
+        }
         .sheet(item: $selectedTrainForConfig) { train in
             if let index = manager.favoriteTrains.firstIndex(where: { $0.id == train.id }) {
                 TrainNotificationConfigSheet(train: Binding(
@@ -1751,6 +1955,7 @@ struct TrainNotificationConfigSheet: View {
     @State private var isLoadingStops = false
     @State private var showPaywallSheet = false
     @State private var notificationNoticeMessage: String? = nil
+    @State private var lastSelectedDays: [Int] = [1, 2, 3, 4, 5, 6, 7]
     
     private var dummy: Train {
         manager.createDummyTrain(from: train)
@@ -1851,7 +2056,7 @@ struct TrainNotificationConfigSheet: View {
                 
                 Section(header: Text("Notifica di Base"), footer: Group {
                     if !manager.hasSupport() {
-                        Text("Per via dei costi dei server, l'account gratuito consente di attivare le notifiche per 1 solo treno alla volta. Se attivi le notifiche per questo treno, verranno disattivate sugli altri.")
+                        Text("Con l'account gratuito puoi attivare le notifiche per 1 solo treno alla volta. Se le attivi su questo treno, verranno disattivate sugli altri.")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -1908,18 +2113,76 @@ struct TrainNotificationConfigSheet: View {
                     )) {
                         Text("Notifica variazione Ritardo")
                     }
-                    
-                    if train.notifyDelay ?? false {
-                        DaySelectorView(
-                            activeDays: $train.activeDays,
-                            isDisabled: !manager.hasSupport(),
-                            onTapDisabled: {
-                                showPaywallSheet = true
+                }
+                
+                if train.notifyDelay ?? false {
+                    let isOnlyToday = (train.activeDays ?? []).isEmpty
+                    Section(
+                        header: Text("Giorni e orario"),
+                        footer: Text(isOnlyToday
+                                     ? "La notifica è attiva solo per oggi e si disattiverà automaticamente a fine giornata."
+                                     : "La notifica è attiva nei giorni selezionati.")
+                    ) {
+                        Toggle(isOn: Binding(
+                            get: { (train.activeDays ?? []).isEmpty },
+                            set: { onlyToday in
+                                if onlyToday {
+                                    if let existing = train.activeDays, !existing.isEmpty {
+                                        lastSelectedDays = existing
+                                    }
+                                    train.activeDays = []
+                                } else {
+                                    train.activeDays = lastSelectedDays.isEmpty ? [1, 2, 3, 4, 5, 6, 7] : lastSelectedDays
+                                }
+                                saveAndSync()
                             }
-                        ) {
-                            saveAndSync()
+                        )) {
+                            Text("Solo per oggi")
                         }
-                        .padding(.vertical, 4)
+                        
+                        if !isOnlyToday {
+                            DaySelectorView(
+                                activeDays: $train.activeDays,
+                                isDisabled: false
+                            ) {
+                                saveAndSync()
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        
+                        Toggle(isOn: Binding(
+                            get: { train.notifyScheduledTime ?? false },
+                            set: { newValue in
+                                train.notifyScheduledTime = newValue
+                                if newValue && (train.scheduledNotificationTime ?? "").isEmpty {
+                                    train.scheduledNotificationTime = defaultScheduledTime()
+                                }
+                                saveAndSync()
+                            }
+                        )) {
+                            Text("Notifica a un orario specifico")
+                        }
+                        
+                        if train.notifyScheduledTime ?? false {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("Orario notifica:")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    DatePicker("", selection: scheduledTimeBinding, displayedComponents: .hourAndMinute)
+                                        .labelsHidden()
+                                        .environment(\.locale, Locale(identifier: "it_IT"))
+                                        .environment(\.timeZone, TimeZone(identifier: "Europe/Rome") ?? .current)
+                                }
+                                Text(isOnlyToday
+                                     ? "Oggi all'orario scelto riceverai un riepilogo sullo stato del treno (in orario, ritardo o soppressione)."
+                                     : "Nei giorni selezionati riceverai, sempre a quest'ora, un riepilogo sullo stato del treno (in orario, ritardo o soppressione).")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 8)
+                        }
                     }
                 }
                 
@@ -2034,51 +2297,6 @@ struct TrainNotificationConfigSheet: View {
                                 loadStops()
                             }
                         }
-                        
-                        Toggle(isOn: Binding(
-                            get: { manager.hasSupport() && (train.notifyScheduledTime ?? false) },
-                            set: { newValue in
-                                if !manager.hasSupport() {
-                                    Haptics.notify(.warning)
-                                    train.notifyScheduledTime = false
-                                    showPaywallSheet = true
-                                    return
-                                }
-                                train.notifyScheduledTime = newValue
-                                if newValue && (train.scheduledNotificationTime ?? "").isEmpty {
-                                    train.scheduledNotificationTime = defaultScheduledTime()
-                                }
-                                saveAndSync()
-                            }
-                        )) {
-                            HStack(spacing: 6) {
-                                Text("Notifica a un orario specifico")
-                                if !manager.hasSupport() {
-                                    Text("(Solo Pro)")
-                                        .font(.caption2)
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                        }
-                        
-                        if (train.notifyScheduledTime ?? false) && manager.hasSupport() {
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Text("Orario notifica:")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    DatePicker("", selection: scheduledTimeBinding, displayedComponents: .hourAndMinute)
-                                        .labelsHidden()
-                                        .environment(\.locale, Locale(identifier: "it_IT"))
-                                        .environment(\.timeZone, TimeZone(identifier: "Europe/Rome") ?? .current)
-                                }
-                                Text("Riceverai un riepilogo sullo stato del treno (in orario, ritardo o soppressione) all'orario scelto.")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.leading, 8)
-                        }
                     }
                 }
             }
@@ -2086,10 +2304,11 @@ struct TrainNotificationConfigSheet: View {
             .navigationTitle("Impostazioni Notifiche")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fatto") {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Chiudi") {
                         dismiss()
                     }
+                    .fontWeight(.bold)
                 }
             }
             .sheet(isPresented: $showPaywallSheet) {
@@ -2203,7 +2422,7 @@ struct DaySelectorView: View {
             
             HStack(spacing: 6) {
                 ForEach(days, id: \.0) { dayNum, label in
-                    let isSelected = (activeDays == nil || activeDays!.contains(dayNum)) && !isDisabled
+                    let isSelected = (activeDays?.contains(dayNum) ?? false) && !isDisabled
                     Button(action: {
                         if isDisabled {
                             Haptics.play(.light)
@@ -2234,7 +2453,7 @@ struct DaySelectorView: View {
     }
     
     private func toggleDay(_ dayNum: Int) {
-        var current = activeDays ?? [1, 2, 3, 4, 5, 6, 7]
+        var current = activeDays ?? []
         if current.contains(dayNum) {
             current.removeAll(where: { $0 == dayNum })
         } else {
@@ -2242,11 +2461,7 @@ struct DaySelectorView: View {
             current.sort()
         }
         
-        if current.count == 7 {
-            activeDays = nil
-        } else {
-            activeDays = current
-        }
+        activeDays = current
         onToggle()
     }
 }
@@ -2281,7 +2496,7 @@ struct SmartSuggestionsSettingsView: View {
 
             Section(
                 header: Text("Abitudini apprese"),
-                footer: Text("L'algoritmo valuta in modo combinato i treni e le stazioni salvati nei preferiti (inclusa la loro anzianità nel tempo), le aperture dei tabelloni e i dettagli dei treni consultati nelle diverse fasce orarie. I dati sono memorizzati solo in locale sul tuo iPhone.")
+                footer: Text("Le abitudini si basano solo su ciò che consulti davvero: aperture dei tabelloni e treni consultati in giorni diversi nella stessa fascia oraria. I preferiti non influenzano il punteggio. I dati restano solo sul tuo iPhone.")
             ) {
                 if !hasAnyData {
                     VStack(alignment: .leading, spacing: 8) {

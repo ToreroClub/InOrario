@@ -317,6 +317,9 @@ struct TravelSolutionDetailsView: View {
                 }
             }
         }
+        .onAppear {
+            manager.addRecentViewedTrip(solution: solution)
+        }
     }
 }
 
@@ -863,7 +866,7 @@ struct SearchView: View {
     
     init(
         isTravelOnly: Bool = false,
-        initialTab: Int = 0,
+        initialTab: Int = 1,
         initialAssistantMode: Bool = false,
         autoStartVoice: Bool = false,
         initialQuery: String? = nil,
@@ -964,26 +967,26 @@ struct SearchView: View {
                 .background(Color(.systemGroupedBackground))
 
                 if !isTravelOnly {
+                    let isSolutionsSelected = !isAssistantMode && selectedTab == 1
+                    let isTrainsSelected = !isAssistantMode && selectedTab == 0
+
                     HStack(spacing: 10) {
-                        Picker("Sezione", selection: Binding(
-                            get: { isAssistantMode ? -1 : selectedTab },
-                            set: { newValue in
-                                Haptics.play(.light)
-                                guard newValue >= 0 else { return }
+                        searchModePill(
+                            title: "Soluzioni",
+                            systemImage: "arrow.triangle.swap",
+                            isSelected: isSolutionsSelected,
+                            minimumScaleFactor: 0.85
+                        ) {
+                            Haptics.play(.light)
+                            voiceController.stopListening(triggerFinal: false)
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
                                 isAssistantMode = false
-                                voiceController.stopListening(triggerFinal: false)
-                                selectedTab = newValue
-                                if newValue == 1 {
-                                    query = ""
-                                    manager.searchResults = []
-                                    manager.searchStationResults = []
-                                }
+                                selectedTab = 1
                             }
-                        )) {
-                            Text("Treni e Stazioni").tag(0)
-                            Text("Soluzioni").tag(1)
+                            query = ""
+                            manager.searchResults = []
+                            manager.searchStationResults = []
                         }
-                        .pickerStyle(.segmented)
 
                         Button {
                             Haptics.play(.medium)
@@ -1010,14 +1013,14 @@ struct SearchView: View {
                                             endPoint: .bottomTrailing
                                         )
                                     )
-                                    .frame(width: 34, height: 34)
+                                    .frame(width: 38, height: 38)
                                     .shadow(
                                         color: (voiceController.isListening ? Color.pink : Color.purple).opacity(isAssistantMode ? 0.45 : 0.18),
                                         radius: isAssistantMode ? 6 : 3
                                     )
 
                                 Image(systemName: voiceController.isListening ? "waveform" : "sparkles")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(.white)
                                     .symbolEffect(.variableColor.iterative, isActive: voiceController.isListening)
                             }
@@ -1026,9 +1029,24 @@ struct SearchView: View {
                                     .stroke(Color.primary.opacity(isAssistantMode ? 0.28 : 0.08), lineWidth: isAssistantMode ? 1.5 : 0.5)
                             )
                         }
+                        .buttonStyle(.plain)
                         .accessibilityLabel(isAssistantMode ? "Parla con l'assistente" : "Assistente intelligente")
+
+                        searchModePill(
+                            title: "Treni e Stazioni",
+                            systemImage: "magnifyingglass",
+                            isSelected: isTrainsSelected,
+                            minimumScaleFactor: 0.8
+                        ) {
+                            Haptics.play(.light)
+                            voiceController.stopListening(triggerFinal: false)
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                isAssistantMode = false
+                                selectedTab = 0
+                            }
+                        }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 6)
                     .background(Color(.systemGroupedBackground))
@@ -1091,24 +1109,29 @@ struct SearchView: View {
                     destID = (initialDestID?.isEmpty == false ? initialDestID : nil) ?? resolvedDest.rfiID ?? resolvedDest.vtID ?? initDest
                     searchDate = Date()
                     if autoSearchSolutions {
-                        hasSearchedSolutions = true
-                        Task {
-                            await manager.searchTravelSolutions(
-                                originID: originID,
-                                destID: destID,
-                                date: searchDate,
-                                originName: originName,
-                                destName: destName,
-                                onResolvedIDs: { newOrig, newDest in
-                                    originID = newOrig
-                                    destID = newDest
-                                }
-                            )
-                        }
+                        performSolutionsSearch(
+                            originName: originName,
+                            originID: originID,
+                            destName: destName,
+                            destID: destID,
+                            date: searchDate
+                        )
                     }
-                } else if originID.isEmpty || destID.isEmpty {
-                    manager.travelSolutions = []
+                } else if manager.travelSolutionsSource == .searchView,
+                          !manager.travelSolutions.isEmpty,
+                          !originID.isEmpty,
+                          !destID.isEmpty,
+                          originID == manager.lastSearchSolutionsOriginID,
+                          destID == manager.lastSearchSolutionsDestID {
+                    if let savedDate = manager.lastSearchSolutionsDate {
+                        searchDate = savedDate
+                    }
+                    hasSearchedSolutions = true
+                } else {
                     hasSearchedSolutions = false
+                    if originID.isEmpty || destID.isEmpty || manager.travelSolutionsSource == .searchView {
+                        manager.clearSearchSolutions()
+                    }
                 }
                 if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
                     locationManager.requestLocation()
@@ -1131,6 +1154,102 @@ struct SearchView: View {
                 voiceController.stopListening(triggerFinal: false)
                 assistantSearchTask?.cancel()
             }
+        }
+    }
+
+    @ViewBuilder
+    private func searchModePill(
+        title: LocalizedStringKey,
+        systemImage: String,
+        isSelected: Bool,
+        minimumScaleFactor: CGFloat = 0.85,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(minimumScaleFactor)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
+            .padding(.horizontal, 8)
+            .foregroundColor(isSelected ? .white : .primary)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.blue : Color(.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.primary.opacity(isSelected ? 0 : 0.08), lineWidth: 0.5)
+            )
+            .shadow(color: isSelected ? Color.blue.opacity(0.22) : .clear, radius: 4, y: 1)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var hasSearchGeneratedResults: Bool {
+        !manager.isSearchingSolutions
+        && manager.travelSolutionsSource == .searchView
+        && !manager.travelSolutions.isEmpty
+        && !originID.isEmpty
+        && !destID.isEmpty
+    }
+
+    private var inputsMatchLastSearch: Bool {
+        guard !originID.isEmpty,
+              !destID.isEmpty,
+              originID == manager.lastSearchSolutionsOriginID,
+              destID == manager.lastSearchSolutionsDestID,
+              let lastDate = manager.lastSearchSolutionsDate else {
+            return false
+        }
+        return Calendar.current.isDate(searchDate, equalTo: lastDate, toGranularity: .minute)
+    }
+
+    private var shouldShowClearSolutionsButton: Bool {
+        hasSearchGeneratedResults && inputsMatchLastSearch
+    }
+
+    private func performSolutionsSearch(
+        originName origName: String,
+        originID origID: String,
+        destName dName: String,
+        destID dID: String,
+        date: Date
+    ) {
+        hasSearchedSolutions = true
+        manager.addRecentRoute(originName: origName, originID: origID, destName: dName, destID: dID)
+        Task {
+            await manager.searchTravelSolutions(
+                originID: origID,
+                destID: dID,
+                date: date,
+                originName: origName,
+                destName: dName,
+                source: .searchView,
+                onResolvedIDs: { newOrig, newDest in
+                    originID = newOrig
+                    destID = newDest
+                    manager.addRecentRoute(originName: origName, originID: newOrig, destName: dName, destID: newDest)
+                }
+            )
+        }
+    }
+
+    private func clearSolutionsSearch() {
+        Haptics.play(.light)
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            originName = ""
+            originID = ""
+            destName = ""
+            destID = ""
+            searchDate = Date()
+            hasSearchedSolutions = false
+            manager.clearSearchSolutions()
         }
     }
 
@@ -1244,15 +1363,69 @@ struct SearchView: View {
             .padding(.bottom, 4)
             .background(Color(.systemGroupedBackground))
 
-            HStack {
-                Text(assistantEngineLabel)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
+            if !manager.hasSupport() {
+                VStack(alignment: .leading, spacing: 6) {
+                    Button {
+                        Haptics.play(.light)
+                        showPaywallSheet = true
+                    } label: {
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.purple)
+                                Text("Elaborazione locale (\(assistantEngineLabel))")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("Passa a Pro")
+                                    .font(.caption2.bold())
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [.indigo, .purple],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .foregroundColor(.white)
+                                    .clipShape(Capsule())
+                            }
+                            Text("Senza l'IA Cloud come Gemini, l'app usa solo il calcolo locale sul dispositivo e potrebbe non comprendere alcune richieste in linguaggio naturale.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.purple.opacity(0.08))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.purple.opacity(0.22), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 2)
+                .padding(.bottom, 6)
+                .background(Color(.systemGroupedBackground))
+            } else {
+                HStack {
+                    Text(assistantEngineLabel)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 6)
+                .background(Color(.systemGroupedBackground))
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 6)
-            .background(Color(.systemGroupedBackground))
 
             if voiceController.isListening {
                 VStack(spacing: 12) {
@@ -1702,6 +1875,11 @@ struct SearchView: View {
         self.destID = resolvedDestID
         self.searchDate = date
         manager.travelSolutions = solutions
+        manager.travelSolutionsSource = .searchView
+        manager.lastSearchSolutionsOriginID = resolvedOriginID
+        manager.lastSearchSolutionsDestID = resolvedDestID
+        manager.lastSearchSolutionsDate = date
+        manager.addRecentRoute(originName: origin, originID: resolvedOriginID, destName: destination, destID: resolvedDestID)
         self.hasSearchedSolutions = true
         self.isAssistantMode = false
         self.selectedTab = 1
@@ -1988,22 +2166,16 @@ struct SearchView: View {
                                 }
                                 Haptics.play(.medium)
                                 if !originID.isEmpty && !destID.isEmpty {
-                                    hasSearchedSolutions = true
-                                    Task {
-                                        await manager.searchTravelSolutions(
-                                            originID: originID,
-                                            destID: destID,
-                                            date: searchDate,
-                                            originName: originName,
-                                            destName: destName,
-                                            onResolvedIDs: { newOrig, newDest in
-                                                originID = newOrig
-                                                destID = newDest
-                                            }
-                                        )
-                                    }
+                                    performSolutionsSearch(
+                                        originName: originName,
+                                        originID: originID,
+                                        destName: destName,
+                                        destID: destID,
+                                        date: searchDate
+                                    )
                                 } else {
-                                    manager.travelSolutions = []
+                                    hasSearchedSolutions = false
+                                    manager.clearSearchSolutions()
                                 }
                             } label: {
                                 Image(systemName: "arrow.up.arrow.down")
@@ -2049,32 +2221,38 @@ struct SearchView: View {
                         Spacer(minLength: 8)
                         
                         Button {
-                            hasSearchedSolutions = true
-                            Haptics.play(.medium)
-                            Task {
-                                await manager.searchTravelSolutions(
-                                    originID: originID,
-                                    destID: destID,
-                                    date: searchDate,
+                            if shouldShowClearSolutionsButton {
+                                clearSolutionsSearch()
+                            } else {
+                                Haptics.play(.medium)
+                                performSolutionsSearch(
                                     originName: originName,
+                                    originID: originID,
                                     destName: destName,
-                                    onResolvedIDs: { newOrig, newDest in
-                                        originID = newOrig
-                                        destID = newDest
-                                    }
+                                    destID: destID,
+                                    date: searchDate
                                 )
                             }
                         } label: {
                             ZStack {
-                                Circle()
-                                    .fill(hasRouteBottom ? Color.blue : Color.blue.opacity(0.12))
-                                    .frame(width: 42, height: 42)
-                                
                                 if manager.isSearchingSolutions {
+                                    Circle()
+                                        .fill(Color.blue)
+                                        .frame(width: 42, height: 42)
                                     ProgressView()
                                         .tint(.white)
                                         .scaleEffect(0.9)
+                                } else if shouldShowClearSolutionsButton {
+                                    Circle()
+                                        .fill(Color(.tertiarySystemFill))
+                                        .frame(width: 42, height: 42)
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.primary)
                                 } else {
+                                    Circle()
+                                        .fill(hasRouteBottom ? Color.blue : Color.blue.opacity(0.12))
+                                        .frame(width: 42, height: 42)
                                     Image(systemName: "magnifyingglass")
                                         .font(.system(size: 17, weight: .bold))
                                         .foregroundColor(hasRouteBottom ? .white : .blue.opacity(0.4))
@@ -2082,7 +2260,9 @@ struct SearchView: View {
                             }
                         }
                         .buttonStyle(.plain)
-                        .disabled(!hasRouteBottom || manager.isSearchingSolutions)
+                        .disabled(manager.isSearchingSolutions || (!shouldShowClearSolutionsButton && !hasRouteBottom))
+                        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: shouldShowClearSolutionsButton)
+                        .accessibilityLabel(shouldShowClearSolutionsButton ? "Chiudi risultati" : "Cerca Soluzioni")
                         .padding(.trailing, 2)
                     }
                     .padding(.horizontal, 16)
@@ -2107,7 +2287,7 @@ struct SearchView: View {
                     }
                     .padding(.vertical, 16)
                 }
-            } else if !originID.isEmpty && !destID.isEmpty && !manager.travelSolutions.isEmpty {
+            } else if hasSearchGeneratedResults {
                 Section(header: Text("Soluzioni Disponibili (\(manager.travelSolutions.count))")) {
                     ForEach(manager.travelSolutions) { solution in
                         NavigationLink(destination: TravelSolutionDetailsView(solution: solution)) {
@@ -2129,7 +2309,7 @@ struct SearchView: View {
                         }
                     }
                 }
-            } else if hasSearchedSolutions && !originID.isEmpty && !destID.isEmpty {
+            } else if hasSearchedSolutions && manager.travelSolutionsSource == .searchView && !originID.isEmpty && !destID.isEmpty {
                 Section {
                     VStack(spacing: 8) {
                         Image(systemName: "slash.circle")
@@ -2145,42 +2325,91 @@ struct SearchView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                 }
-            } else if !manager.favoriteRoutes.isEmpty {
-                Section(header: Text("Le Mie Tratte Preferite")) {
-                    ForEach(manager.favoriteRoutes) { route in
-                        Button {
-                            originName = route.originName
-                            originID = route.originID
-                            destName = route.destinationName
-                            destID = route.destinationID
-                            hasSearchedSolutions = true
-                            Task {
-                                await manager.searchTravelSolutions(
-                                    originID: route.originID,
-                                    destID: route.destinationID,
-                                    date: searchDate,
+            } else {
+                if !manager.recentRoutes.isEmpty {
+                    Section(header: HStack {
+                        Text("Tratte Recenti")
+                        Spacer()
+                        Button("Cancella") {
+                            manager.clearRecentRoutes()
+                            Haptics.play(.medium)
+                        }
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    }) {
+                        ForEach(manager.recentRoutes.prefix(4)) { route in
+                            Button {
+                                Haptics.play(.light)
+                                originName = route.originName
+                                originID = route.originID
+                                destName = route.destinationName
+                                destID = route.destinationID
+                                performSolutionsSearch(
                                     originName: route.originName,
+                                    originID: route.originID,
                                     destName: route.destinationName,
-                                    onResolvedIDs: { newOrig, newDest in
-                                        originID = newOrig
-                                        destID = newDest
-                                    }
+                                    destID: route.destinationID,
+                                    date: searchDate
                                 )
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .foregroundColor(.blue)
+                                    HStack(spacing: 6) {
+                                        Text(route.originName.formattedStationName)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                        Image(systemName: "arrow.right")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                        Text(route.destinationName.formattedStationName)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 2)
                             }
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "arrow.triangle.swap")
-                                    .foregroundColor(.blue)
-                                Text("\(route.originName) ➔ \(route.destinationName)")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    manager.removeRecentRoute(route)
+                                    Haptics.play(.light)
+                                } label: {
+                                    Label("Elimina", systemImage: "trash.fill")
+                                }
                             }
-                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+
+                if !manager.recentViewedTrips.isEmpty {
+                    Section(header: HStack {
+                        Text("Viaggi Recenti")
+                        Spacer()
+                        Button("Cancella") {
+                            manager.clearRecentViewedTrips()
+                            Haptics.play(.medium)
+                        }
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    }) {
+                        ForEach(manager.recentViewedTrips.prefix(4)) { trip in
+                            NavigationLink(destination: TravelSolutionDetailsView(solution: trip.asTravelSolution)) {
+                                RecentViewedTripRow(trip: trip)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    manager.removeRecentViewedTrip(id: trip.id)
+                                    Haptics.play(.light)
+                                } label: {
+                                    Label("Elimina", systemImage: "trash.fill")
+                                }
+                            }
                         }
                     }
                 }
@@ -2340,38 +2569,11 @@ struct SearchView: View {
                         }) {
                             ForEach(allRecentTrains.prefix(2)) { result in
                                 let dummy = manager.createDummyTrain(from: result)
-                                let timeStr: String? = {
-                                    if let t = result.departureTime, !t.isEmpty, t != "--:--" { return t }
-                                    if let fav = manager.favoriteTrains.first(where: { $0.number == result.number }), let t = fav.departureTime, !t.isEmpty, t != "--:--" { return t }
-                                    if let tr = manager.trains.first(where: { $0.number == result.number }), !tr.time.isEmpty, tr.time != "--:--" { return tr.time }
-                                    return nil
-                                }()
                                 NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false).onAppear {
                                     manager.addToRecentTrains(result)
-                                    manager.addToViewedRecentTrains(number: result.number, description: result.description, departureTime: result.departureTime)
+                                    manager.addToViewedRecentTrains(number: result.number, description: result.description, departureTime: result.departureTime, arrivalTime: result.arrivalTime, category: result.category)
                                 }) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "train.side.front.car")
-                                            .foregroundColor(.blue)
-                                            .font(.body)
-                                            .frame(width: 24)
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            HStack(spacing: 8) {
-                                                Text(String(format: String(localized: "Treno %@"), result.number))
-                                                    .font(.headline)
-                                                    .foregroundColor(.primary)
-                                                if let t = timeStr {
-                                                    Text(t)
-                                                        .font(.headline)
-                                                        .foregroundColor(.secondary)
-                                                }
-                                            }
-                                            Text(result.description.formattedStationName)
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    .padding(.vertical, 2)
+                                    RecentTrainHistoryRow(train: result)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {

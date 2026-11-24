@@ -47,7 +47,7 @@ struct FAQView: View {
             items: [
                 FAQItem(
                     question: "Quanti treni posso monitorare contemporaneamente?",
-                    answer: "Con il piano gratuito puoi attivare la notifica o la Live Activity per 1 treno alla volta. Passando a In Orario Pro sblocchi il monitoraggio simultaneo fino a 10 treni, Live Activities ad alta frequenza, notifiche push dedicate per gli scioperi e la selezione dei giorni della settimana."
+                    answer: "Con il piano gratuito puoi attivare la notifica o la Live Activity per 1 treno alla volta. Passando a In Orario Pro sblocchi il monitoraggio simultaneo fino a 10 treni, Live Activities ad alta frequenza e notifiche push dedicate per gli scioperi. La scelta dei giorni e la notifica a un orario specifico sono disponibili per tutti."
                 ),
                 FAQItem(
                     question: "Perché le notifiche o la Live Activity non si aggiornano?",

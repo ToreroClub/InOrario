@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In Orario — Generatore QR Code Stazioni</title>
+    <title>In Orario — Generatore App Clip Code & QR Stazioni</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="app_icon_base64.js"></script>
+    <script src="appclip_presets.js"></script>
     <style>
         :root {
             --bg: #09090b;
@@ -246,6 +247,102 @@
             box-shadow: 0 4px 14px rgba(0,0,0,0.04);
         }
 
+        .qr-wrapper.appclip-mode {
+            border: none;
+            box-shadow: none;
+            padding: 4px;
+            background: transparent;
+        }
+
+        #appclipImg {
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            display: none;
+        }
+
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .mode-tab {
+            background: #1e1e24;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .mode-tab.active {
+            background: rgba(255, 159, 10, 0.15);
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+
+        .color-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .color-chip {
+            background: #1e1e24;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .color-chip.active {
+            border-color: var(--orange);
+            background: rgba(255, 159, 10, 0.15);
+            color: var(--orange);
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .search-results {
+            background: #111;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-top: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .search-result-item {
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #1e1e24;
+        }
+
+        .search-result-item:hover {
+            background: #1e1e24;
+            color: var(--orange);
+        }
+
         .sticker-caption-line-red {
             font-size: 19px;
             font-weight: 900;
@@ -353,17 +450,56 @@
 
 <div class="container">
     <header>
-        <h1>🚄 In Orario <span class="badge">App Clip QR</span></h1>
-        <p>Genera adesivi con QR code nativo per aprire all'istante l'App Clip sul tabellone della stazione.</p>
+        <h1>🚄 In Orario <span class="badge">App Clip Code</span></h1>
+        <p>Genera adesivi con <strong>App Clip Code rotondo Apple</strong> o QR Code per aprire all'istante il tabellone della stazione.</p>
     </header>
 
     <div class="main-layout">
         <!-- Pannello Sinistro: Selezione e Personalizzazione -->
         <div class="card-panel">
-            <div class="panel-title">📍 Seleziona Stazione</div>
+            <div class="panel-title">🎨 Formato Codice</div>
+            <div class="mode-tabs">
+                <button class="mode-tab active" id="tabAppClip" onclick="setCodeMode('appclip')"> Rotondo Apple</button>
+                <button class="mode-tab" id="tabQR" onclick="setCodeMode('qr')">QR Classico</button>
+            </div>
+
+            <div id="appClipOptions">
+                <div class="input-group">
+                    <label>Colore App Clip Code</label>
+                    <div class="color-row">
+                        <button class="color-chip active" onclick="setAppClipColor('000000', 'FF9F0A', this)">
+                            <span class="color-dot" style="background:#FF9F0A"></span> Arancione
+                        </button>
+                        <button class="color-chip" onclick="setAppClipColor('000000', 'FFFFFF', this)">
+                            <span class="color-dot" style="background:#FFFFFF"></span> Bianco/Nero
+                        </button>
+                        <button class="color-chip" onclick="setAppClipColor('FFFFFF', 'EE7733', this)">
+                            <span class="color-dot" style="background:#EE7733"></span> Invertito
+                        </button>
+                        <button class="color-chip" onclick="setAppClipColor('FFFFFF', '000000', this)">
+                            <span class="color-dot" style="background:#000000"></span> Nero
+                        </button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Stile</label>
+                    <div class="color-row">
+                        <button class="color-chip active" id="logoNoneBtn" onclick="setAppClipLogo('none', this)">Solo cerchio</button>
+                        <button class="color-chip" id="logoBadgeBtn" onclick="setAppClipLogo('badge', this)">Con badge  App Clip</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-title" style="margin-top: 18px;">📍 Seleziona Stazione</div>
             <div class="preset-grid" id="presetContainer"></div>
 
-            <div class="panel-title" style="margin-top: 24px;">⚙️ Personalizza Dati</div>
+            <div class="input-group" id="stationSearchGroup" style="display:none;">
+                <label>Cerca tra tutte le 3.363 stazioni italiane</label>
+                <input type="text" id="stationSearchInput" placeholder="Es. Firenze Santa Maria Novella..." oninput="searchStations(this.value)">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+
+            <div class="panel-title" style="margin-top: 20px;">⚙️ Personalizza Dati</div>
             <div class="input-group">
                 <label>Nome Stazione</label>
                 <input type="text" id="stationNameInput" value="Milano Centrale" oninput="updateSticker()">
@@ -377,9 +513,11 @@
                 <input type="text" id="fullUrlInput" readonly style="color: var(--text-secondary); background: #111;">
             </div>
 
-            <div class="info-card">
-                📲 <strong>Come funziona la scansione su iPhone:</strong><br>
-                Quando un pendolare inquadra questo QR code con la fotocamera del suo iPhone, iOS riconosce l'URL registrato e <strong>non apre Safari né un sito web</strong>: fa apparire dal basso il banner nativo dell'App Clip <strong>In Orario</strong> (che pesa solo ~2 MB) aprendo direttamente il tabellone di quella stazione in un secondo.
+            <div class="info-card" id="infoCard">
+                📲 <strong>Come funziona l'App Clip Code rotondo:</strong><br>
+                Inquadrando il codice circolare Apple con la fotocamera di iPhone, iOS riconosce il codice proprietario Apple e apre all'istante l'App Clip <strong>In Orario</strong> sul tabellone della stazione.<br><br>
+                💡 Per generare qualsiasi stazione italiana o cambiare colori al volo, avvia il server locale:<br>
+                <code>python3 tools/genera_appclip_stazioni.py --serve</code>
             </div>
         </div>
 
@@ -397,8 +535,9 @@
                     </div>
                 </div>
                 
-                <!-- Codice QR -->
-                <div class="qr-wrapper">
+                <!-- Codice App Clip Rotondo / QR -->
+                <div class="qr-wrapper appclip-mode" id="codeWrapper">
+                    <img id="appclipImg" alt="App Clip Code">
                     <div id="qrcode"></div>
                 </div>
 
@@ -417,7 +556,8 @@
             </div>
 
             <div class="actions-bar">
-                <button class="btn btn-primary" onclick="downloadStickerPNG()">⬇️ Scarica Immagine HD</button>
+                <button class="btn btn-primary" onclick="downloadStickerPNG()">⬇️ Adesivo PNG</button>
+                <button class="btn btn-secondary" id="downloadSvgBtn" onclick="downloadAppClipSVG()">⬇️ Solo SVG</button>
                 <button class="btn btn-secondary" onclick="window.print()">🖨️ Stampa</button>
             </div>
         </div>
@@ -439,6 +579,26 @@
     ];
 
     let currentQRCode = null;
+    let codeMode = 'appclip'; // 'appclip' | 'qr'
+    let appClipFg = '000000';
+    let appClipBg = 'FF9F0A';
+    let appClipLogo = 'none';
+    let hasLocalServer = false;
+    let currentAppClipSvgText = null;
+    let searchTimeout = null;
+
+    async function checkLocalServer() {
+        if (window.location.protocol === 'file:') return false;
+        try {
+            const res = await fetch('/api/stations?q=milano');
+            if (res.ok) {
+                hasLocalServer = true;
+                document.getElementById('stationSearchGroup').style.display = 'block';
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
 
     function initPresets() {
         const container = document.getElementById('presetContainer');
@@ -456,6 +616,65 @@
         }
     }
 
+    function setCodeMode(mode) {
+        codeMode = mode;
+        document.getElementById('tabAppClip').classList.toggle('active', mode === 'appclip');
+        document.getElementById('tabQR').classList.toggle('active', mode === 'qr');
+        document.getElementById('appClipOptions').style.display = mode === 'appclip' ? 'block' : 'none';
+        document.getElementById('downloadSvgBtn').style.display = mode === 'appclip' ? 'flex' : 'none';
+        document.getElementById('codeWrapper').classList.toggle('appclip-mode', mode === 'appclip');
+        updateSticker();
+    }
+
+    function setAppClipColor(fg, bg, btn) {
+        appClipFg = fg;
+        appClipBg = bg;
+        btn.parentElement.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        updateSticker();
+    }
+
+    function setAppClipLogo(logo, btn) {
+        appClipLogo = logo;
+        btn.parentElement.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        updateSticker();
+    }
+
+    function searchStations(query) {
+        clearTimeout(searchTimeout);
+        const box = document.getElementById('searchResults');
+        if (!query || query.trim().length < 2) {
+            box.style.display = 'none';
+            return;
+        }
+        searchTimeout = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/stations?q=${encodeURIComponent(query.trim())}`);
+                const items = await res.json();
+                box.innerHTML = '';
+                if (!items.length) {
+                    box.style.display = 'none';
+                    return;
+                }
+                items.forEach(st => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.innerHTML = `<span>${st.name}</span><span style="color:#a1a1aa">${st.code}</span>`;
+                    div.onclick = () => {
+                        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                        document.getElementById('stationNameInput').value = st.name;
+                        document.getElementById('stationCodeInput').value = st.code;
+                        box.style.display = 'none';
+                        updateSticker();
+                    };
+                    box.appendChild(div);
+                });
+                box.style.display = 'block';
+            } catch (e) {}
+        }, 180);
+    }
+
     function selectPreset(station, btnElement) {
         document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
         if (btnElement) btnElement.classList.add('active');
@@ -465,26 +684,80 @@
         updateSticker();
     }
 
-    function updateSticker() {
+    async function updateSticker() {
         const name = document.getElementById('stationNameInput').value || "Stazione";
-        const code = document.getElementById('stationCodeInput').value.trim() || "S01700";
-        const url = `https://inorario.toreroclub.com/s/${code}`;
+        const code = (document.getElementById('stationCodeInput').value.trim() || "S01700").toUpperCase();
+        const url = codeMode === 'appclip'
+            ? `https://inorario.toreroclub.com/${code}`
+            : `https://inorario.toreroclub.com/s/${code}`;
 
         document.getElementById('fullUrlInput').value = url;
         document.getElementById('stickerStationName').innerText = name;
 
-        // Rigenera QR code (livello H per massima leggibilità con adesivi)
         const qrContainer = document.getElementById('qrcode');
-        qrContainer.innerHTML = "";
-        
-        currentQRCode = new QRCode(qrContainer, {
-            text: url,
-            width: 195,
-            height: 195,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
+        const appclipImg = document.getElementById('appclipImg');
+
+        if (codeMode === 'appclip') {
+            qrContainer.style.display = 'none';
+            appclipImg.style.display = 'block';
+
+            if (hasLocalServer) {
+                try {
+                    const apiUrl = `/api/appclip?code=${encodeURIComponent(code)}&fg=${appClipFg}&bg=${appClipBg}&logo=${appClipLogo}`;
+                    const res = await fetch(apiUrl);
+                    if (res.ok) {
+                        const svgText = await res.text();
+                        currentAppClipSvgText = svgText;
+                        const b64 = btoa(unescape(encodeURIComponent(svgText)));
+                        appclipImg.src = `data:image/svg+xml;base64,${b64}`;
+                        return;
+                    }
+                } catch (e) {}
+            }
+
+            if (typeof APPCLIP_PRESETS !== 'undefined' && APPCLIP_PRESETS[code]) {
+                appclipImg.src = APPCLIP_PRESETS[code];
+                try {
+                    const rawB64 = APPCLIP_PRESETS[code].split(',')[1];
+                    currentAppClipSvgText = decodeURIComponent(escape(atob(rawB64)));
+                } catch (e) {
+                    currentAppClipSvgText = null;
+                }
+            } else {
+                appclipImg.removeAttribute('src');
+                currentAppClipSvgText = null;
+            }
+        } else {
+            appclipImg.style.display = 'none';
+            qrContainer.style.display = 'block';
+            qrContainer.innerHTML = "";
+
+            currentQRCode = new QRCode(qrContainer, {
+                text: url,
+                width: 195,
+                height: 195,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+    }
+
+    function downloadAppClipSVG() {
+        if (!currentAppClipSvgText) {
+            alert("Avvia il server locale (python3 tools/genera_appclip_stazioni.py --serve) per generare l'SVG di stazioni personalizzate.");
+            return;
+        }
+        const stationName = document.getElementById('stationNameInput').value || "Stazione";
+        const code = (document.getElementById('stationCodeInput').value.trim() || "S01700").toUpperCase();
+        const cleanName = stationName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const blob = new Blob([currentAppClipSvgText], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `AppClip_${code}_${cleanName}.svg`;
+        link.href = url;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function downloadStickerPNG() {
@@ -516,19 +789,36 @@
             ctx.font = "900 44px Inter, sans-serif";
             ctx.fillText(stationName, 280, 135);
 
-            // QR Code
-            const qrImg = document.querySelector('#qrcode img') || document.querySelector('#qrcode canvas');
-            if (qrImg) {
-                // Cornice bianca arrotondata per QR
-                ctx.fillStyle = "#ffffff";
-                ctx.strokeStyle = "#e4e4e7";
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.roundRect(160, 200, 480, 480, [28]);
-                ctx.fill();
-                ctx.stroke();
+            // Codice (App Clip Rotondo oppure QR)
+            if (codeMode === 'appclip') {
+                const clipImg = document.getElementById('appclipImg');
+                if (clipImg && clipImg.complete && clipImg.naturalWidth > 0) {
+                    const maxBox = 480;
+                    const ratio = clipImg.naturalWidth / clipImg.naturalHeight;
+                    let drawW = maxBox;
+                    let drawH = maxBox / ratio;
+                    if (drawH > maxBox) {
+                        drawH = maxBox;
+                        drawW = maxBox * ratio;
+                    }
+                    const drawX = 400 - drawW / 2;
+                    const drawY = 440 - drawH / 2;
+                    ctx.drawImage(clipImg, drawX, drawY, drawW, drawH);
+                }
+            } else {
+                const qrImg = document.querySelector('#qrcode img') || document.querySelector('#qrcode canvas');
+                if (qrImg) {
+                    // Cornice bianca arrotondata per QR
+                    ctx.fillStyle = "#ffffff";
+                    ctx.strokeStyle = "#e4e4e7";
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.roundRect(160, 200, 480, 480, [28]);
+                    ctx.fill();
+                    ctx.stroke();
 
-                ctx.drawImage(qrImg, 185, 225, 430, 430);
+                    ctx.drawImage(qrImg, 185, 225, 430, 430);
+                }
             }
 
             // Testi in basso
@@ -580,8 +870,9 @@
     }
 
     // Inizializza
-    window.onload = () => {
+    window.onload = async () => {
         initPresets();
+        await checkLocalServer();
         updateSticker();
     };
 </script>

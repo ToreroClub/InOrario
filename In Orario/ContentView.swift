@@ -54,6 +54,7 @@ struct ContentView: View {
     @State private var isPassanteExpanded = false
     @State private var isFavoritesExpanded = true
     @State private var isMyStationsExpanded = true
+    @State private var isFavoriteRoutesExpanded = true
     @State private var isNearbyExpanded = true
     @State private var showSearchSheet = false
     @State private var searchInitialAssistant = false
@@ -63,6 +64,7 @@ struct ContentView: View {
     @State private var showSavedTrips = false
     @State private var showHistorySheet = false
     @State private var showProfile = false
+    @State private var highlightRegionInProfile = false
     @State private var showNotificationsSettings = false
     @State private var showNewsCenter = false
     @State private var showOnboarding = false
@@ -87,16 +89,20 @@ struct ContentView: View {
     @ObservedObject private var developerReplyManager = DeveloperReplyManager.shared
     @State private var showCommuteSetupSheet = false
     @State private var showPlanBDetailSheet = false
+    @State private var planBSheetCustomTitle: String? = nil
+    @State private var isLoadingHabitTrip = false
     
     @AppStorage("rememberNearbyState") private var rememberNearbyState = true
     @AppStorage("rememberPassanteState") private var rememberPassanteState = true
     @AppStorage("rememberFavoriteTrainsState") private var rememberFavoriteTrainsState = true
     @AppStorage("rememberMyStationsState") private var rememberMyStationsState = false
+    @AppStorage("rememberFavoriteRoutesState") private var rememberFavoriteRoutesState = true
     
     @AppStorage("storedIsNearbyExpanded") private var storedIsNearbyExpanded = true
-    @AppStorage("storedIsPassanteExpanded") private var storedIsPassanteExpanded = true
+    @AppStorage("storedIsPassanteExpanded") private var storedIsPassanteExpanded = false
     @AppStorage("storedIsFavoritesExpanded") private var storedIsFavoritesExpanded = true
     @AppStorage("storedIsMyStationsExpanded") private var storedIsMyStationsExpanded = true
+    @AppStorage("storedIsFavoriteRoutesExpanded") private var storedIsFavoriteRoutesExpanded = true
     
     let passanteTimer = Timer.publish(every: 45, on: .main, in: .common).autoconnect()
     
@@ -203,6 +209,45 @@ struct ContentView: View {
             }
         }
     }
+
+    private func canPresentPostUpdatePrompt() -> Bool {
+        !showOnboarding &&
+        !showProfile &&
+        !showNotificationsSettings &&
+        !showCommuteSetupSheet &&
+        !showPlanBDetailSheet &&
+        !showSearchSheet &&
+        !showNewsCenter &&
+        deepLinkTrain == nil &&
+        deepLinkStation == nil &&
+        !manager.pendingOpenRegionSettings &&
+        !updateManager.showUpdatePrompt &&
+        !updateManager.showRemoteAlert &&
+        !updateManager.showSupporterCommuteAlert &&
+        !developerReplyManager.showReplyModal
+    }
+
+    private func openProfileForRegionSelection() {
+        manager.pendingOpenRegionSettings = false
+        highlightRegionInProfile = true
+        if showProfile {
+            return
+        }
+        let hadOtherSheet = showNotificationsSettings || showCommuteSetupSheet || showPlanBDetailSheet || showSearchSheet || showNewsCenter || updateManager.showNotificationPermissionPrompt
+        showNotificationsSettings = false
+        showCommuteSetupSheet = false
+        showPlanBDetailSheet = false
+        showSearchSheet = false
+        showNewsCenter = false
+        updateManager.showNotificationPermissionPrompt = false
+        if hadOtherSheet {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                showProfile = true
+            }
+        } else {
+            showProfile = true
+        }
+    }
     
     func syncPassanteStation(_ station: Station) {
         var canonicalStation: Station? = nil
@@ -293,6 +338,44 @@ struct ContentView: View {
     }
     
     @ViewBuilder
+    func favoriteRouteRow(route: FavoriteRoute) -> some View {
+        NavigationLink(destination: FavoriteRouteSolutionView(route: route)) {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.triangle.swap")
+                    .foregroundColor(.green)
+                HStack(spacing: 6) {
+                    Text(route.originName.formattedStationName)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    Image(systemName: "arrow.right")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text(route.destinationName.formattedStationName)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                manager.toggleFavoriteRoute(
+                    originName: route.originName,
+                    originID: route.originID,
+                    destName: route.destinationName,
+                    destID: route.destinationID
+                )
+            } label: {
+                Label("Rimuovi", systemImage: "trash.fill")
+            }
+        }
+    }
+    
+    @ViewBuilder
     func favoriteTrainsSection() -> some View {
         if !manager.favoriteTrains.isEmpty {
             Section {
@@ -366,8 +449,39 @@ struct ContentView: View {
     }
     
     @ViewBuilder
+    func favoriteRoutesSection() -> some View {
+        if !manager.favoriteRoutes.isEmpty {
+            Section {
+                DisclosureGroup(isExpanded: $isFavoriteRoutesExpanded) {
+                    ForEach(manager.favoriteRoutes) { route in
+                        favoriteRouteRow(route: route)
+                    }
+                    .onMove { from, to in
+                        manager.moveFavoriteRoutes(from: from, to: to)
+                    }
+                } label: {
+                    Label("Le Mie Tratte Abituali", systemImage: "arrow.triangle.swap")
+                        .font(.headline)
+                        .foregroundColor(.green)
+                        .padding(.vertical, 4)
+                        .onLongPressGesture {
+                            Haptics.play(.medium)
+                            withAnimation {
+                                editMode = editMode == .active ? .inactive : .active
+                            }
+                        }
+                }
+                .onChange(of: isFavoriteRoutesExpanded) { oldValue, newValue in
+                    if rememberFavoriteRoutesState { storedIsFavoriteRoutesExpanded = newValue }
+                    Haptics.play(.light)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
     func passanteSection() -> some View {
-        if showSuburbanLines && !passanteManager.selectedSuburbanLines.isEmpty {
+        if !passanteManager.selectedSuburbanLines.isEmpty {
             Section {
                 DisclosureGroup(isExpanded: $isPassanteExpanded) {
                     passanteLinesContent(activeNearby: locationManager.manualNearbyStation ?? locationManager.nearbyStation)
@@ -400,36 +514,60 @@ struct ContentView: View {
             }
             
             ForEach(manager.sectionOrder, id: \.self) { section in
-                switch section {
-                case .nearby:
-                    NearbySectionView(
-                        smartSuggestions: usageTracker.suggestionsForNow(
-                            location: locationManager.userLocation?.coordinate,
-                            excludeStations: [locationManager.manualNearbyStation?.name, locationManager.nearbyStation?.name].compactMap { $0 },
-                            excludeTrainNumbers: isFavoritesExpanded ? manager.favoriteTrains.map { $0.number } : [],
-                            favoriteTrains: manager.favoriteTrains,
-                            favoriteStations: manager.myStations
-                        ),
-                        nearby: locationManager.manualNearbyStation ?? locationManager.nearbyStation,
-                        nearbyDistance: locationManager.manualNearbyStation != nil ? nil : locationManager.nearbyStationDistance,
-                        activePlan: commuteManager.homeBannerPlanB,
-                        onSelectPlanB: {
-                            showPlanBDetailSheet = true
-                        },
-                        onDismissPlanB: {
-                            commuteManager.unpinPlanB()
-                            commuteManager.activePlanB = nil
-                        },
-                        selectedFavoriteTrain: $selectedFavoriteTrain,
-                        selectedSuggestedStation: $selectedSuggestedStation,
-                        selectedSuggestedRoute: $selectedSuggestedRoute
-                    )
-                case .favoriteTrains:
-                    favoriteTrainsSection()
-                case .myStations:
-                    myStationsSection()
-                case .passante:
-                    passanteSection()
+                if manager.isSectionVisible(section) {
+                    switch section {
+                    case .nearby:
+                        NearbySectionView(
+                            smartSuggestions: usageTracker.suggestionsForNow(
+                                location: locationManager.userLocation?.coordinate,
+                                excludeStations: [locationManager.manualNearbyStation?.name, locationManager.nearbyStation?.name].compactMap { $0 },
+                                excludeTrainNumbers: manager.favoriteTrains.map { $0.number },
+                                favoriteTrains: manager.favoriteTrains,
+                                favoriteStations: manager.myStations
+                            ),
+                            nearby: locationManager.manualNearbyStation ?? locationManager.nearbyStation,
+                            nearbyDistance: locationManager.manualNearbyStation != nil ? nil : locationManager.nearbyStationDistance,
+                            activePlan: commuteManager.homeBannerPlanB,
+                            habitCommuteSlot: commuteManager.homeBannerPlanB == nil ? commuteManager.activeHabitCommuteSlot() : nil,
+                            isLoadingHabitTrip: isLoadingHabitTrip,
+                            onSelectPlanB: {
+                                planBSheetCustomTitle = nil
+                                showPlanBDetailSheet = true
+                            },
+                            onDismissPlanB: {
+                                commuteManager.unpinPlanB()
+                                commuteManager.activePlanB = nil
+                            },
+                            onSelectHabitTrip: { slot in
+                                guard !isLoadingHabitTrip else { return }
+                                Task {
+                                    isLoadingHabitTrip = true
+                                    let loc = await locationManager.getCurrentLocation(maxAge: 60)
+                                    await commuteManager.requestHabitTripPlan(
+                                        for: slot,
+                                        userLat: loc?.coordinate.latitude,
+                                        userLon: loc?.coordinate.longitude
+                                    )
+                                    isLoadingHabitTrip = false
+                                    if commuteManager.activePlanB != nil {
+                                        planBSheetCustomTitle = "Viaggio abituale"
+                                        showPlanBDetailSheet = true
+                                    }
+                                }
+                            },
+                            selectedFavoriteTrain: $selectedFavoriteTrain,
+                            selectedSuggestedStation: $selectedSuggestedStation,
+                            selectedSuggestedRoute: $selectedSuggestedRoute
+                        )
+                    case .favoriteTrains:
+                        favoriteTrainsSection()
+                    case .myStations:
+                        myStationsSection()
+                    case .favoriteRoutes:
+                        favoriteRoutesSection()
+                    case .passante:
+                        passanteSection()
+                    }
                 }
             }
         }
@@ -482,22 +620,17 @@ struct ContentView: View {
                     .environmentObject(metroManager)
             }
             .sheet(isPresented: $showHistorySheet) {
-                HistoryView { selectedQuery in
-                    showHistorySheet = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        searchInitialAssistant = true
-                        searchAutoStartVoice = false
-                        searchInitialQuery = selectedQuery
-                        showSearchSheet = true
-                    }
-                }
+                HistoryView()
             }
             .sheet(isPresented: $showNotificationsSettings) {
-                NavigationStack { NotificationsSettingsView() }
+                NavigationStack { NotificationsSettingsView(showCloseButton: true) }
             }
-            .sheet(isPresented: $showProfile) {
-                ProfileView()
+            .sheet(isPresented: $showProfile, onDismiss: {
+                highlightRegionInProfile = false
+            }) {
+                ProfileView(highlightRegionSelector: highlightRegionInProfile)
                     .environmentObject(usageTracker)
+                    .environmentObject(locationManager)
             }
             .sheet(isPresented: $showNewsCenter) {
                 NewsCenterView(news: $allNewsItems)
@@ -521,6 +654,7 @@ struct ContentView: View {
                     .environmentObject(passanteManager)
                     .onDisappear {
                         hasCompletedOnboarding = true
+                        updateManager.markNotificationPermissionPromptHandled()
                         locationManager.requestAuthorization()
                         requestNotificationPermissions()
                         
@@ -546,20 +680,21 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showCommuteSetupSheet) {
-                if manager.hasSupport() {
-                    NavigationStack {
-                        CommuteSetupView()
-                    }
-                } else {
-                    SupportPaywallSheet()
-                        .environmentObject(manager)
+                NavigationStack {
+                    CommuteSetupView(showCloseButton: true)
                 }
             }
-            .sheet(isPresented: $showPlanBDetailSheet) {
+            .sheet(isPresented: $showPlanBDetailSheet, onDismiss: {
+                planBSheetCustomTitle = nil
+            }) {
                 if commuteManager.hasSupport(),
                    let plan = commuteManager.activePlanB ?? commuteManager.pinnedPlanB {
                     NavigationStack {
-                        PlanBDetailView(plan: plan, initialFocusedAlternativeId: commuteManager.chosenAlternativeId)
+                        PlanBDetailView(
+                            plan: plan,
+                            initialFocusedAlternativeId: commuteManager.chosenAlternativeId,
+                            customTitle: planBSheetCustomTitle
+                        )
                             .environmentObject(manager)
                             .environmentObject(passanteManager)
                             .environmentObject(locationManager)
@@ -585,6 +720,12 @@ struct ContentView: View {
             }
             .sheet(isPresented: $updateManager.showUpdatePrompt) {
                 AppUpdatePromptSheet()
+            }
+            .sheet(isPresented: $updateManager.showNotificationPermissionPrompt, onDismiss: {
+                updateManager.markNotificationPermissionPromptHandled()
+            }) {
+                NotificationPermissionPromptSheet()
+                    .environmentObject(manager)
             }
             .sheet(isPresented: $developerReplyManager.showReplyModal) {
                 if let reply = developerReplyManager.activeReply {
@@ -614,6 +755,8 @@ struct ContentView: View {
                                 }
                             case "support":
                                 manager.showPaywallSheet = true
+                            case "open_region_settings":
+                                openProfileForRegionSelection()
                             default:
                                 break
                             }
@@ -631,10 +774,11 @@ struct ContentView: View {
             .onAppear {
                 if !hasPerformedInitialLoad {
                     hasPerformedInitialLoad = true
-                    if rememberNearbyState { isNearbyExpanded = storedIsNearbyExpanded }
-                    if rememberPassanteState { isPassanteExpanded = storedIsPassanteExpanded }
-                    if rememberFavoriteTrainsState { isFavoritesExpanded = storedIsFavoritesExpanded }
-                    if rememberMyStationsState { isMyStationsExpanded = storedIsMyStationsExpanded }
+                    isNearbyExpanded = rememberNearbyState ? storedIsNearbyExpanded : true
+                    isPassanteExpanded = rememberPassanteState ? storedIsPassanteExpanded : false
+                    isFavoritesExpanded = rememberFavoriteTrainsState ? storedIsFavoritesExpanded : true
+                    isMyStationsExpanded = rememberMyStationsState ? storedIsMyStationsExpanded : true
+                    isFavoriteRoutesExpanded = rememberFavoriteRoutesState ? storedIsFavoriteRoutesExpanded : true
                     manager.loadFavorites()
                     manager.syncLiveActivities()
                     
@@ -649,7 +793,13 @@ struct ContentView: View {
                     if hasCompletedOnboarding {
                         updateManager.checkSupporterUpdatePopup(hasSupport: manager.hasSupport())
                         Task {
-                            await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
+                            await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport(), strikeRegion: manager.strikeRegion)
+                        }
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(900))
+                            await updateManager.evaluatePostUpdateNotificationPrompt {
+                                self.canPresentPostUpdatePrompt()
+                            }
                         }
                     }
                 }
@@ -669,6 +819,11 @@ struct ContentView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         self.deepLinkTrain = pendingTrain
                         manager.deepLinkTrain = nil
+                    }
+                }
+                if manager.pendingOpenRegionSettings {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        openProfileForRegionSelection()
                     }
                 }
                 if commuteManager.pendingOpenPlanBSheet, commuteManager.hasSupport(), commuteManager.activePlanB != nil {
@@ -701,7 +856,7 @@ struct ContentView: View {
                 } else if !oldValue && newValue {
                     updateManager.checkSupporterUpdatePopup(hasSupport: manager.hasSupport())
                     Task {
-                        await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
+                        await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport(), strikeRegion: manager.strikeRegion)
                     }
                 }
             }
@@ -894,6 +1049,11 @@ struct ContentView: View {
             .onOpenURL { url in
                 guard url.scheme == "inorario" else { return }
                 
+                if url.host == "settings" && url.path.contains("region") {
+                    openProfileForRegionSelection()
+                    return
+                }
+                
                 let number = url.path.replacingOccurrences(of: "/", with: "")
                 let finalNumber = number.isEmpty ? (url.host ?? "") : number
                 
@@ -916,13 +1076,28 @@ struct ContentView: View {
                     manager.deepLinkStation = nil
                 }
             }
+            .onChange(of: manager.pendingOpenRegionSettings) { _, shouldOpen in
+                if shouldOpen {
+                    openProfileForRegionSelection()
+                }
+            }
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 if newPhase == .active {
+                    if updateManager.pendingNotificationSettingsReturn {
+                        updateManager.pendingNotificationSettingsReturn = false
+                        manager.checkAndAutoEnableNotifications()
+                    }
                     if hasCompletedOnboarding {
                         print("App tornata attiva, aggiorno posizione e passante...")
                         locationManager.requestLocation()
                         Task {
-                            await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport())
+                            await updateManager.checkForAvailableUpdates(hasSupport: manager.hasSupport(), strikeRegion: manager.strikeRegion)
+                        }
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(700))
+                            await updateManager.evaluatePostUpdateNotificationPrompt {
+                                self.canPresentPostUpdatePrompt()
+                            }
                         }
                     }
                     if isPassanteExpanded {
@@ -942,6 +1117,9 @@ struct ContentView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenProfile"))) { _ in
                 showProfile = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRegionSettings"))) { _ in
+                openProfileForRegionSelection()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenCommutePlanB"))) { _ in
                 commuteManager.pendingOpenPlanBSheet = false
@@ -1034,57 +1212,295 @@ struct SuburbanLineView: View {
     }
 }
 
+enum HistoryCategory {
+    case trips
+    case routes
+    case stations
+    case trains
+
+    var navigationTitle: LocalizedStringKey {
+        switch self {
+        case .trips: return "Viaggi Recenti"
+        case .routes: return "Tratte Recenti"
+        case .stations: return "Stazioni Recenti"
+        case .trains: return "Treni Recenti"
+        }
+    }
+}
+
 struct HistoryView: View {
     @EnvironmentObject var manager: TrainManager
     @Environment(\.dismiss) var dismiss
-    var onSelectAssistantQuery: ((String) -> Void)? = nil
+    @State private var selectedTab: Int = 0 // 0: Soluzioni, 1: Stazioni, 2: Treni
     
     var body: some View {
         NavigationStack {
-            List {
-                if manager.unifiedRecentTrains.isEmpty && manager.unifiedRecentStations.isEmpty && manager.recentAssistantQueries.isEmpty {
-                    VStack(spacing: 20) {
-                        Image(systemName: "clock.badge.slash")
-                            .font(.system(size: 50))
-                            .foregroundColor(.gray)
-                        Text("Cronologia vuota")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text("I treni, le stazioni e le ricerche recenti appariranno qui automaticamente.")
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+            VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    historyTabPill(title: "Soluzioni", systemImage: "arrow.triangle.swap", tag: 0)
+                    historyTabPill(title: "Stazioni", systemImage: "building.2.crop.circle.fill", tag: 1)
+                    historyTabPill(title: "Treni", systemImage: "train.side.front.car", tag: 2)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 6)
+                .background(Color(.systemGroupedBackground))
+
+                List {
+                    switch selectedTab {
+                    case 0:
+                        solutionsHistorySections
+                    case 1:
+                        stationsHistorySection
+                    default:
+                        trainsHistorySection
                     }
-                    .padding(.top, 50)
-                    .listRowBackground(Color.clear)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                } else {
-                    if !manager.unifiedRecentTrains.isEmpty {
-                        Section(header: HStack {
-                            Text("Treni visti di recente")
-                            Spacer()
-                            Button("Cancella") {
-                                manager.clearRecentTrains()
-                                manager.clearViewedRecentTrains()
-                                Haptics.play(.medium)
+                }
+                .listStyle(.insetGrouped)
+            }
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            .navigationTitle("Cronologia Recenti")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Chiudi") { dismiss() }
+                        .fontWeight(.bold)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func historySectionHeader(title: LocalizedStringKey, category: HistoryCategory) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            NavigationLink {
+                ExpandedHistoryView(category: category)
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
+                    .padding(.leading, 12)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel("Mostra tutta la cronologia")
+        }
+    }
+
+    @ViewBuilder
+    private func historyTabPill(title: LocalizedStringKey, systemImage: String, tag: Int) -> some View {
+        let isSelected = selectedTab == tag
+        Button {
+            Haptics.play(.light)
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                selectedTab = tag
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
+            .padding(.horizontal, 8)
+            .foregroundColor(isSelected ? .white : .primary)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.blue : Color(.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.primary.opacity(isSelected ? 0 : 0.08), lineWidth: 0.5)
+            )
+            .shadow(color: isSelected ? Color.blue.opacity(0.22) : .clear, radius: 4, y: 1)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func emptyHistoryView(icon: String, title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 46))
+                .foregroundColor(.secondary.opacity(0.6))
+            Text(title)
+                .font(.title3.bold())
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .padding(.top, 50)
+        .listRowBackground(Color.clear)
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    @ViewBuilder
+    private var solutionsHistorySections: some View {
+        if manager.recentViewedTrips.isEmpty && manager.recentRoutes.isEmpty {
+            emptyHistoryView(
+                icon: "arrow.triangle.swap",
+                title: "Nessun viaggio o tratta recente",
+                subtitle: "I viaggi e le tratte recenti appariranno qui automaticamente."
+            )
+        } else {
+            if !manager.recentViewedTrips.isEmpty {
+                Section(header: historySectionHeader(title: "Viaggi Recenti", category: .trips)) {
+                    ForEach(manager.recentViewedTrips.prefix(4)) { trip in
+                        NavigationLink(destination: TravelSolutionDetailsView(solution: trip.asTravelSolution)) {
+                            RecentViewedTripRow(trip: trip)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                manager.removeRecentViewedTrip(id: trip.id)
+                                Haptics.play(.light)
+                            } label: {
+                                Label("Elimina", systemImage: "trash.fill")
                             }
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        }) {
-                            ForEach(manager.unifiedRecentTrains) { result in
-                                let dummy = manager.createDummyTrain(from: result)
-                                NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false)) {
-                                    HStack {
-                                        Image(systemName: "train.side.front.car").foregroundColor(.blue)
-                                        VStack(alignment: .leading) {
-                                            Text(String(format: String(localized: "Treno %@"), result.number)).font(.headline)
-                                            Text(result.description).font(.caption).foregroundColor(.secondary)
-                                        }
-                                    }
+                        }
+                    }
+                }
+            }
+
+            if !manager.recentRoutes.isEmpty {
+                Section(header: historySectionHeader(title: "Tratte Recenti", category: .routes)) {
+                    ForEach(manager.recentRoutes.prefix(4)) { route in
+                        NavigationLink(destination: FavoriteRouteSolutionView(route: route)) {
+                            RecentRouteHistoryRow(route: route)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                manager.removeRecentRoute(route)
+                                Haptics.play(.light)
+                            } label: {
+                                Label("Elimina", systemImage: "trash.fill")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var stationsHistorySection: some View {
+        if manager.unifiedRecentStations.isEmpty {
+            emptyHistoryView(
+                icon: "building.2.crop.circle",
+                title: "Nessuna stazione recente",
+                subtitle: "Le stazioni che consulterai appariranno qui automaticamente."
+            )
+        } else {
+            Section(header: historySectionHeader(title: "Stazioni viste di recente", category: .stations)) {
+                ForEach(manager.unifiedRecentStations.prefix(8)) { result in
+                    let tempStation = manager.resolveStation(name: result.nomeLungo, fallbackVtID: result.vtID)
+                    NavigationLink(destination: SmartBoardView(station: tempStation)) {
+                        RecentStationHistoryRow(stationName: tempStation.name.formattedStationName)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            manager.removeRecentStation(name: result.nomeLungo, vtID: result.vtID)
+                            Haptics.play(.light)
+                        } label: {
+                            Label("Elimina", systemImage: "trash.fill")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var trainsHistorySection: some View {
+        if manager.unifiedRecentTrains.isEmpty {
+            emptyHistoryView(
+                icon: "train.side.front.car",
+                title: "Nessun treno recente",
+                subtitle: "I treni che aprirai appariranno qui automaticamente."
+            )
+        } else {
+            Section(header: historySectionHeader(title: "Treni visti di recente", category: .trains)) {
+                ForEach(manager.unifiedRecentTrains.prefix(7)) { result in
+                    let dummy = manager.createDummyTrain(from: result)
+                    NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false)) {
+                        RecentTrainHistoryRow(train: result)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            manager.removeRecentTrain(number: result.number)
+                            Haptics.play(.light)
+                        } label: {
+                            Label("Elimina", systemImage: "trash.fill")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct ExpandedHistoryView: View {
+    @EnvironmentObject var manager: TrainManager
+    let category: HistoryCategory
+
+    private var isEmpty: Bool {
+        switch category {
+        case .trips: return manager.recentViewedTrips.isEmpty
+        case .routes: return manager.recentRoutes.isEmpty
+        case .stations: return manager.unifiedRecentStations.isEmpty
+        case .trains: return manager.unifiedRecentTrains.isEmpty
+        }
+    }
+
+    private func clearAll() {
+        Haptics.play(.medium)
+        switch category {
+        case .trips:
+            manager.clearRecentViewedTrips()
+        case .routes:
+            manager.clearRecentRoutes()
+        case .stations:
+            manager.clearRecentStations()
+            manager.clearViewedRecentStations()
+        case .trains:
+            manager.clearRecentTrains()
+            manager.clearViewedRecentTrains()
+        }
+    }
+
+    var body: some View {
+        List {
+            if isEmpty {
+                VStack(spacing: 14) {
+                    Image(systemName: "clock.badge.slash")
+                        .font(.system(size: 44))
+                        .foregroundColor(.secondary.opacity(0.6))
+                    Text("Cronologia vuota")
+                        .font(.title3.bold())
+                }
+                .padding(.top, 50)
+                .listRowBackground(Color.clear)
+                .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                switch category {
+                case .trips:
+                    let sections = groupHistoryByTime(manager.recentViewedTrips, dateFor: { $0.lastViewedAt })
+                    ForEach(sections) { section in
+                        Section(header: Text(section.title)) {
+                            ForEach(section.items) { trip in
+                                NavigationLink(destination: TravelSolutionDetailsView(solution: trip.asTravelSolution)) {
+                                    RecentViewedTripRow(trip: trip)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
-                                        manager.removeRecentTrain(number: result.number)
+                                        manager.removeRecentViewedTrip(id: trip.id)
                                         Haptics.play(.light)
                                     } label: {
                                         Label("Elimina", systemImage: "trash.fill")
@@ -1093,27 +1509,33 @@ struct HistoryView: View {
                             }
                         }
                     }
-                    
-                    if !manager.unifiedRecentStations.isEmpty {
-                        Section(header: HStack {
-                            Text("Stazioni viste di recente")
-                            Spacer()
-                            Button("Cancella") {
-                                manager.clearRecentStations()
-                                manager.clearViewedRecentStations()
-                                Haptics.play(.medium)
-                            }
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        }) {
-                            ForEach(manager.unifiedRecentStations) { result in
-                                let tempStation = manager.resolveStation(name: result.nomeLungo, fallbackVtID: result.vtID)
-                                
-                                NavigationLink(destination: SmartBoardView(station: tempStation)) {
-                                    HStack {
-                                        Image(systemName: "building.2.crop.circle.fill").foregroundColor(.orange)
-                                        Text(tempStation.name.formattedStationName).font(.headline)
+                case .routes:
+                    let sections = groupHistoryByTime(manager.recentRoutes, dateFor: { $0.lastViewedAt })
+                    ForEach(sections) { section in
+                        Section(header: Text(section.title)) {
+                            ForEach(section.items) { route in
+                                NavigationLink(destination: FavoriteRouteSolutionView(route: route)) {
+                                    RecentRouteHistoryRow(route: route)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        manager.removeRecentRoute(route)
+                                        Haptics.play(.light)
+                                    } label: {
+                                        Label("Elimina", systemImage: "trash.fill")
                                     }
+                                }
+                            }
+                        }
+                    }
+                case .stations:
+                    let sections = groupHistoryByTime(manager.unifiedRecentStations, dateFor: { $0.lastViewedAt })
+                    ForEach(sections) { section in
+                        Section(header: Text(section.title)) {
+                            ForEach(section.items) { result in
+                                let tempStation = manager.resolveStation(name: result.nomeLungo, fallbackVtID: result.vtID)
+                                NavigationLink(destination: SmartBoardView(station: tempStation)) {
+                                    RecentStationHistoryRow(stationName: tempStation.name.formattedStationName)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
@@ -1126,44 +1548,18 @@ struct HistoryView: View {
                             }
                         }
                     }
-
-                    if !manager.recentAssistantQueries.isEmpty {
-                        Section(header: HStack {
-                            Text("Ricerche recenti")
-                            Spacer()
-                            Button("Cancella") {
-                                manager.clearRecentAssistantQueries()
-                                Haptics.play(.medium)
-                            }
-                            .font(.caption)
-                            .foregroundColor(.red)
-                        }) {
-                            ForEach(manager.recentAssistantQueries, id: \.self) { recentQ in
-                                Button {
-                                    Haptics.play(.light)
-                                    if let onSelectAssistantQuery {
-                                        onSelectAssistantQuery(recentQ)
-                                    } else {
-                                        dismiss()
-                                    }
-                                } label: {
-                                    HStack(spacing: 10) {
-                                        Image(systemName: "sparkles")
-                                            .foregroundColor(.purple)
-                                        Text(recentQ)
-                                            .font(.subheadline)
-                                            .foregroundColor(.primary)
-                                            .multilineTextAlignment(.leading)
-                                        Spacer()
-                                        Image(systemName: "arrow.up.left")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.vertical, 2)
+                case .trains:
+                    let sections = groupHistoryByTime(manager.unifiedRecentTrains, dateFor: { $0.lastViewedAt ?? $0.addedDate })
+                    ForEach(sections) { section in
+                        Section(header: Text(section.title)) {
+                            ForEach(section.items) { result in
+                                let dummy = manager.createDummyTrain(from: result)
+                                NavigationLink(destination: TrainStopsView(train: dummy, showCloseButton: false)) {
+                                    RecentTrainHistoryRow(train: result)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
-                                        manager.removeRecentAssistantQuery(recentQ)
+                                        manager.removeRecentTrain(number: result.number)
                                         Haptics.play(.light)
                                     } label: {
                                         Label("Elimina", systemImage: "trash.fill")
@@ -1174,15 +1570,180 @@ struct HistoryView: View {
                     }
                 }
             }
-            .navigationTitle("Cronologia Recenti")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Chiudi") { dismiss() }
-                        .fontWeight(.bold)
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(category.navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cancella") {
+                        clearAll()
+                    }
+                    .foregroundColor(.red)
                 }
             }
         }
+    }
+}
+
+struct RecentRouteHistoryRow: View {
+    let route: FavoriteRoute
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.triangle.swap")
+                .foregroundColor(.blue)
+            HStack(spacing: 6) {
+                Text(route.originName.formattedStationName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                Image(systemName: "arrow.right")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Text(route.destinationName.formattedStationName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+struct RecentStationHistoryRow: View {
+    let stationName: String
+
+    var body: some View {
+        HStack {
+            Image(systemName: "building.2.crop.circle.fill")
+                .foregroundColor(.orange)
+            Text(stationName)
+                .font(.headline)
+        }
+    }
+}
+
+struct RecentTrainHistoryRow: View {
+    let train: SavedTrain
+
+    var body: some View {
+        let endpoints = train.parsedEndpoints
+        let timeRange = train.formattedTimeRange
+
+        HStack(spacing: 12) {
+            Image(systemName: "train.side.front.car")
+                .foregroundColor(.blue)
+                .font(.body)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(train.fullTypeAndNumberTitle)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: 6)
+
+                    if let range = timeRange {
+                        HStack(spacing: 3) {
+                            Text(range.departure)
+                            if let arr = range.arrival {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 9, weight: .semibold))
+                                Text(arr)
+                            }
+                        }
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.blue)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                    }
+                }
+
+                if let origin = endpoints.origin {
+                    HStack(spacing: 5) {
+                        Text(origin)
+                            .lineLimit(1)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 10))
+                        Text(endpoints.destination)
+                            .lineLimit(1)
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                } else {
+                    Text(endpoints.destination)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+struct RecentViewedTripRow: View {
+    let trip: SavedTrip
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.12))
+                    .frame(width: 34, height: 34)
+                Image(systemName: "tram.fill")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 14))
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    Text("\(trip.origin.formattedStationName) ➔ \(trip.destination.formattedStationName)")
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    Spacer()
+                    Text(trip.duration)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        Text(trip.departureTime)
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(.blue)
+                            .lineLimit(1)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        Text(trip.arrivalTime)
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(.blue)
+                            .lineLimit(1)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(1)
+
+                    let compactSummary = trip.compactTrainsSummary
+                    if !compactSummary.isEmpty {
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(compactSummary)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
@@ -1474,10 +2035,16 @@ struct NativeSuggestionRow: View {
                 .padding(.vertical, 3)
                 .background(Color.orange.opacity(0.12))
                 .clipShape(Capsule())
-        } else if case .train(let train) = item, !train.delay.isEmpty, train.delay != "--" {
-            Text(train.delay)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(train.delay.hasPrefix("+") ? .orange : (train.delay.lowercased().contains("in orario") ? .green : .secondary))
+        } else if case .train(let train) = item {
+            if !train.delay.isEmpty && train.delay != "--" {
+                Text(train.delay)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(train.delay.hasPrefix("+") ? .orange : (train.delay.lowercased().contains("in orario") ? .green : .secondary))
+            } else if !train.time.isEmpty && train.time != "--:--" {
+                Text(train.time)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
         }
     }
     
@@ -1552,8 +2119,11 @@ struct NearbySectionView: View {
     let nearby: Station?
     var nearbyDistance: Double? = nil
     var activePlan: PlanBReportDTO? = nil
+    var habitCommuteSlot: ActiveHabitCommuteSlot? = nil
+    var isLoadingHabitTrip: Bool = false
     var onSelectPlanB: (() -> Void)? = nil
     var onDismissPlanB: (() -> Void)? = nil
+    var onSelectHabitTrip: ((ActiveHabitCommuteSlot) -> Void)? = nil
     @Binding var selectedFavoriteTrain: Train?
     @Binding var selectedSuggestedStation: Station?
     @Binding var selectedSuggestedRoute: FavoriteRoute?
@@ -1647,11 +2217,9 @@ struct NearbySectionView: View {
             for sug in smartSuggestions {
                 switch sug {
                 case .station(let s):
-                    let alreadyHasStation = list.contains { item in
-                        if case .station = item.suggestion { return true }
-                        return false
-                    }
-                    if nearby == nil && !alreadyHasStation && !usageTracker.isStationIgnored(s.name) {
+                    let alreadyHasSuggestedStation = list.contains { $0.id.hasPrefix("sug_station_") }
+                    let matchesNearby = nearby?.name.localizedCaseInsensitiveCompare(s.name) == .orderedSame
+                    if !alreadyHasSuggestedStation && !matchesNearby && !usageTracker.isStationIgnored(s.name) {
                         list.append(ForYouChipItem(id: "sug_station_\(s.name)", suggestion: sug))
                     }
                 case .train(let t):
@@ -1669,8 +2237,59 @@ struct NearbySectionView: View {
             return Array(list.prefix(2))
         }()
         
-        if !chips.isEmpty || activePlan != nil {
+        if !chips.isEmpty || activePlan != nil || habitCommuteSlot != nil {
             Section {
+                // Viaggio abituale nella fascia oraria configurata
+                if activePlan == nil, let slot = habitCommuteSlot {
+                    let originSummary = formatCityOrStationSummary(slot.origins)
+                    let destSummary = formatCityOrStationSummary(slot.destinations)
+                    Button {
+                        Haptics.play(.light)
+                        onSelectHabitTrip?(slot)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "tram.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .frame(width: 22, height: 22)
+                                .foregroundColor(.blue)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text("Viaggio abituale")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                    Text(slot.isReturn ? "Ritorno" : "Andata")
+                                        .font(.caption2.bold())
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.blue.opacity(0.12))
+                                        .foregroundColor(.blue)
+                                        .clipShape(Capsule())
+                                }
+                                Text("\(originSummary) → \(destSummary) · \(slot.timeBand)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                            
+                            Spacer()
+                            
+                            if isLoadingHabitTrip {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.secondary.opacity(0.6))
+                            }
+                        }
+                        .padding(.vertical, 2)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isLoadingHabitTrip)
+                }
+
                 // Percorso alternativo integrato in stile nativo
                 if let plan = activePlan {
                     let chosenAlt = plan.alternatives.first(where: {

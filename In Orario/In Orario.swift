@@ -7,6 +7,7 @@ import WidgetKit
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     var manager: TrainManager?
     var pendingDeepLinkTrain: Train?
+    var pendingOpenRegionSettings: Bool = false
 
     private func extractTrainNumber(from userInfo: [AnyHashable: Any]) -> String? {
         if let s = userInfo["train_number"] as? String, !s.isEmpty { return s }
@@ -20,6 +21,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             manager.deepLinkTrain = train
         } else {
             self.pendingDeepLinkTrain = train
+        }
+    }
+
+    @MainActor
+    private func triggerOpenRegionSettings() {
+        if let manager = self.manager {
+            manager.pendingOpenRegionSettings = true
+            NotificationCenter.default.post(name: NSNotification.Name("OpenRegionSettings"), object: nil)
+        } else {
+            self.pendingOpenRegionSettings = true
         }
     }
     
@@ -55,21 +66,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         }
         
         Task {
-            let hasLocalAI = await MainActor.run {
-                aiManager.aiModeChoice == .local && aiManager.isAppleIntelligenceAvailable
-            }
-            if hasLocalAI {
-                let tempManager = await MainActor.run { TrainManager() }
-                let region = await MainActor.run { tempManager.strikeRegion }
-                let items = await tempManager.executeRawScraping(region: region)
-                let formatted = await AIEngine.shared.formatWithLocalModel(rawItems: items)
-                await MainActor.run {
-                    tempManager.saveCache(items: formatted)
-                    if !tempManager.hasSupport() {
-                        aiManager.recordLocalAIExecution()
-                    }
-                }
-            }
+            let tempManager = await MainActor.run { TrainManager() }
+            _ = await tempManager.fetchStrikesAndNews(forceRefresh: true)
             
             await MainActor.run {
                 AIFeatureManager.shared.performDailySpaceCheck()
@@ -160,6 +158,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                     NotificationCenter.default.post(name: NSNotification.Name("OpenCommutePlanB"), object: nil)
                 }
             }
+        } else if category == "SELECT_REGION" || userInfo["type"] as? String == "select_region" {
+            triggerOpenRegionSettings()
         } else {
             if let trainNumber = extractTrainNumber(from: userInfo) {
                 let t = Train(category: "Treno", number: trainNumber, destination: "Caricamento...", time: "--:--", delay: "In orario", platform: "--")
@@ -195,11 +195,18 @@ struct InOrario: App {
                 .environmentObject(usageTracker)
                 .environmentObject(guessingEngine)
                 .environment(\.locale, Locale(identifier: appLanguage))
+                .task {
+                    await TipManager.shared.updatePurchases()
+                }
                 .onAppear {
                     appDelegate.manager = manager
                     if let pending = appDelegate.pendingDeepLinkTrain {
                         manager.deepLinkTrain = pending
                         appDelegate.pendingDeepLinkTrain = nil
+                    }
+                    if appDelegate.pendingOpenRegionSettings {
+                        manager.pendingOpenRegionSettings = true
+                        appDelegate.pendingOpenRegionSettings = false
                     }
                     if let savedToken = UserDefaults.standard.string(forKey: "apnsTokenKey_v1"), !savedToken.isEmpty {
                         if manager.apnsToken != savedToken {
@@ -234,10 +241,11 @@ struct InOrario: App {
                 // Trigger guessing engine single-shot GPS and logic
                 guessingEngine.appEnteredActive(locationManager: locationManager, passanteManager: passanteManager, manager: manager)
                 
-                // Sincronizza notifiche remote e Live Activities
-                manager.syncRemoteNotifications()
-                manager.syncLiveActivities()
+                // Verifica StoreKit entitlements e poi sincronizza notifiche remote e Live Activities
                 Task {
+                    await TipManager.shared.updatePurchases()
+                    manager.syncRemoteNotifications()
+                    manager.syncLiveActivities()
                     await manager.backgroundLiveActivityUpdate()
                 }
             }

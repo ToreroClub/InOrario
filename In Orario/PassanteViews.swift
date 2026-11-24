@@ -719,35 +719,55 @@ fileprivate let passanteOuterStationLookup: [String: (rfiID: String?, vtID: Stri
     if let ids = passanteOuterStationLookup[cleanName] {
         return Station(name: cleanName, rfiID: ids.rfiID, vtID: ids.vtID, lat: nil, lon: nil)
     }
-    if cleanName.contains("Garibaldi") {
-        return Station(name: cleanName, rfiID: "1714", vtID: "S01647", lat: nil, lon: nil)
-    }
-    if cleanName.contains("Venezia") {
-        return Station(name: cleanName, rfiID: "1723", vtID: "S01649", lat: nil, lon: nil)
-    }
-    if cleanName.contains("Repubblica") {
-        return Station(name: cleanName, rfiID: "1719", vtID: "S01648", lat: nil, lon: nil)
-    }
-    if cleanName.contains("Lancetti") {
-        return Station(name: cleanName, rfiID: "1713", vtID: "S01643", lat: nil, lon: nil)
-    }
-    if cleanName.contains("Dateo") {
-        return Station(name: cleanName, rfiID: "3468", vtID: "S01650", lat: nil, lon: nil)
-    }
-    if cleanName.contains("Vittoria") {
-        return Station(name: cleanName, rfiID: "1718", vtID: "S01633", lat: nil, lon: nil)
-    }
-    if cleanName.contains("Bovisa") {
-        return Station(name: cleanName, rfiID: nil, vtID: "S01201", lat: nil, lon: nil)
-    }
-    if cleanName.contains("Rogoredo") {
-        return Station(name: cleanName, rfiID: "1720", vtID: "S01820", lat: nil, lon: nil)
-    }
 
+    // 1. Corrispondenza esatta sul catalogo RFI prima degli alias brevi del Passante
     if let rfi = manager.allRFIStations.first(where: { $0.name.lowercased() == cleanName.lowercased() }) {
         return Station(name: rfi.name, rfiID: rfi.rfiID, vtID: rfi.vtID, lat: nil, lon: nil)
     }
-    if let rfi = manager.allRFIStations.first(where: { $0.name.lowercased().contains(cleanName.lowercased()) }) {
+
+    let lower = cleanName.lowercased()
+    let isMilanoGaribaldi = lower.contains("garibaldi")
+        && !lower.contains("pavia")
+        && !lower.contains("casalecchio")
+        && !lower.contains("napoli")
+    if isMilanoGaribaldi {
+        return Station(name: cleanName, rfiID: "1714", vtID: "S01647", lat: nil, lon: nil)
+    }
+    let isMilanoPortaVenezia = lower == "porta venezia"
+        || lower == "p.ta venezia"
+        || lower == "p. venezia"
+        || lower == "milano porta venezia"
+        || lower == "milano p.ta venezia"
+        || lower == "milano p. venezia"
+    if isMilanoPortaVenezia {
+        return Station(name: cleanName, rfiID: "1723", vtID: "S01649", lat: nil, lon: nil)
+    }
+    if lower == "repubblica" || lower == "milano repubblica" {
+        return Station(name: cleanName, rfiID: "1719", vtID: "S01648", lat: nil, lon: nil)
+    }
+    if lower == "lancetti" || lower == "milano lancetti" {
+        return Station(name: cleanName, rfiID: "1713", vtID: "S01643", lat: nil, lon: nil)
+    }
+    if lower == "dateo" || lower == "milano dateo" {
+        return Station(name: cleanName, rfiID: "3468", vtID: "S01650", lat: nil, lon: nil)
+    }
+    let isMilanoPortaVittoria = lower == "porta vittoria"
+        || lower == "p.ta vittoria"
+        || lower == "p. vittoria"
+        || lower == "milano porta vittoria"
+        || lower == "milano p.ta vittoria"
+        || lower == "milano p. vittoria"
+    if isMilanoPortaVittoria {
+        return Station(name: cleanName, rfiID: "1718", vtID: "S01633", lat: nil, lon: nil)
+    }
+    if lower.contains("bovisa") {
+        return Station(name: cleanName, rfiID: nil, vtID: "S01201", lat: nil, lon: nil)
+    }
+    if lower == "rogoredo" || lower == "milano rogoredo" {
+        return Station(name: cleanName, rfiID: "1720", vtID: "S01820", lat: nil, lon: nil)
+    }
+
+    if let rfi = manager.allRFIStations.first(where: { $0.name.lowercased().contains(lower) }) {
         return Station(name: rfi.name, rfiID: rfi.rfiID, vtID: rfi.vtID, lat: nil, lon: nil)
     }
     return Station(name: cleanName, rfiID: nil, vtID: nil, lat: nil, lon: nil)

@@ -284,6 +284,14 @@ actor TrainRepository {
             status.isArrived = (json["arrivato"] as? Bool) ?? false
             status.lastStation = (json["stazioneUltimoRilevamento"] as? String) ?? "--"
             status.lastTime = (json["compOraUltimoRilevamento"] as? String) ?? (json["oraUltimoRilevamento"] as? String) ?? "--:--"
+            let rawCatJson = ((json["compNumeroTreno"] as? String) ?? (json["categoria"] as? String) ?? (json["subTitle"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let origNameJson = (json["origine"] as? String) ?? ((json["fermate"] as? [[String: Any]])?.first?["stazione"] as? String) ?? ""
+            let destNameJson = (json["destinazione"] as? String) ?? ((json["fermate"] as? [[String: Any]])?.last?["stazione"] as? String) ?? ""
+            status.detectedCategory = resolveTrainCategory(
+                number: cleanNumber,
+                rawCategory: rawCatJson.replacingOccurrences(of: cleanNumber, with: "").trimmingCharacters(in: .whitespacesAndNewlines),
+                description: "\(origNameJson) - \(destNameJson)"
+            )
             
             if let ritardi = json["compRitardo"] as? [String], !ritardi.isEmpty { status.statusMessage = ritardi[0] }
             else { status.statusMessage = status.isDeparted ? "In viaggio" : "In attesa di partenza" }

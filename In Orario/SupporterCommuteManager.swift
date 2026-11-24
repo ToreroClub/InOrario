@@ -281,6 +281,13 @@ struct PlanBAlternativeItem: Codable, Identifiable, Equatable {
     var legs: [PlanBLegItem]?
 }
 
+struct ActiveHabitCommuteSlot: Equatable {
+    let isReturn: Bool
+    let origins: [String]
+    let destinations: [String]
+    let timeBand: String
+}
+
 struct PlanBReportDTO: Codable, Identifiable, Equatable {
     var id: String { timestamp }
     let title: String
@@ -871,7 +878,81 @@ class SupporterCommuteManager: ObservableObject {
         }
     }
     
-    func requestManualPlanB(origins customOrigins: [String]? = nil, destinations customDestinations: [String]? = nil, for returnTrip: Bool = false, userLat: Double? = nil, userLon: Double? = nil) async {
+    // MARK: - Active Habit Commute Slot (Home "Per te")
+
+    nonisolated static func parseTimeBandMinutes(_ band: String) -> (start: Int, end: Int)? {
+        let parts = band.components(separatedBy: "-").map { $0.trimmingCharacters(in: .whitespaces) }
+        guard parts.count == 2 else { return nil }
+        func toMins(_ hhmm: String) -> Int? {
+            let comps = hhmm.split(separator: ":")
+            guard comps.count == 2, let h = Int(comps[0]), let m = Int(comps[1]),
+                  (0...23).contains(h), (0...59).contains(m) else { return nil }
+            return h * 60 + m
+        }
+        guard let start = toMins(parts[0]), var end = toMins(parts[1]) else { return nil }
+        if end <= start { end += 24 * 60 } // es. "23:00 - 00:00"
+        return (start, end)
+    }
+
+    nonisolated static func isMinute(_ nowMinutes: Int, withinBand band: String, leadMinutes: Int = 45, trailMinutes: Int = 30) -> Bool {
+        guard let range = parseTimeBandMinutes(band) else { return false }
+        let low = range.start - leadMinutes
+        let high = range.end + trailMinutes
+        return (nowMinutes >= low && nowMinutes <= high) ||
+               (nowMinutes + 1440 >= low && nowMinutes + 1440 <= high)
+    }
+
+    func activeHabitCommuteSlot(at now: Date = Date()) -> ActiveHabitCommuteSlot? {
+        guard hasSupport(), !origins.isEmpty, !destinations.isEmpty else { return nil }
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let weekday = ((cal.component(.weekday, from: now) + 5) % 7) + 1 // 1 = Lun ... 7 = Dom
+        guard isCommuteDayActive(weekday) else { return nil }
+
+        let comps = cal.dateComponents([.hour, .minute], from: now)
+        let nowMinutes = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+        let bands = commuteBandsForDay(weekday)
+
+        if Self.isMinute(nowMinutes, withinBand: bands.outbound) {
+            let st = effectiveStations(for: weekday, isReturn: false)
+            if !st.origins.isEmpty && !st.destinations.isEmpty {
+                return ActiveHabitCommuteSlot(
+                    isReturn: false,
+                    origins: st.origins,
+                    destinations: st.destinations,
+                    timeBand: bands.outbound
+                )
+            }
+        }
+
+        if Self.isMinute(nowMinutes, withinBand: bands.returnBand) {
+            let st = effectiveStations(for: weekday, isReturn: true)
+            if !st.origins.isEmpty && !st.destinations.isEmpty {
+                return ActiveHabitCommuteSlot(
+                    isReturn: true,
+                    origins: st.origins,
+                    destinations: st.destinations,
+                    timeBand: bands.returnBand
+                )
+            }
+        }
+
+        return nil
+    }
+
+    func requestHabitTripPlan(for slot: ActiveHabitCommuteSlot, userLat: Double? = nil, userLon: Double? = nil) async {
+        await requestManualPlanB(
+            origins: slot.origins,
+            destinations: slot.destinations,
+            for: false,
+            timeBandOverride: slot.timeBand,
+            userLat: userLat,
+            userLon: userLon
+        )
+    }
+
+    func requestManualPlanB(origins customOrigins: [String]? = nil, destinations customDestinations: [String]? = nil, for returnTrip: Bool = false, timeBandOverride: String? = nil, userLat: Double? = nil, userLon: Double? = nil) async {
         guard hasSupport() else { return }
         isCalculatingPlanB = true
         chosenAlternativeId = nil
@@ -892,6 +973,9 @@ class SupporterCommuteManager: ObservableObject {
         }
         
         let targetBand: String = {
+            if let override = timeBandOverride, !override.isEmpty {
+                return override
+            }
             if customizePerDay, let sched = daySchedules[weekday] {
                 return returnTrip ? sched.returnBand : sched.outboundBand
             }

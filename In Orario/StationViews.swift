@@ -324,7 +324,7 @@ struct StationBoardView: View {
         }
         .sheet(isPresented: $showCommuteSetupSheet) {
             NavigationStack {
-                CommuteSetupView()
+                CommuteSetupView(showCloseButton: true)
                     .environmentObject(manager)
                     .environmentObject(locationManager)
                     .environmentObject(passanteManager)
@@ -578,7 +578,7 @@ struct VTStationBoardView: View {
         }
         .sheet(isPresented: $showCommuteSetupSheet) {
             NavigationStack {
-                CommuteSetupView()
+                CommuteSetupView(showCloseButton: true)
                     .environmentObject(manager)
                     .environmentObject(locationManager)
                     .environmentObject(passanteManager)
