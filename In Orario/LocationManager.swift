@@ -141,6 +141,118 @@ final class DeviceLocationService: NSObject, CLLocationManagerDelegate {
     }
 }
 
+// MARK: - RFIStationCatalog
+/// Catalogo condiviso delle stazioni RFI/VT caricato una sola volta per processo e condiviso
+/// tra LocationManager, TrainManager, LocalScrapingService e SmartQueryExecutor.
+final class RFIStationCatalog: @unchecked Sendable {
+    static let shared = RFIStationCatalog()
+
+    private final class BundleToken {}
+
+    private let lock = NSLock()
+    private var cachedRFIStations: [RFIStation]? = nil
+    private var cachedGeoStations: [Station]? = nil
+
+    private init() {}
+
+    var isLoaded: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cachedRFIStations != nil
+    }
+
+    var rfiStations: [RFIStation] {
+        lock.lock()
+        if let existing = cachedRFIStations {
+            lock.unlock()
+            return existing
+        }
+        lock.unlock()
+
+        let loaded = Self.decodeFromBundle()
+        let geo = loaded.compactMap { rfi -> Station? in
+            guard rfi.lat != nil, rfi.lon != nil else { return nil }
+            return Station(
+                name: rfi.name,
+                rfiID: rfi.rfiID,
+                vtID: rfi.vtID,
+                lat: rfi.lat,
+                lon: rfi.lon
+            )
+        }
+
+        lock.lock()
+        if cachedRFIStations == nil {
+            cachedRFIStations = loaded
+            cachedGeoStations = geo
+        }
+        let result = cachedRFIStations ?? loaded
+        lock.unlock()
+        return result
+    }
+
+    var geoStations: [Station] {
+        lock.lock()
+        if let existing = cachedGeoStations {
+            lock.unlock()
+            return existing
+        }
+        lock.unlock()
+
+        _ = rfiStations
+        lock.lock()
+        let result = cachedGeoStations ?? []
+        lock.unlock()
+        return result
+    }
+
+    private static func decodeFromBundle() -> [RFIStation] {
+        let bundles = [Bundle.main, Bundle(for: BundleToken.self)]
+        for bundle in bundles {
+            if let url = bundle.url(forResource: "rfi_stations", withExtension: "json"),
+               let data = try? Data(contentsOf: url),
+               let decoded = try? JSONDecoder().decode([RFIStation].self, from: data),
+               !decoded.isEmpty {
+                return decoded
+            }
+        }
+        return []
+    }
+
+    /// Ricerca O(k) della stazione più vicina con pre-filtro bounding-box in aritmetica pura
+    /// prima di allocare oggetti CLLocation.
+    nonisolated static func nearestStation(
+        to targetLocation: CLLocation,
+        in stations: [Station],
+        maxDistanceMeters: Double = 4000
+    ) -> (station: Station, distance: Double)? {
+        let uLat = targetLocation.coordinate.latitude
+        let uLon = targetLocation.coordinate.longitude
+        let latDelta = max(0.05, (maxDistanceMeters / 111_000.0) * 1.35)
+        let lonDelta = max(0.075, (maxDistanceMeters / 72_000.0) * 1.35)
+
+        var bestStation: Station? = nil
+        var bestDistance = maxDistanceMeters
+
+        for station in stations {
+            guard let lat = station.lat, let lon = station.lon else { continue }
+            if abs(lat - uLat) > latDelta || abs(lon - uLon) > lonDelta {
+                continue
+            }
+            let d = targetLocation.distance(from: CLLocation(latitude: lat, longitude: lon))
+            if d <= bestDistance {
+                bestDistance = d
+                bestStation = station
+            }
+        }
+
+        if let bestStation {
+            return (bestStation, bestDistance)
+        }
+        return nil
+    }
+}
+
 // MARK: - LocationManager
 /// Bridge ObservableObject per le viste SwiftUI dell'applicazione.
 /// Si interfaccia con DeviceLocationService e calcola le stazioni vicine.
@@ -154,18 +266,21 @@ class LocationManager: ObservableObject {
     @Published var nearbyStation: Station?
     @Published var nearbyStationDistance: Double?
     @Published var manualNearbyStation: Station?
+    @Published private(set) var authorizationStatus: CLAuthorizationStatus
     
     private let locationService = DeviceLocationService.shared
-    private var allReferenceStations: [Station] = []
+    private var isWarmingCatalog = false
     
     init() {
         self.userLocation = locationService.lastLocation
+        self.authorizationStatus = locationService.authorizationStatus
         
         locationService.onLocationUpdate = { [weak self] newLocation in
             self?.userLocation = newLocation
         }
         
         locationService.onAuthorizationChange = { [weak self] status in
+            self?.authorizationStatus = status
             if status == .authorizedWhenInUse || status == .authorizedAlways {
                 self?.requestLocation(force: true)
             }
@@ -174,8 +289,11 @@ class LocationManager: ObservableObject {
         updateNearbyStation()
     }
     
-    var authorizationStatus: CLAuthorizationStatus {
-        locationService.authorizationStatus
+    func refreshAuthorizationStatus() {
+        let latest = locationService.authorizationStatus
+        if authorizationStatus != latest {
+            authorizationStatus = latest
+        }
     }
     
     func requestAuthorization() {
@@ -196,43 +314,34 @@ class LocationManager: ObservableObject {
         return loc
     }
     
-    private func loadStationsIfNeeded() {
-        guard allReferenceStations.isEmpty else { return }
-        if let url = Bundle.main.url(forResource: "rfi_stations", withExtension: "json"),
-           let data = try? Data(contentsOf: url),
-           let decoded = try? JSONDecoder().decode([RFIStation].self, from: data) {
-            self.allReferenceStations = decoded.compactMap { rfi in
-                guard rfi.lat != nil, rfi.lon != nil else { return nil }
-                return Station(
-                    name: rfi.name,
-                    rfiID: rfi.rfiID,
-                    vtID: rfi.vtID,
-                    lat: rfi.lat,
-                    lon: rfi.lon
-                )
-            }
-        }
-    }
-    
     private func updateNearbyStation() {
         guard let userLoc = userLocation else {
             self.nearbyStation = nil
             self.nearbyStationDistance = nil
             return
         }
-        
-        loadStationsIfNeeded()
-        
-        let sortedCandidates = allReferenceStations.compactMap { s -> (Station, Double)? in
-            guard let c = s.coordinate else { return nil }
-            let dist = userLoc.distance(from: CLLocation(latitude: c.latitude, longitude: c.longitude))
-            return (s, dist)
-        }.sorted(by: { $0.1 < $1.1 })
-        
-        // Considera una stazione "vicina" se entro 4 km (4000 metri)
-        if let closest = sortedCandidates.first, closest.1 <= 4000 {
-            self.nearbyStation = closest.0
-            self.nearbyStationDistance = closest.1
+
+        if !RFIStationCatalog.shared.isLoaded {
+            if !isWarmingCatalog {
+                isWarmingCatalog = true
+                Task.detached(priority: .userInitiated) {
+                    _ = RFIStationCatalog.shared.geoStations
+                    await MainActor.run { [weak self] in
+                        self?.isWarmingCatalog = false
+                        self?.updateNearbyStation()
+                    }
+                }
+            }
+            return
+        }
+
+        if let match = RFIStationCatalog.nearestStation(
+            to: userLoc,
+            in: RFIStationCatalog.shared.geoStations,
+            maxDistanceMeters: 4000
+        ) {
+            self.nearbyStation = match.station
+            self.nearbyStationDistance = match.distance
         } else {
             self.nearbyStation = nil
             self.nearbyStationDistance = nil
@@ -241,7 +350,7 @@ class LocationManager: ObservableObject {
     
     func findNearestStation(among candidateNames: [String]) -> (name: String, distance: Double)? {
         guard let userLoc = userLocation else { return nil }
-        loadStationsIfNeeded()
+        let stations = RFIStationCatalog.shared.geoStations
         
         func compact(_ s: String) -> String {
             s.lowercased()
@@ -275,15 +384,15 @@ class LocationManager: ObservableObject {
 
             let found: Station?
             if isCandGaribaldi {
-                found = allReferenceStations.first { st in
+                found = stations.first { st in
                     let sNorm = st.name.lowercased()
                     return sNorm.contains("garibaldi") && !sNorm.contains("pavia") && !sNorm.contains("casalecchio") && !sNorm.contains("napoli")
                 }
             } else {
-                found = allReferenceStations.first { $0.name.lowercased() == norm }
-                    ?? allReferenceStations.first { $0.name.lowercased() == "milano " + norm }
-                    ?? allReferenceStations.first { compact($0.name) == candCompact }
-                    ?? allReferenceStations.first { st in
+                found = stations.first { $0.name.lowercased() == norm }
+                    ?? stations.first { $0.name.lowercased() == "milano " + norm }
+                    ?? stations.first { compact($0.name) == candCompact }
+                    ?? stations.first { st in
                         let sNorm = st.name.lowercased()
                         if norm == "certosa" && sNorm.contains("pavia") { return false }
                         return sNorm.contains(norm)

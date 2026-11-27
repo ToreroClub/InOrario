@@ -31,6 +31,9 @@
         }
       }
     },
+    ":" : {
+
+    },
     "?" : {
       "localizations" : {
         "en" : {
@@ -57,6 +60,16 @@
     "· %@" : {
 
     },
+    "· %@–%@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "· %1$@–%2$@"
+          }
+        }
+      }
+    },
     "· %@%@" : {
       "localizations" : {
         "it" : {
@@ -66,6 +79,32 @@
           }
         }
       }
+    },
+    "· %lld avvis%@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "· %1$lld avvis%2$@"
+          }
+        }
+      }
+    },
+    "· %lld camb%@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "· %1$lld camb%2$@"
+          }
+        }
+      }
+    },
+    "· Bin. %@" : {
+
+    },
+    "· Diretto" : {
+
     },
     "(%@)" : {
 
@@ -140,6 +179,16 @@
         }
       }
     },
+    "%@ · %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ (%lld)" : {
       "localizations" : {
         "en" : {
@@ -149,6 +198,9 @@
           }
         }
       }
+    },
+    "%@ (La tua regione)" : {
+
     },
     "%@ %@" : {
       "localizations" : {
@@ -264,6 +316,16 @@
         }
       }
     },
+    "%@%@ · %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@ · %3$@"
+          }
+        }
+      }
+    },
     "%lld" : {
       "localizations" : {
         "en" : {
@@ -294,8 +356,38 @@
         }
       }
     },
+    "%lld avvis%@ o lavori RFI pertinenti" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld avvis%2$@ o lavori RFI pertinenti"
+          }
+        }
+      }
+    },
+    "%lld camb%@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld camb%2$@"
+          }
+        }
+      }
+    },
     "%lld cambi" : {
 
+    },
+    "%lld di %lld fermate visibili · %lld nascoste" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld di %2$lld fermate visibili · %3$lld nascoste"
+          }
+        }
+      }
     },
     "%lld fermate" : {
 
@@ -422,6 +514,12 @@
     "→ %@" : {
 
     },
+    "+ altri %lld treni/corse — consulta la notizia completa qui sotto." : {
+
+    },
+    "+%lld" : {
+
+    },
     "+%lld min" : {
 
     },
@@ -454,9 +552,6 @@
           }
         }
       }
-    },
-    "👆 Pressione prolungata" : {
-
     },
     "📍" : {
       "localizations" : {
@@ -652,6 +747,9 @@
     "Abituale" : {
 
     },
+    "Abitudini" : {
+
+    },
     "Abitudini apprese" : {
 
     },
@@ -701,6 +799,9 @@
         }
       }
     },
+    "Adesso" : {
+
+    },
     "Affollamento" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -711,6 +812,9 @@
           }
         }
       }
+    },
+    "Agg. %@" : {
+
     },
     "Aggiorna" : {
       "localizations" : {
@@ -728,7 +832,36 @@
     "Aggiorna ora su App Store" : {
 
     },
+    "Aggiorna partenze stazione vicina" : {
+
+    },
+    "Aggiornamenti automatici in tempo reale ogni minuto su schermata di blocco e Isola Dinamica (anziché ogni 2 minuti)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real-time automatic updates every minute on Lock Screen and Dynamic Island (instead of every 2 minutes)."
+          }
+        }
+      }
+    },
+    "Aggiornamento Notifiche" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications Update"
+          }
+        }
+      }
+    },
+    "Aggiornamento partenze..." : {
+
+    },
     "Aggiungi" : {
+
+    },
+    "Aggiungi %@" : {
 
     },
     "Aggiungi %@ %@ ai Preferiti" : {
@@ -741,7 +874,11 @@
         }
       }
     },
+    "Aggiungi ai preferiti" : {
+
+    },
     "Aggiungi ai Preferiti" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -752,6 +889,9 @@
       }
     },
     "Aggiungi al Calendario" : {
+
+    },
+    "Aggiungi alle mie linee" : {
 
     },
     "Aggiungi comunque treno %@" : {
@@ -778,6 +918,24 @@
         }
       }
     },
+    "Aggiungi le tue linee preferite per personalizzare le fermate visibili e monitorare le partenze." : {
+
+    },
+    "Aggiungi linea" : {
+
+    },
+    "Aggiungi linea ai preferiti" : {
+
+    },
+    "Aggiungi linee" : {
+
+    },
+    "Aggiungi Linee" : {
+
+    },
+    "Aggiungi o rimuovi linee" : {
+
+    },
     "Aggiungi Preferita" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -799,6 +957,9 @@
           }
         }
       }
+    },
+    "Aggiungi stazione ai preferiti" : {
+
     },
     "Aggiungi stazione di arrivo..." : {
 
@@ -922,6 +1083,9 @@
         }
       }
     },
+    "ALTRI AVVISI" : {
+
+    },
     "Altri treni vicini in partenza" : {
 
     },
@@ -934,6 +1098,9 @@
           }
         }
       }
+    },
+    "Anche con il piano gratuito ora puoi attivare una notifica all'orario che scegli tu fino a %lld treni preferiti, per controllare subito ritardi, binario e soppressioni prima di uscire." : {
+
     },
     "Andata" : {
 
@@ -993,6 +1160,9 @@
     "Aperture tabellone" : {
 
     },
+    "App più leggera, cache soluzioni da 30 min e tratte Casa ↔ Lavoro in Abitudini di viaggio." : {
+
+    },
     "Apple Intelligence" : {
       "localizations" : {
         "en" : {
@@ -1007,6 +1177,12 @@
 
     },
     "Apple Intelligence richiede un dispositivo Apple compatibile ed una versione di iOS supportata." : {
+
+    },
+    "Apprendimento in corso" : {
+
+    },
+    "Apri dettagli completi" : {
 
     },
     "Apri Impostazioni" : {
@@ -1029,10 +1205,19 @@
         }
       }
     },
+    "Apri Impostazioni Posizione" : {
+
+    },
+    "Apri l'avviso ufficiale sul sito RFI / Trenitalia" : {
+
+    },
     "Apri nella scheda Soluzioni" : {
 
     },
     "Apri queste %lld soluzioni nella scheda Soluzioni" : {
+
+    },
+    "Apri sezione Metro Milano" : {
 
     },
     "Apri tabellone completo %@" : {
@@ -1040,6 +1225,16 @@
     },
     "Apri tabellone live (%@)" : {
 
+    },
+    "Arrivi alle %@ · parte alle %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Arrivi alle %1$@ · parte alle %2$@"
+          }
+        }
+      }
     },
     "Arrivi Stazione" : {
 
@@ -1121,9 +1316,6 @@
         }
       }
     },
-    "Attiva almeno una linea suburbana per mostrarla nella Home. Se tutte sono disattivate, la sezione non viene mostrata." : {
-
-    },
     "Attiva In Orario Pro nelle impostazioni dell'app per sbloccare il tabellone partenze." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1155,6 +1347,9 @@
         }
       }
     },
+    "Attiva posizione" : {
+
+    },
     "Attive" : {
       "localizations" : {
         "en" : {
@@ -1178,6 +1373,12 @@
           }
         }
       }
+    },
+    "Avvio Applicazione" : {
+
+    },
+    "avvisaci." : {
+
     },
     "Avvisami" : {
 
@@ -1213,6 +1414,7 @@
       }
     },
     "Avvisi Treno" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1385,6 +1587,9 @@
         }
       }
     },
+    "Caricamento fermate..." : {
+
+    },
     "Caricamento offerte..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1426,6 +1631,9 @@
           }
         }
       }
+    },
+    "Carico partenze da %@..." : {
+
     },
     "Casa" : {
       "localizations" : {
@@ -1500,6 +1708,9 @@
       }
     },
     "Cerca fermata metro..." : {
+
+    },
+    "Cerca S6, RE4, SFM1, FL1, AV, IC, stazioni..." : {
 
     },
     "Cerca Soluzioni" : {
@@ -1633,6 +1844,9 @@
         }
       }
     },
+    "Cerco soluzioni live..." : {
+
+    },
     "Chiedi ${requestText}" : {
 
     },
@@ -1640,6 +1854,15 @@
 
     },
     "Chiedi all'Assistente" : {
+
+    },
+    "Chiedi orari, partenze, ritardi o soluzioni in linguaggio naturale. Con In Orario Pro usa il Cloud per risposte più rapide e precise." : {
+
+    },
+    "Chiedi orari, partenze, ritardi o soluzioni in linguaggio naturale. Stai usando l'elaborazione locale (%@): puoi passare al Cloud dalle Impostazioni." : {
+
+    },
+    "Chiedi orari, partenze, ritardi o tratte scrivendo o parlando. Senza Pro usa l'elaborazione locale sul dispositivo e può non essere precisa." : {
 
     },
     "Chiudi" : {
@@ -1662,6 +1885,9 @@
         }
       }
     },
+    "Circolazione regolare" : {
+
+    },
     "Cloud In Orario" : {
       "localizations" : {
         "en" : {
@@ -1682,9 +1908,6 @@
           }
         }
       }
-    },
-    "Coincidenze Metro al Volo" : {
-
     },
     "Coincidenze Metropolitana" : {
       "extractionState" : "stale",
@@ -1708,6 +1931,7 @@
       }
     },
     "Comportamento Espansione" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1716,6 +1940,15 @@
           }
         }
       }
+    },
+    "Comprimi cronologia" : {
+
+    },
+    "Comprimi fermate" : {
+
+    },
+    "Comprimi linea" : {
+
     },
     "Con binario" : {
       "extractionState" : "stale",
@@ -1728,18 +1961,31 @@
         }
       }
     },
-    "Con il piano gratuito puoi attivare la notifica o la Live Activity per 1 treno alla volta. Passando a In Orario Pro sblocchi il monitoraggio simultaneo fino a 10 treni, Live Activities ad alta frequenza e notifiche push dedicate per gli scioperi. La scelta dei giorni e la notifica a un orario specifico sono disponibili per tutti." : {
+    "Con il piano gratuito la Live Activity si aggiorna automaticamente ogni 2 minuti e ti avvisa con un suono in caso di variazioni importanti del treno (puoi anche aggiornarla manualmente con 🔄).\n\nVuoi aggiornamenti istantanei ogni minuto, notifiche continue e fino a 20 treni monitorati? Passa a In Orario Pro!" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the free plan, your Live Activity updates automatically every 2 minutes and plays a sound alert for important train changes (you can also refresh manually with 🔄).\n\nWant instant updates every minute, continuous notifications, and up to 20 monitored trains? Upgrade to In Orario Pro!"
+          }
+        }
+      }
+    },
+    "Con il piano gratuito puoi attivare gratis le notifiche a un orario specifico (scegliendo anche i giorni della settimana) fino a 10 treni, più 1 Live Activity alla volta con aggiornamenti automatici ogni 2 minuti e avvisi sonori. Passando a In Orario Pro sblocchi il monitoraggio continuo (variazioni ritardo, partenze, passaggi e cambi binario) fino a 20 treni, Live Activities ogni minuto e notifiche push dedicate per gli scioperi." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "With the free plan you can enable notifications or a Live Activity for 1 train at a time. Upgrading to In Orario Pro unlocks simultaneous tracking of up to 10 trains, high-frequency Live Activities, and dedicated strike push notifications. Weekday selection and scheduled-time notifications are available for everyone."
+            "value" : "With the free plan you can enable scheduled-time notifications (including weekday selection) for up to 10 trains for free, plus 1 active Live Activity at a time with automatic updates every 2 minutes and sound alerts. Upgrading to In Orario Pro unlocks continuous monitoring (delay changes, departures, station passes, and platform changes) for up to 20 trains, every-minute Live Activities, and dedicated strike push notifications."
           }
         }
       }
     },
-    "Con l'account gratuito puoi attivare le notifiche per 1 solo treno alla volta. Se le attivi su questo treno, verranno disattivate sugli altri." : {
+    "Con In Orario Pro i treni nelle fasce orarie vengono monitorati dal server: tocca la matita per personalizzare quelli di ogni giorno ed evitare falsi avvisi." : {
+
+    },
+    "Con Pro: monitoraggio continuo fino a %lld treni + riepilogo programmato" : {
 
     },
     "Conferma di essere a bordo" : {
@@ -1755,7 +2001,13 @@
         }
       }
     },
+    "Configura" : {
+
+    },
     "Configura Abitudini di Viaggio" : {
+
+    },
+    "Configura avvisi" : {
 
     },
     "Configura Casa e Lavoro…" : {
@@ -1783,6 +2035,12 @@
       }
     },
     "Configura ora" : {
+
+    },
+    "Configurazione" : {
+
+    },
+    "Connessioni suburbane" : {
 
     },
     "CONNESSO CON CAMBIO" : {
@@ -1829,6 +2087,9 @@
     "Consiglio: evita il cambio a Rho-Fiera" : {
 
     },
+    "Consultata in %lld giorni" : {
+
+    },
     "Contatto (Opzionale)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1853,6 +2114,15 @@
         }
       }
     },
+    "Continua comunque" : {
+
+    },
+    "Continua senza attivare" : {
+
+    },
+    "Copia testo" : {
+
+    },
     "Corri!" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1874,6 +2144,9 @@
           }
         }
       }
+    },
+    "Crea direttrice personalizzata" : {
+
     },
     "Cronologia" : {
 
@@ -1908,6 +2181,16 @@
         }
       }
     },
+    "da %@ → %@" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "da %1$@ → %2$@"
+          }
+        }
+      }
+    },
     "da %@ per %@" : {
       "localizations" : {
         "it" : {
@@ -1927,9 +2210,6 @@
           }
         }
       }
-    },
-    "Dalla vista fermate del treno, tieni premuta una stazione per vedere le partenze metro e la stima di fattibilità del trasbordo." : {
-
     },
     "Dalle" : {
 
@@ -2002,6 +2282,9 @@
         }
       }
     },
+    "Deseleziona tutto" : {
+
+    },
     "Detta richiesta" : {
 
     },
@@ -2025,6 +2308,9 @@
         }
       }
     },
+    "Dettagli viaggio" : {
+
+    },
     "Dettagli Viaggio" : {
       "localizations" : {
         "en" : {
@@ -2034,6 +2320,9 @@
           }
         }
       }
+    },
+    "Dettaglio Lavori" : {
+
     },
     "Diagnostica e Risoluzione Problemi" : {
 
@@ -2092,10 +2381,7 @@
         }
       }
     },
-    "Disattiva i treni che non vuoi vedere nei widget della schermata Home o di blocco." : {
-
-    },
-    "Disattiva se non vuoi mostrare questo treno nei widget." : {
+    "Disattivando questo interruttore sospendi tutte le notifiche dell'app senza perdere le preferenze configurate." : {
 
     },
     "Disattive" : {
@@ -2111,7 +2397,10 @@
     "Disattivo" : {
 
     },
-    "Disponibile solo per gli utenti Pro. Tocca per attivare In Orario Pro." : {
+    "Disponibile con In Orario Pro" : {
+
+    },
+    "Disponibile per gli utenti Pro. Tocca per attivare In Orario Pro." : {
 
     },
     "Dispositivo" : {
@@ -2127,7 +2416,13 @@
         }
       }
     },
+    "Documenti allegati" : {
+
+    },
     "Domande Frequenti" : {
+
+    },
+    "Dove: %@" : {
 
     },
     "Download in corso per un altro modello..." : {
@@ -2155,6 +2450,12 @@
         }
       }
     },
+    "Dynamic Island" : {
+
+    },
+    "Effetti sulla mobilità: %@" : {
+
+    },
     "Elaborazione istantanea ed avanzata sui server dedicati di In Orario." : {
 
     },
@@ -2176,6 +2477,9 @@
 
     },
     "Elaborazione rapida ed avanzata con modelli IA dedicati ad alta precisione." : {
+
+    },
+    "Elementi da mostrare" : {
 
     },
     "Elementi ignorati" : {
@@ -2281,6 +2585,9 @@
         }
       }
     },
+    "Esegui un test qui per verificare che sia tutto corretto." : {
+
+    },
     "Esempi di richieste" : {
 
     },
@@ -2293,6 +2600,18 @@
           }
         }
       }
+    },
+    "Espandi cronologia" : {
+
+    },
+    "Espandi fermate" : {
+
+    },
+    "Espandi l'elenco per ripristinare singoli elementi oppure usa il pulsante qui sotto per ripristinarli tutti." : {
+
+    },
+    "Espandi linea" : {
+
     },
     "Esplora gli orari integrati delle principali metropolitane italiane." : {
       "extractionState" : "stale",
@@ -2350,11 +2669,7 @@
     "Fascia oraria" : {
 
     },
-    "Fattibilità trasbordo" : {
-
-    },
     "Fatto" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2373,6 +2688,12 @@
           }
         }
       }
+    },
+    "Ferma Dynamic Island" : {
+
+    },
+    "Ferma monitoraggio" : {
+
     },
     "Fermata" : {
       "extractionState" : "stale",
@@ -2396,6 +2717,15 @@
         }
       }
     },
+    "Fermate non ancora disponibili." : {
+
+    },
+    "Fermate su %@" : {
+
+    },
+    "Filtra" : {
+
+    },
     "Filtra treni" : {
       "localizations" : {
         "en" : {
@@ -2418,6 +2748,12 @@
       }
     },
     "Filtro: %@" : {
+
+    },
+    "Fine %@" : {
+
+    },
+    "Fine riordino" : {
 
     },
     "Fisicamente impossibile." : {
@@ -2445,10 +2781,10 @@
         }
       }
     },
-    "Funzionalità IA" : {
+    "Funzionalità beta in fase prematura e sperimentale. È disattivata di default: attivala solo se vuoi provarla, tenendo presente che orari e informazioni mostrati potrebbero non essere affidabili." : {
 
     },
-    "Funzionalità In Orario Pro" : {
+    "Funzionalità IA" : {
 
     },
     "Funzioni Smart & Widget" : {
@@ -2465,6 +2801,9 @@
     "Fuori fascia" : {
 
     },
+    "Generali" : {
+
+    },
     "Generali e Località" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2475,9 +2814,6 @@
           }
         }
       }
-    },
-    "Generali e notifiche" : {
-
     },
     "Gestisci Abbonamento" : {
       "localizations" : {
@@ -2499,6 +2835,27 @@
         }
       }
     },
+    "Giorni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Days"
+          }
+        }
+      }
+    },
+    "Giorni attivi" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active days"
+          }
+        }
+      }
+    },
     "Giorni attivi:" : {
       "localizations" : {
         "en" : {
@@ -2510,9 +2867,6 @@
       }
     },
     "Giorni di viaggio" : {
-
-    },
-    "Giorni e orario" : {
 
     },
     "giorno" : {
@@ -2548,6 +2902,9 @@
           }
         }
       }
+    },
+    "Grazie per il supporto: tutte le novità e i widget sono già attivi per te" : {
+
     },
     "Guasti sulla linea, interruzioni improvvise e comunicazioni importanti sui trasporti." : {
       "localizations" : {
@@ -2666,9 +3023,6 @@
     "I treni per la tua destinazione partono dalle altre stazioni configurate." : {
 
     },
-    "I treni vengono cercati direttamente dal tuo iPhone in base alle fasce orarie sopra. Tocca la matita per modificare i treni di un giorno: le notifiche monitoreranno questi treni evitando falsi avvisi per altre corse." : {
-
-    },
     "I tuoi acquisti precedenti sono stati ripristinati con successo." : {
       "localizations" : {
         "en" : {
@@ -2686,9 +3040,6 @@
 
     },
     "I viaggi e le tratte recenti appariranno qui automaticamente." : {
-
-    },
-    "I widget mostrano fino a un massimo di 3 treni contemporaneamente nei formati Piccolo e Medio. Se la rotazione è attiva, i treni ruotano durante la giornata mostrando in alto quelli in partenza a breve o in viaggio." : {
 
     },
     "IA Locale (Offline - Beta)" : {
@@ -2732,12 +3083,12 @@
         }
       }
     },
-    "IA su server, notifiche scioperi, 10 treni e Live Activities ad alta frequenza." : {
+    "IA su server, notifiche scioperi, 20 treni e Live Activities ogni minuto." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Server AI, strike alerts, 10 trains & high-frequency Live Activities."
+            "value" : "Server AI, strike alerts, 20 trains & every-minute Live Activities."
           }
         }
       }
@@ -2752,7 +3103,7 @@
         }
       }
     },
-    "Il server monitora la tua tratta abituale in caso di cancellazioni o gravi ritardi e riceverai un'alternativa. Personalizza le tue stazioni di partenza, arrivo e viceversa e gli orari per ogni singolo giorno." : {
+    "Il server monitora la tua tratta abituale in caso di cancellazioni o gravi ritardi e riceverai un'alternativa. Personalizza le tue stazioni di partenza, arrivo e gli orari per ogni giorno." : {
 
     },
     "Il treno non ha ancora lasciato la stazione di partenza." : {
@@ -2787,6 +3138,9 @@
         }
       }
     },
+    "Il tuo In Orario Pro, ancora più potente" : {
+
+    },
     "Il tuo piano In Orario Pro è attivo e tutte le funzionalità avanzate sono ora sbloccate." : {
       "localizations" : {
         "en" : {
@@ -2808,13 +3162,35 @@
         }
       }
     },
+    "Il tuo viaggio" : {
+
+    },
+    "Il widget Treni mostra fino a 3 treni alla volta seguendo automaticamente l'ordine intelligente della schermata Treni (prima i treni in viaggio e le prossime partenze). Se disattivi un treno, il widget mostra automaticamente quello successivo." : {
+
+    },
+    "Imposta Casa, Lavoro e orari per viaggi e filtri" : {
+
+    },
+    "Imposta fino a %lld stazioni di Casa e %lld di Lavoro con i tuoi orari: i dati restano sul tuo iPhone e trovi subito la tratta Casa ↔ Lavoro in Home e Viaggi." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Imposta fino a %1$lld stazioni di Casa e %2$lld di Lavoro con i tuoi orari: i dati restano sul tuo iPhone e trovi subito la tratta Casa ↔ Lavoro in Home e Viaggi."
+          }
+        }
+      }
+    },
+    "Imposta fino a %lld stazioni di Casa e Lavoro e i tuoi orari: troverai la tratta pronta in Home e Viaggi con tutte le partenze combinate." : {
+
+    },
     "Imposta le stazioni di partenza e arrivo per trovare automaticamente i tuoi treni." : {
 
     },
-    "Imposta le tue stazioni abituali e gli orari per ricevere avvisi proattivi e alternative in tempo reale con In Orario Pro." : {
+    "Imposta le tue stazioni di Casa e Lavoro e i tuoi orari: avrai monitoraggio automatico, Piano B e tratta sempre pronta in Home e Viaggi." : {
 
     },
-    "Imposta stazioni e orari per attivare il riepilogo." : {
+    "Imposta stazioni, giorni e treni abituali." : {
 
     },
     "Impostazioni" : {
@@ -2836,6 +3212,15 @@
           }
         }
       }
+    },
+    "In corso" : {
+
+    },
+    "IN CORSO" : {
+
+    },
+    "In corso · %@" : {
+
     },
     "in orario" : {
 
@@ -2906,6 +3291,12 @@
         }
       }
     },
+    "In Orario sta imparando le tue abitudini di viaggio. Appena avrà raccolto abbastanza spostamenti, ti proporrà qui suggerimenti personalizzati." : {
+
+    },
+    "In Orario supporta Dynamic Island e notifiche automatiche solo per i treni Trenitalia e Trenord." : {
+
+    },
     "In Orario supporta il monitoraggio continuo, le notifiche e le Live Activity solo per i treni Trenitalia e Trenord.\n\nPer i treni Italo puoi consultare orari, fermate e binari in tempo reale direttamente nell'app." : {
 
     },
@@ -2944,6 +3335,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In Orario? No!"
+          }
+        }
+      }
+    },
+    "In pausa" : {
+
+    },
+    "Include variazioni di ritardo e soppressioni, partenza da origine, passaggio in stazione e cambio binario. Tocca per attivare In Orario Pro." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Includes delay changes and cancellations, origin departure, station pass, and platform changes. Tap to activate In Orario Pro."
           }
         }
       }
@@ -3014,6 +3418,9 @@
         }
       }
     },
+    "Inizio %@" : {
+
+    },
     "Inserisci il numero di un treno (es. 9604) oppure il nome di una stazione (es. Bologna Centrale)." : {
 
     },
@@ -3063,6 +3470,12 @@
         }
       }
     },
+    "Interscambi · %@" : {
+
+    },
+    "Interscambi a %@" : {
+
+    },
     "Interscambi treno-metropolitana calcolati al secondo in base alla conformazione di ciascuna stazione." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3093,7 +3506,11 @@
         }
       }
     },
+    "Isola Dinamica" : {
+
+    },
     "L'app apprende le tue abitudini (stazioni cercate, treni consultati, tratte preferite) per mostrarti informazioni personalizzate nella home al momento opportuno. I dati sono salvati esclusivamente in locale sul tuo dispositivo." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3102,6 +3519,9 @@
           }
         }
       }
+    },
+    "L'app apprende le tue abitudini per mostrarti informazioni personalizzate al momento opportuno. I dati sono salvati sui server di In Orario per consentirne la rielaborazione. Sono totalmente anonimi e slegati da ogni identità. Se disattivi i suggerimenti personalizzati, l'app smette anche di raccogliere e inviare questi dati." : {
+
     },
     "L'app apprende man mano che consulti orari, tabelloni e stazioni nelle diverse ore della giornata, integrando i tuoi preferiti storici. Continuando a usare l'app, vedrai apparire qui i tuoi tragitti abituali." : {
 
@@ -3129,12 +3549,6 @@
       }
     },
     "L'elaborazione intelligente su server dedicati è inclusa nel piano In Orario Pro." : {
-
-    },
-    "La notifica è attiva nei giorni selezionati." : {
-
-    },
-    "La notifica è attiva solo per oggi e si disattiverà automaticamente a fine giornata." : {
 
     },
     "La scelta dei giorni della settimana è inclusa nel piano In Orario Pro." : {
@@ -3174,10 +3588,10 @@
     "La tua segnalazione è stata inviata con successo. Riceverai un riscontro non appena lo sviluppatore risponderà!" : {
 
     },
-    "La visualizzazione metropolitana di Milano è accessibile dal menu in alto a sinistra accedendo a Metropolitana. Per tornare nella sezione treno, premi lo stesso identico menu (i tre puntini in alto a sinistra) e premi su Treni. Se disattivata, l'opzione non comparirà nel menu." : {
+    "LavoraMi" : {
 
     },
-    "LavoraMi" : {
+    "Lavori e avvisi RFI" : {
 
     },
     "Lavoro" : {
@@ -3190,7 +3604,7 @@
         }
       }
     },
-    "Le abitudini si basano solo su ciò che consulti davvero: aperture dei tabelloni e treni consultati in giorni diversi nella stessa fascia oraria. I preferiti non influenzano il punteggio. I dati restano solo sul tuo iPhone." : {
+    "Le abitudini si basano su ciò che consulti davvero (tabelloni, treni, linee e tratte nelle diverse fasce orarie). I dati anonimi vengono sincronizzati con i server di In Orario solo se i suggerimenti personalizzati sono attivi." : {
 
     },
     "Le donazioni non sono al momento disponibili." : {
@@ -3237,6 +3651,9 @@
         }
       }
     },
+    "Le mie linee" : {
+
+    },
     "Le Mie Stazioni" : {
       "localizations" : {
         "en" : {
@@ -3269,6 +3686,7 @@
       }
     },
     "Le notifiche automatiche ti avvisano se il treno è in ritardo o quando passa dalla stazione scelta." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3277,6 +3695,9 @@
           }
         }
       }
+    },
+    "Le notifiche dei treni sono attualmente disattivate. Riattiva \"Treni\" in alto per riprendere il monitoraggio." : {
+
     },
     "Le notifiche e le Live Activity non sono disponibili per i treni Italo: In Orario supporta il monitoraggio in background solo per Trenitalia e Trenord." : {
 
@@ -3291,10 +3712,33 @@
         }
       }
     },
+    "Le notifiche sono attive solo per oggi e si disattiveranno automaticamente a fine giornata." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications are active for today only and will turn off automatically at the end of the day."
+          }
+        }
+      }
+    },
+    "Le notifiche su questo treno sono attive nei giorni selezionati." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications for this train are active on the selected days."
+          }
+        }
+      }
+    },
     "Le registrazioni vocali non vengono conservate: la voce viene convertita in testo sul momento. Le query testuali possono essere salvate in forma completamente anonima (scollegate da te e dal tuo dispositivo) per un periodo massimo di 30 giorni per migliorare il servizio." : {
 
     },
     "Le stazioni che consulterai appariranno qui automaticamente." : {
+
+    },
+    "Le tue linee" : {
 
     },
     "Legale e Privacy" : {
@@ -3309,6 +3753,9 @@
           }
         }
       }
+    },
+    "Limite piano Free raggiunto (%lld stazioni). Passa a Pro per aggiungerne altre." : {
+
     },
     "Limite Raggiunto" : {
       "localizations" : {
@@ -3340,6 +3787,12 @@
         }
       }
     },
+    "Linee" : {
+
+    },
+    "Linee coinvolte" : {
+
+    },
     "Linee Suburbane" : {
       "localizations" : {
         "en" : {
@@ -3361,26 +3814,6 @@
         }
       }
     },
-    "Live Activities ad alta frequenza" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "High-frequency Live Activities"
-          }
-        }
-      }
-    },
-    "Live Activities ad alta frequenza con aggiornamenti automatici ogni 30–60 secondi su schermata di blocco e Isola Dinamica." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "High-frequency Live Activities with automatic updates every 30–60 seconds on Lock Screen and Dynamic Island."
-          }
-        }
-      }
-    },
     "Live Activities ad alta frequenza con aggiornamento ogni secondo su schermata di blocco e Isola Dinamica." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3388,6 +3821,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High-frequency Live Activities updating every second on Lock Screen and Dynamic Island."
+          }
+        }
+      }
+    },
+    "Live Activities istantanee ogni minuto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instant every-minute Live Activities"
           }
         }
       }
@@ -3465,6 +3908,12 @@
         }
       }
     },
+    "Massimo %lld stazioni con il piano Free. Usate anche per il filtro \"Portami a Casa\" nei tabelloni stazione." : {
+
+    },
+    "Massimo %lld stazioni con il piano Free. Usate anche per il filtro \"Portami al Lavoro\" nei tabelloni stazione." : {
+
+    },
     "Mattina" : {
 
     },
@@ -3477,6 +3926,9 @@
           }
         }
       }
+    },
+    "Menu" : {
+
     },
     "mese" : {
       "localizations" : {
@@ -3512,6 +3964,9 @@
         }
       }
     },
+    "Metti in stand-by notifiche treno" : {
+
+    },
     "min" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3522,6 +3977,9 @@
           }
         }
       }
+    },
+    "Minuti" : {
+
     },
     "Modello AI" : {
       "localizations" : {
@@ -3536,6 +3994,9 @@
     "Modifica treni di %@" : {
 
     },
+    "Monitora costantemente ritardi, soppressioni, partenze, passaggi in stazione e cambi binario fino a 20 treni con In Orario Pro." : {
+
+    },
     "Monitora lo stato del Passante di Milano e del relativo Tunnel sotterraneo in un'unica schermata." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3547,22 +4008,48 @@
         }
       }
     },
-    "Monitoraggio fino a 10 treni" : {
+    "Monitoraggio automatico con Pro" : {
+
+    },
+    "Monitoraggio Continuo" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Track up to 10 trains simultaneously"
+            "value" : "Continuous Monitoring"
           }
         }
       }
     },
-    "Monitoraggio simultaneo fino a 10 treni con notifiche push e giorni attivi personalizzati." : {
+    "Monitoraggio continuo del treno" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Monitor up to 10 trains at once with push notifications and custom active days."
+            "value" : "Continuous train monitoring"
+          }
+        }
+      }
+    },
+    "Monitoraggio continuo fino a %lld treni, avvisi proattivi con Piano B e riepilogo programmato ora integrati nella nuova app a 5 schede, con Assistente IA diretto dalla Home e stazioni Casa ↔ Lavoro senza limiti." : {
+
+    },
+    "Monitoraggio continuo fino a 20 treni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuous tracking for up to 20 trains"
+          }
+        }
+      }
+    },
+    "Monitoraggio continuo simultaneo fino a 20 treni su ritardi, partenze, passaggi in stazione e cambi binario." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simultaneous continuous tracking for up to 20 trains covering delays, departures, station passes, and platform changes."
           }
         }
       }
@@ -3599,7 +4086,7 @@
         }
       }
     },
-    "Mostra nei Widget" : {
+    "Mostra meno" : {
 
     },
     "Mostra Partenze" : {
@@ -3623,6 +4110,9 @@
         }
       }
     },
+    "Mostra tutta Italia" : {
+
+    },
     "Mostra tutta la cronologia" : {
 
     },
@@ -3630,6 +4120,9 @@
 
     },
     "Mostra tutte le stazioni" : {
+
+    },
+    "Mostra tutti" : {
 
     },
     "Mostra tutti i treni" : {
@@ -3684,9 +4177,6 @@
           }
         }
       }
-    },
-    "Nei giorni selezionati riceverai, sempre a quest'ora, un riepilogo sullo stato del treno (in orario, ritardo o soppressione)." : {
-
     },
     "Nelle impostazioni dell'app potrai configurare le singole stazioni da mostrare per ciascuna linea." : {
       "extractionState" : "stale",
@@ -3943,6 +4433,12 @@
     "Nessuna elaborazione automatica o riassunti intelligenti." : {
 
     },
+    "Nessuna fermata della linea entro 10 km. Tieni premuta una stazione sullo schema sotto per vederne le partenze." : {
+
+    },
+    "Nessuna fermata della linea rilevata nelle vicinanze" : {
+
+    },
     "Nessuna fermata metro trovata." : {
       "localizations" : {
         "en" : {
@@ -3952,6 +4448,9 @@
           }
         }
       }
+    },
+    "Nessuna linea salvata" : {
+
     },
     "Nessuna metropolitana disponibile" : {
       "localizations" : {
@@ -3993,6 +4492,18 @@
           }
         }
       }
+    },
+    "Nessuna partenza imminente" : {
+
+    },
+    "Nessuna partenza imminente di questa linea da %@" : {
+
+    },
+    "Nessuna perturbazione segnalata oggi in %@." : {
+
+    },
+    "Nessuna perturbazione segnalata oggi sulla rete RFI." : {
+
     },
     "Nessuna pubblicità o spam: puoi gestirle o disattivarle quando vuoi." : {
       "localizations" : {
@@ -4039,6 +4550,9 @@
 
     },
     "Nessuna stazione recente" : {
+
+    },
+    "Nessuna stazione salvata tra i preferiti." : {
 
     },
     "Nessuna stazione trovata per \"%@\"." : {
@@ -4168,7 +4682,14 @@
       }
     },
     "Notifica a un orario specifico" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled-time notification"
+          }
+        }
+      }
     },
     "Notifica al passaggio in stazione" : {
       "localizations" : {
@@ -4201,6 +4722,7 @@
       }
     },
     "Notifica di Base" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4211,6 +4733,7 @@
       }
     },
     "Notifica variazione Ritardo" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4241,7 +4764,14 @@
         }
       }
     },
+    "Notifiche attive — sei coperto!" : {
+
+    },
+    "Notifiche attive. Tocca la campanella per disattivarle" : {
+
+    },
     "Notifiche Avanzate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4261,6 +4791,12 @@
           }
         }
       }
+    },
+    "Notifiche gratis fino a %lld treni" : {
+
+    },
+    "Notifiche push" : {
+
     },
     "Notifiche push attive: lo sviluppatore potrà inviarti una risposta direttamente sul tuo dispositivo." : {
 
@@ -4296,6 +4832,9 @@
         }
       }
     },
+    "Notifiche spente. Tocca la campanella per attivarle" : {
+
+    },
     "Notifiche Treni Preferiti" : {
       "localizations" : {
         "en" : {
@@ -4305,6 +4844,12 @@
           }
         }
       }
+    },
+    "NOVITÀ · IN ORARIO PRO" : {
+
+    },
+    "NOVITÀ · PIANO FREE" : {
+
     },
     "OFFLINE" : {
       "localizations" : {
@@ -4327,7 +4872,7 @@
         }
       }
     },
-    "Oggi all'orario scelto riceverai un riepilogo sullo stato del treno (in orario, ritardo o soppressione)." : {
+    "Ogni opzione è indipendente: attiva solo gli avvisi che desideri ricevere in tempo reale durante il viaggio (fino a 20 treni)." : {
 
     },
     "OK" : {
@@ -4352,6 +4897,9 @@
     "Opzioni disponibili" : {
 
     },
+    "Ora" : {
+
+    },
     "Ora: %@" : {
 
     },
@@ -4369,6 +4917,9 @@
         }
       }
     },
+    "Orario (24h)" : {
+
+    },
     "Orario (es. 11:34)" : {
 
     },
@@ -4378,10 +4929,8 @@
     "Orario partenza previsto" : {
 
     },
-    "Ordinamento e Rotazione" : {
-
-    },
     "Ordine Sezioni Dashboard" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4528,6 +5077,9 @@
     "Passante Ferroviario" : {
 
     },
+    "Passante: %@" : {
+
+    },
     "Per %@ •" : {
 
     },
@@ -4541,6 +5093,9 @@
           }
         }
       }
+    },
+    "Percorso e fermate (%lld)" : {
+
     },
     "Personalizza" : {
 
@@ -4573,10 +5128,11 @@
     "Personalizza le tue abitudini di viaggio per restare sempre aggiornato su eventuali cambiamenti della tua linea, gravi ritardi o cancellazioni che vengono comunicate in anticipo con un elenco di alternative." : {
 
     },
-    "Personalizza Linee Suburbane" : {
+    "Personalizza Linee" : {
 
     },
     "Personalizza Passante" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4589,7 +5145,7 @@
     "Personalizza per singolo giorno" : {
 
     },
-    "Personalizza stazioni e giorni" : {
+    "Personalizza stazioni, giorni e treni" : {
 
     },
     "Personalizza Widget" : {
@@ -4696,6 +5252,12 @@
         }
       }
     },
+    "Posizione (solo mentre usi l'app)" : {
+
+    },
+    "Posizione attiva!" : {
+
+    },
     "Posizione non disponibile" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4741,7 +5303,6 @@
       }
     },
     "Preferiti" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4836,6 +5397,9 @@
         }
       }
     },
+    "Prossime partenze da %@" : {
+
+    },
     "Prossime partenze metro" : {
       "localizations" : {
         "en" : {
@@ -4846,10 +5410,16 @@
         }
       }
     },
+    "PROSSIMI LAVORI" : {
+
+    },
     "Prossimo treno" : {
 
     },
     "Prova a cambiare orario di partenza." : {
+
+    },
+    "Prova a cambiare orario o aggiorna tra qualche minuto." : {
 
     },
     "Prova a cambiare orario o verifica i nomi delle stazioni nella scheda Soluzioni." : {
@@ -4868,17 +5438,20 @@
     "Prova In Orario: l'app per seguire i treni e i ritardi in tutta Italia!" : {
 
     },
-    "Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ad alta frequenza (ogni 30–60 secondi) anche a telefono bloccato? Attiva In Orario Pro per sbloccarli!" : {
+    "Puoi attivare gratis le notifiche a un orario specifico fino a 10 treni. Con In Orario Pro hai il monitoraggio continuo fino a 20 treni." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You can refresh the train status anytime by tapping the 🔄 button on the Lock Screen or reopening the app.\n\nPrefer automatic high-frequency updates (every 30–60 seconds) even while locked? Upgrade to In Orario Pro to unlock them!"
+            "value" : "You can enable scheduled-time notifications for up to 10 trains for free. With In Orario Pro you get continuous monitoring for up to 20 trains."
           }
         }
       }
     },
-    "Puoi ignorare singoli elementi con un tocco prolungato su di essi nella sezione 'Per te'." : {
+    "Puoi disattivare questa sezione in Impostazioni → Suggerimenti personalizzati." : {
+
+    },
+    "Puoi già configurare stazioni, fasce e giorni per vedere subito Casa ↔ Lavoro in Home e Viaggi e usare i filtri nei tabelloni. Con In Orario Pro il server monitora i tuoi treni e ti avvisa in anticipo in caso di cancellazioni o ritardi." : {
 
     },
     "Puoi rimuovere treni dalla fascia o aggiungerne altri anche fuori fascia. Quando la lista contiene almeno un treno, le notifiche si basano su questi treni." : {
@@ -4895,7 +5468,13 @@
         }
       }
     },
+    "Quando: %@" : {
+
+    },
     "Questa risposta è stata inviata direttamente al tuo dispositivo in riferimento al tuo feedback." : {
+
+    },
+    "Raggiungi le impostazioni qui per configurarle" : {
 
     },
     "Recenti:" : {
@@ -4941,6 +5520,9 @@
     "Riassunti chiari e formattati delle agitazioni sindacali e degli avvisi Trenitalia/Trenord." : {
 
     },
+    "Riattiva notifiche treno" : {
+
+    },
     "Ricarica" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4972,6 +5554,9 @@
         }
       }
     },
+    "Ricerca soluzioni tra le tue stazioni..." : {
+
+    },
     "Ricerca treni su ViaggiaTreno..." : {
 
     },
@@ -4985,6 +5570,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recent Searches"
+          }
+        }
+      }
+    },
+    "Ricevi lo stato del treno (in orario, ritardo o soppressione) all'orario scelto, senza monitoraggio continuo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receive the train status (on time, delayed, or cancelled) at the chosen time, without continuous monitoring."
+          }
+        }
+      }
+    },
+    "Ricevi lo stato del treno (in orario, ritardo o soppressione) all'orario scelto, senza monitoraggio continuo. Disponibile gratis fino a 10 treni." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receive the train status (on time, delayed, or cancelled) at the chosen time, without continuous monitoring. Available for free for up to 10 trains."
           }
         }
       }
@@ -5003,6 +5608,9 @@
     "Ricevi un punto situazione automatico sulla tua tratta abituale prima della tua fascia oraria di viaggio nei giorni scelti, basato sullo stato reale della linea e dei treni." : {
 
     },
+    "Ricevi un punto situazione automatico sulla tua tratta abituale prima della tua fascia oraria di viaggio nei giorni scelti." : {
+
+    },
     "Richiede un dispositivo Apple compatibile con Apple Intelligence e iOS 26 o successivo." : {
 
     },
@@ -5016,6 +5624,7 @@
 
     },
     "Ricorda stato Passante" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5026,6 +5635,7 @@
       }
     },
     "Ricorda stato Stazioni Preferite" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5036,6 +5646,7 @@
       }
     },
     "Ricorda stato Tratte Abituali" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5046,6 +5657,7 @@
       }
     },
     "Ricorda stato Treni Preferiti" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5064,7 +5676,7 @@
     "Riepilogo Info Lavori" : {
 
     },
-    "Riepilogo Programmato" : {
+    "Riepilogo programmato" : {
 
     },
     "Riepilogo Scioperi" : {
@@ -5091,6 +5703,9 @@
         }
       }
     },
+    "Rimuovi %@" : {
+
+    },
     "Rimuovi %@ %@ dai Preferiti" : {
       "localizations" : {
         "en" : {
@@ -5101,7 +5716,11 @@
         }
       }
     },
+    "Rimuovi dai preferiti" : {
+
+    },
     "Rimuovi dai Preferiti" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5110,6 +5729,18 @@
           }
         }
       }
+    },
+    "Rimuovi dai recenti" : {
+
+    },
+    "Rimuovi dai salvati" : {
+
+    },
+    "Rimuovi dai Viaggi" : {
+
+    },
+    "Rimuovi dalle mie linee" : {
+
     },
     "Rimuovi filtri" : {
       "localizations" : {
@@ -5120,6 +5751,9 @@
           }
         }
       }
+    },
+    "Rimuovi linea" : {
+
     },
     "Rimuovi ora" : {
       "extractionState" : "stale",
@@ -5132,10 +5766,16 @@
         }
       }
     },
+    "Rimuovi pin" : {
+
+    },
     "Rimuovi treno %@" : {
 
     },
     "Rimuovi viaggio salvato" : {
+
+    },
+    "Riordina linee" : {
 
     },
     "Ripristina" : {
@@ -5157,10 +5797,10 @@
     "Ripristina suggerimenti" : {
 
     },
-    "Ripristina suggerimenti ignorati" : {
+    "Ripristina tutte le stazioni" : {
 
     },
-    "Ripristina tutte le stazioni" : {
+    "Ripristina tutti i suggerimenti" : {
 
     },
     "Ripristino Acquisti" : {
@@ -5194,6 +5834,7 @@
       }
     },
     "Riprova a caricare tra qualche minuto o controlla lo stato della linea." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5309,10 +5950,16 @@
         }
       }
     },
+    "Ritardo superiore a 15 minuti" : {
+
+    },
     "Ritorno" : {
 
     },
     "Ritorno (%@)" : {
+
+    },
+    "Ritorno abituale" : {
 
     },
     "Rogoredo/Forlanini →" : {
@@ -5325,9 +5972,6 @@
           }
         }
       }
-    },
-    "Rotazione automatica per orario" : {
-
     },
     "Salta" : {
       "localizations" : {
@@ -5360,6 +6004,18 @@
         }
       }
     },
+    "Salva direttrice" : {
+
+    },
+    "Salva linea" : {
+
+    },
+    "Salva per dopo" : {
+
+    },
+    "Salva tra le tratte abituali" : {
+
+    },
     "Salva Tratta nei Preferiti" : {
       "localizations" : {
         "en" : {
@@ -5380,9 +6036,6 @@
 
     },
     "Sblocca In Orario Pro" : {
-
-    },
-    "Sblocca Pro" : {
 
     },
     "Sblocca tutte le funzionalità avanzate di monitoraggio in tempo reale, notifiche scioperi e intelligenza artificiale su server." : {
@@ -5454,10 +6107,13 @@
         }
       }
     },
-    "Scegli le sezioni da visualizzare nella Home, seleziona le linee suburbane di tuo interesse e configura i treni nei widget." : {
+    "Scegli le sezioni e il numero di elementi nella Home, nascondi le fermate che non ti servono sulle tue linee e configura i widget Stazioni e Treni." : {
 
     },
     "Scegli le tue preferite" : {
+
+    },
+    "Scegli quali stazioni preferite mostrare nel widget Tabellone Stazioni. Le stazioni disattivate vengono saltate automaticamente." : {
 
     },
     "Scegli se mantenere in memoria lo stato aperto o chiuso delle varie sezioni." : {
@@ -5471,7 +6127,10 @@
         }
       }
     },
-    "Scegli se mantenere in memoria lo stato aperto o chiuso delle varie sezioni. Se disattivo, le sezioni si aprono di default (tranne il Passante, che resta chiuso)." : {
+    "Scheda linea" : {
+
+    },
+    "Schermata iniziale" : {
 
     },
     "Scioperi" : {
@@ -5499,6 +6158,9 @@
     "Scioperi e deviazioni Milano su LavoraMi" : {
 
     },
+    "Scioperi e News" : {
+
+    },
     "Scioperi ferroviari" : {
       "localizations" : {
         "en" : {
@@ -5512,6 +6174,9 @@
     "Scioperi, cantieri e deviazioni a Milano" : {
 
     },
+    "Scioperi, infomobilità e lavori" : {
+
+    },
     "Sciopero in corso" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5522,6 +6187,9 @@
           }
         }
       }
+    },
+    "Sciopero in corso oggi" : {
+
     },
     "Sciopero previsto" : {
       "extractionState" : "stale",
@@ -5534,6 +6202,12 @@
         }
       }
     },
+    "Scopri In Orario Pro" : {
+
+    },
+    "Scorri a sinistra per aggiungere o togliere dai preferiti. Sui treni, scorri a destra per l'Isola Dinamica (si chiude da sola all'arrivo!)." : {
+
+    },
     "Se In Orario ti aiuta a partire più sereno, a evitare attese inutili o semplicemente a viaggiare con maggiore tranquillità, puoi attivare In Orario Pro con un abbonamento annuale o un acquisto a vita per sbloccare tutte le funzionalità avanzate." : {
       "localizations" : {
         "en" : {
@@ -5543,6 +6217,9 @@
           }
         }
       }
+    },
+    "Se riscontri un problema," : {
+
     },
     "Segnala" : {
       "localizations" : {
@@ -5610,6 +6287,9 @@
         }
       }
     },
+    "Segui ora" : {
+
+    },
     "Segui Treno (Classico)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5621,7 +6301,7 @@
         }
       }
     },
-    "Segui Treno (Live Activity)" : {
+    "Segui viaggio" : {
 
     },
     "Seguito" : {
@@ -5713,6 +6393,9 @@
     "Seleziona almeno un giorno di viaggio." : {
 
     },
+    "Seleziona la sezione che vuoi vedere subito all'apertura di In Orario. L'ordine nella barra inferiore resta invariato." : {
+
+    },
     "Seleziona la tua regione" : {
       "localizations" : {
         "en" : {
@@ -5748,6 +6431,9 @@
         }
       }
     },
+    "Seleziona tutto" : {
+
+    },
     "Senza IA" : {
       "localizations" : {
         "en" : {
@@ -5758,13 +6444,16 @@
         }
       }
     },
-    "Senza l'IA Cloud come Gemini, l'app usa solo il calcolo locale sul dispositivo e potrebbe non comprendere alcune richieste in linguaggio naturale." : {
+    "Senza le notifiche ti perdi moltissimo: sono il motivo principale per cui esiste In Orario. Ricevi gratis l'avviso all'orario che scegli fino a %lld treni, più scioperi, ritardi e cambi binario." : {
 
     },
     "Sera" : {
 
     },
     "Serve comprensione avanzata" : {
+
+    },
+    "Serve solo quando apri In Orario per mostrarti subito la stazione più vicina, le partenze attorno a te e impostare automaticamente la tua regione." : {
 
     },
     "Servizio non attivo o dati non disponibili" : {
@@ -5829,6 +6518,9 @@
         }
       }
     },
+    "Sezioni Dashboard" : {
+
+    },
     "Sfrutta l'IA integrata nel tuo dispositivo senza consumare spazio aggiuntivo." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5856,6 +6548,9 @@
           }
         }
       }
+    },
+    "Smetti di seguire" : {
+
     },
     "Solo Andata" : {
 
@@ -5996,6 +6691,9 @@
         }
       }
     },
+    "Stato galleria" : {
+
+    },
     "Stato Passante" : {
       "localizations" : {
         "en" : {
@@ -6007,6 +6705,7 @@
       }
     },
     "Stato Treno" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6089,6 +6788,9 @@
         }
       }
     },
+    "Stazione vicina" : {
+
+    },
     "Stazioni" : {
       "localizations" : {
         "en" : {
@@ -6133,6 +6835,9 @@
         }
       }
     },
+    "Stazioni Metro Milano" : {
+
+    },
     "Stazioni personalizzate" : {
 
     },
@@ -6149,6 +6854,9 @@
           }
         }
       }
+    },
+    "Stazioni recenti" : {
+
     },
     "Stazioni Recenti" : {
 
@@ -6244,6 +6952,12 @@
         }
       }
     },
+    "Suggerite dalle tue abitudini" : {
+
+    },
+    "Suggerite per te" : {
+
+    },
     "Supporto e Info" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6254,6 +6968,9 @@
           }
         }
       }
+    },
+    "Swipe rapidi ovunque" : {
+
     },
     "Tabellone — seleziona stazione" : {
       "localizations" : {
@@ -6305,6 +7022,9 @@
         }
       }
     },
+    "Tieni premuto e trascina per riordinare. Scorri verso sinistra per rimuovere una linea dai preferiti." : {
+
+    },
     "Tieni premuto per segnalare" : {
       "localizations" : {
         "en" : {
@@ -6315,7 +7035,7 @@
         }
       }
     },
-    "Tieni premuto su un treno per seguirlo o aggiungerlo ai Preferiti." : {
+    "Tieni premuto su un treno per aggiungere ai preferiti o saperne di più.\n\n\"Salva per dopo\" per ritrovarlo nei Viaggi in alto a destra. \"Segui ora\" per continuare a visualizzare il tuo percorso dalla Home." : {
 
     },
     "Tieni premuto su una fermata di interscambio per vedere la stima di coincidenza." : {
@@ -6339,6 +7059,9 @@
           }
         }
       }
+    },
+    "Tieni premuto su una stazione e trascina per riordinarla." : {
+
     },
     "Tipo di Segnalazione" : {
       "localizations" : {
@@ -6372,6 +7095,7 @@
       }
     },
     "Tocca il tasto - per nascondere le stazioni che non ti interessano, o + per ripristinarle." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6395,7 +7119,13 @@
     "Tocca per indicare le stazioni che usi più spesso su questa linea" : {
 
     },
+    "Tocca per personalizzare" : {
+
+    },
     "Tocca un viaggio per controllare lo stato dei treni, le coincidenze e le fermate." : {
+
+    },
+    "Tocca una linea per scegliere quali fermate mostrare o nascondere nello schema della linea e nei suggerimenti." : {
 
     },
     "Tocca una linea per selezionarla e visualizzarne il tracciato." : {
@@ -6434,7 +7164,10 @@
         }
       }
     },
-    "Trascina le sezioni per riordinarle e usa gli interruttori per mostrarle o nasconderle nella Home." : {
+    "Trascina le sezioni per riordinarle e usa gli interruttori per mostrarle o nasconderle nella Home. Per ogni sezione puoi scegliere quanti elementi mostrare (da 1 a 10): gli altri restano sempre disponibili nelle rispettive schede, mentre in Home i contenuti vengono ordinati in modo intelligente." : {
+
+    },
+    "Trascina per riordinare" : {
 
     },
     "Tratta" : {
@@ -6458,7 +7191,13 @@
         }
       }
     },
+    "Tratte abituali" : {
+
+    },
     "Tratte Abituali" : {
+
+    },
+    "Tratte Casa ↔ Lavoro" : {
 
     },
     "Tratte Preferite" : {
@@ -6514,7 +7253,10 @@
     "Treni e Stazioni" : {
 
     },
-    "Treni nei Widget" : {
+    "Treni monitorati" : {
+
+    },
+    "Treni monitorati (Pro)" : {
 
     },
     "Treni nel Passante" : {
@@ -6528,6 +7270,9 @@
       }
     },
     "Treni nella fascia e vicini" : {
+
+    },
+    "Treni recenti" : {
 
     },
     "Treni Recenti" : {
@@ -6578,6 +7323,9 @@
           }
         }
       }
+    },
+    "Treno cancellato o criticità" : {
+
     },
     "Treno delle ${timeString} da ${stationName}" : {
 
@@ -6658,6 +7406,9 @@
     "Tutte" : {
 
     },
+    "Tutte le %lld fermate visibili" : {
+
+    },
     "Tutte le funzionalità avanzate sono sbloccate." : {
       "localizations" : {
         "en" : {
@@ -6667,6 +7418,9 @@
           }
         }
       }
+    },
+    "Tutte le regioni (Nazionale)" : {
+
     },
     "Tutte le stazioni" : {
 
@@ -6828,13 +7582,29 @@
     "Valuta In Orario su App Store" : {
 
     },
-    "Verifica alternative" : {
+    "Variazioni ritardo e soppressioni" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delay changes and cancellations"
+          }
+        }
+      }
+    },
+    "Vedi tutta la linea (%lld fermate)" : {
 
     },
-    "Verifica alternative adesso" : {
+    "Vedi tutte le opzioni (%lld)" : {
 
     },
     "Verifica le stazioni impostate o riprova a verificare tra qualche minuto." : {
+
+    },
+    "Verifica soluzioni" : {
+
+    },
+    "Verifica soluzioni adesso" : {
 
     },
     "Verso Casa" : {
@@ -6880,6 +7650,9 @@
         }
       }
     },
+    "Viaggi salvati" : {
+
+    },
     "Viaggi Salvati" : {
 
     },
@@ -6896,6 +7669,9 @@
           }
         }
       }
+    },
+    "Vista dettagli" : {
+
     },
     "Vista Speciale Stazioni" : {
       "extractionState" : "stale",
@@ -6922,6 +7698,9 @@
         }
       }
     },
+    "Visualizza notizia completa" : {
+
+    },
     "Visualizzazione" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6947,7 +7726,10 @@
         }
       }
     },
-    "Widget Schermata Home" : {
+    "Widget Stazioni" : {
+
+    },
+    "Widget Treni" : {
 
     }
   },

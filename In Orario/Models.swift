@@ -5,6 +5,47 @@ import CoreLocation
 import ActivityKit
 
 
+struct NewsMetadata: Codable, Equatable, Sendable {
+    let service: String?
+    let cause: String?
+    let region: String?
+    let company: String?
+}
+
+struct NewsTimelineEntry: Codable, Equatable, Sendable {
+    let label: String?
+    let rawHeading: String?
+    let timeDisplay: String?
+    let dateDisplay: String?
+    let timestamp: String?
+    let paragraphs: [String]?
+    let effects: String?
+    let isInitial: Bool?
+    let isResolution: Bool?
+    let moreUpdatesExpected: Bool?
+}
+
+struct NewsTableSection: Codable, Equatable, Sendable {
+    let title: String?
+    let headers: [String]?
+    let rows: [[String]]?
+    let truncatedRows: Int?
+}
+
+struct NewsContentBlock: Codable, Equatable, Sendable {
+    let type: String
+    let heading: String?
+    let paragraphs: [String]?
+    let items: [String]?
+    let tableSections: [NewsTableSection]?
+}
+
+struct NewsAttachment: Codable, Equatable, Sendable {
+    let title: String
+    let url: String
+    let size: String?
+}
+
 struct NewsItem: Codable, Identifiable, Equatable, Sendable {
     let id = UUID()
     let title: String
@@ -13,25 +54,307 @@ struct NewsItem: Codable, Identifiable, Equatable, Sendable {
     let category: String?
     let date: String?
     let regions: [String]?
-    
-    init(title: String, content: String, isUrgent: Bool, category: String? = nil, date: String? = nil, regions: [String]? = nil) {
+
+    // Campi strutturati RFI RSS (tutti opzionali per piena retrocompatibilità con scioperi e cache legacy)
+    let guid: String?
+    let fullTitle: String?
+    let workLocation: String?
+    let sourceUrl: String?
+    let sourceName: String?
+    let pubDate: String?
+    let subtitle: String?
+    let validity: String?
+    let validFrom: String?
+    let validTo: String?
+    let placeAndDate: String?
+    let eventStatus: String?
+    let eventStatusLabel: String?
+    let startedAt: String?
+    let startedAtDisplay: String?
+    let lastUpdatedAt: String?
+    let lastUpdatedAtDisplay: String?
+    let endedAt: String?
+    let endedAtDisplay: String?
+    let mobilityEffects: String?
+    let meta: NewsMetadata?
+    let timeline: [NewsTimelineEntry]?
+    let blocks: [NewsContentBlock]?
+    let attachments: [NewsAttachment]?
+
+    init(
+        title: String,
+        content: String,
+        isUrgent: Bool,
+        category: String? = nil,
+        date: String? = nil,
+        regions: [String]? = nil,
+        guid: String? = nil,
+        fullTitle: String? = nil,
+        workLocation: String? = nil,
+        sourceUrl: String? = nil,
+        sourceName: String? = nil,
+        pubDate: String? = nil,
+        subtitle: String? = nil,
+        validity: String? = nil,
+        validFrom: String? = nil,
+        validTo: String? = nil,
+        placeAndDate: String? = nil,
+        eventStatus: String? = nil,
+        eventStatusLabel: String? = nil,
+        startedAt: String? = nil,
+        startedAtDisplay: String? = nil,
+        lastUpdatedAt: String? = nil,
+        lastUpdatedAtDisplay: String? = nil,
+        endedAt: String? = nil,
+        endedAtDisplay: String? = nil,
+        mobilityEffects: String? = nil,
+        meta: NewsMetadata? = nil,
+        timeline: [NewsTimelineEntry]? = nil,
+        blocks: [NewsContentBlock]? = nil,
+        attachments: [NewsAttachment]? = nil
+    ) {
         self.title = title
         self.content = content
         self.isUrgent = isUrgent
         self.category = category
         self.date = date
         self.regions = regions
+        self.guid = guid
+        self.fullTitle = fullTitle
+        self.workLocation = workLocation
+        self.sourceUrl = sourceUrl
+        self.sourceName = sourceName
+        self.pubDate = pubDate
+        self.subtitle = subtitle
+        self.validity = validity
+        self.validFrom = validFrom
+        self.validTo = validTo
+        self.placeAndDate = placeAndDate
+        self.eventStatus = eventStatus
+        self.eventStatusLabel = eventStatusLabel
+        self.startedAt = startedAt
+        self.startedAtDisplay = startedAtDisplay
+        self.lastUpdatedAt = lastUpdatedAt
+        self.lastUpdatedAtDisplay = lastUpdatedAtDisplay
+        self.endedAt = endedAt
+        self.endedAtDisplay = endedAtDisplay
+        self.mobilityEffects = mobilityEffects
+        self.meta = meta
+        self.timeline = timeline
+        self.blocks = blocks
+        self.attachments = attachments
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case title, content, isUrgent, category, date, regions
+        case guid, fullTitle, workLocation, sourceUrl, sourceName, pubDate
+        case subtitle, validity, validFrom, validTo, placeAndDate
+        case eventStatus, eventStatusLabel
+        case startedAt, startedAtDisplay, lastUpdatedAt, lastUpdatedAtDisplay, endedAt, endedAtDisplay
+        case mobilityEffects, meta, timeline, blocks, attachments
     }
 }
 
 extension NewsItem {
     private nonisolated static let dateRegex: NSRegularExpression? = try? NSRegularExpression(pattern: #"(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?"#)
-    
-    var sortableDate: Date {
+
+    nonisolated static func parseRomeISO(_ value: String?) -> Date? {
+        guard let value, !value.isEmpty else { return nil }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.timeZone = TimeZone(identifier: "Europe/Rome")
+        for fmt in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd"] {
+            df.dateFormat = fmt
+            if let d = df.date(from: value) {
+                return d
+            }
+        }
+        return nil
+    }
+
+    nonisolated static func formatRelativeRomeDateTime(iso: String?, fallback: String?) -> String? {
+        guard let date = parseRomeISO(iso) else { return fallback }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = Locale(identifier: "it_IT")
+        timeFormatter.timeZone = TimeZone(identifier: "Europe/Rome")
+        timeFormatter.dateFormat = "HH:mm"
+        let timePart = timeFormatter.string(from: date)
+
+        let now = Date()
+        if cal.isDate(date, inSameDayAs: now) {
+            return "Oggi · \(timePart)"
+        }
+        if let yesterday = cal.date(byAdding: .day, value: -1, to: now),
+           cal.isDate(date, inSameDayAs: yesterday) {
+            return "Ieri · \(timePart)"
+        }
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "it_IT")
+        dateFormatter.timeZone = TimeZone(identifier: "Europe/Rome")
+        dateFormatter.dateFormat = "d MMM"
+        return "\(dateFormatter.string(from: date)) · \(timePart)"
+    }
+
+    var isRFIStructured: Bool {
+        sourceName == "RFI" || guid != nil || sourceUrl != nil
+    }
+
+    var hasNoticeDetail: Bool {
+        !(blocks?.isEmpty ?? true)
+        || !(attachments?.isEmpty ?? true)
+        || meta != nil
+        || validity != nil
+        || sourceUrl != nil
+    }
+
+    var hasRealtimeDetail: Bool {
+        !(timeline?.isEmpty ?? true)
+        || placeAndDate != nil
+        || sourceUrl != nil
+    }
+
+    var isRealtimeResolved: Bool {
+        if let st = eventStatus {
+            return st == "resolved"
+        }
+        return !isUrgent
+    }
+
+    var realtimeStatusRank: Int {
+        switch eventStatus {
+        case "suspended": return 0
+        case "slowed": return 1
+        case "ongoing": return 2
+        case "resolved": return 3
+        default: return isUrgent ? 1 : 3
+        }
+    }
+
+    var parsedLastUpdatedDate: Date {
+        Self.parseRomeISO(lastUpdatedAt)
+        ?? Self.parseRomeISO(pubDate)
+        ?? Self.parseRomeISO(date)
+        ?? Date.distantPast
+    }
+
+    var formattedStartedAt: String? {
+        Self.formatRelativeRomeDateTime(iso: startedAt, fallback: startedAtDisplay)
+    }
+
+    var formattedLastUpdatedAt: String? {
+        Self.formatRelativeRomeDateTime(iso: lastUpdatedAt, fallback: lastUpdatedAtDisplay)
+    }
+
+    var formattedEndedAt: String? {
+        Self.formatRelativeRomeDateTime(iso: endedAt, fallback: endedAtDisplay)
+    }
+
+    /// Orario breve stile "14:15" (se oggi) o "Ieri, 16:15" / "24 nov, 16:15" per la testata della card
+    var formattedCompactUpdateTime: String? {
+        let iso = (isRealtimeResolved ? (endedAt ?? lastUpdatedAt) : lastUpdatedAt) ?? pubDate
+        guard let date = Self.parseRomeISO(iso) else {
+            return isRealtimeResolved ? (endedAtDisplay ?? lastUpdatedAtDisplay) : lastUpdatedAtDisplay
+        }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+
+        let tf = DateFormatter()
+        tf.locale = Locale(identifier: "it_IT")
+        tf.timeZone = TimeZone(identifier: "Europe/Rome")
+        tf.dateFormat = "HH:mm"
+        let timePart = tf.string(from: date)
+
+        let now = Date()
+        if cal.isDate(date, inSameDayAs: now) {
+            return timePart
+        }
+        if let yesterday = cal.date(byAdding: .day, value: -1, to: now),
+           cal.isDate(date, inSameDayAs: yesterday) {
+            return "Ieri, \(timePart)"
+        }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "it_IT")
+        df.timeZone = TimeZone(identifier: "Europe/Rome")
+        df.dateFormat = "d MMM"
+        return "\(df.string(from: date)), \(timePart)"
+    }
+
+    /// True se l'evento di Info Mobilità (risolto o attivo) appartiene alla giornata di oggi in Italia
+    var isRealtimeFromToday: Bool {
+        let iso = endedAt ?? lastUpdatedAt ?? pubDate ?? date
+        guard let d = Self.parseRomeISO(iso) else { return false }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        return cal.isDateInToday(d)
+    }
+
+    /// True se l'evento di Info Mobilità deve essere mostrato: sempre se attivo (<36h), oppure se risolto oggi
+    var isRealtimeVisibleNow: Bool {
+        if !isRFIStructured { return true }
+        if isRealtimeResolved {
+            return isRealtimeFromToday
+        }
+        let age = Date().timeIntervalSince(parsedLastUpdatedDate)
+        if age > 36 * 3600 {
+            return isRealtimeFromToday
+        }
+        return true
+    }
+
+    /// True se un avviso Info Lavori è già concluso rispetto a oggi (Europe/Rome)
+    var isExpiredNotice: Bool {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let todayStart = cal.startOfDay(for: Date())
+        if let validTo, let endDay = Self.parseRomeISO(validTo) {
+            return cal.startOfDay(for: endDay) < todayStart
+        }
+        return false
+    }
+
+    /// True se il lavoro non è ancora iniziato (`validFrom > oggi`)
+    var isUpcomingNotice: Bool {
+        guard let validFrom, let startDay = Self.parseRomeISO(validFrom) else { return false }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let todayStart = cal.startOfDay(for: Date())
+        return cal.startOfDay(for: startDay) > todayStart
+    }
+
+    /// Chiave di ordinamento cronologico per Info Lavori:
+    /// 0 = In corso oggi (ordinati per data di fine più vicina)
+    /// 1 = Prossimi lavori (ordinati per data di inizio più vicina)
+    /// 2 = Senza date
+    var noticeSortRank: Int {
+        if validFrom == nil && validTo == nil { return 2 }
+        return isUpcomingNotice ? 1 : 0
+    }
+
+    var noticeSortPrimaryDate: Date {
+        if isUpcomingNotice {
+            return Self.parseRomeISO(validFrom) ?? Self.parseRomeISO(validTo) ?? Date.distantFuture
+        }
+        return Self.parseRomeISO(validTo) ?? Self.parseRomeISO(validFrom) ?? Date.distantFuture
+    }
+
+    var noticeSortSecondaryDate: Date {
+        if isUpcomingNotice {
+            return Self.parseRomeISO(validTo) ?? Date.distantFuture
+        }
+        return Self.parseRomeISO(validFrom) ?? Date.distantFuture
+    }
+
+    var resolvedSourceURL: URL? {
+        guard let raw = sourceUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return nil
+        }
+        return URL(string: raw)
+    }
+
+    nonisolated var sortableDate: Date {
         if let dateStr = date, !dateStr.isEmpty {
             // YYYY-MM-DD
             if let d = SharedFormatters.dateISO.date(from: dateStr) { return d }
@@ -68,9 +391,115 @@ extension NewsItem {
         
         return Date.distantFuture
     }
+
+    nonisolated var isStrikeCategory: Bool {
+        let cat = (category ?? "").lowercased()
+        let lowerTitle = title.lowercased()
+        return cat.contains("sciopero") || lowerTitle.contains("sciopero")
+    }
+
+    nonisolated var isWorksCategory: Bool {
+        let cat = (category ?? "").lowercased()
+        let lowerTitle = title.lowercased()
+        return cat.contains("lavor") || lowerTitle.contains("lavor") || workLocation != nil
+    }
+
+    nonisolated var daysUntilStrike: Int? {
+        let targetDate = sortableDate
+        guard targetDate != Date.distantFuture else { return nil }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let startToday = cal.startOfDay(for: Date())
+        let startTarget = cal.startOfDay(for: targetDate)
+        return cal.dateComponents([.day], from: startToday, to: startTarget).day
+    }
+
+    nonisolated var isStrikeToday: Bool {
+        guard isStrikeCategory else { return false }
+        return daysUntilStrike == 0
+    }
+
+    nonisolated var strikeStructuredFields: (dateText: String?, regionText: String?, validityText: String?) {
+        let dateText = date?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let regionText: String? = {
+            if let regions, !regions.isEmpty {
+                return regions.joined(separator: ", ")
+            }
+            return meta?.region
+        }()
+        let validityText = validity ?? placeAndDate
+        return (
+            (dateText?.isEmpty == false) ? dateText : nil,
+            (regionText?.isEmpty == false) ? regionText : nil,
+            (validityText?.isEmpty == false) ? validityText : nil
+        )
+    }
+
+    nonisolated func isRelevantToUser(stationNames: [String], lineCodes: [String]) -> Bool {
+        let searchable = [
+            title,
+            fullTitle ?? "",
+            subtitle ?? "",
+            workLocation ?? "",
+            content,
+            placeAndDate ?? "",
+            mobilityEffects ?? ""
+        ]
+        .joined(separator: " ")
+        .lowercased()
+
+        for code in lineCodes {
+            let cleanCode = code.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard cleanCode.count >= 2 else { continue }
+            if searchable.contains(" \(cleanCode) ")
+                || searchable.hasPrefix("\(cleanCode) ")
+                || searchable.contains("linea \(cleanCode)")
+                || searchable.contains("\(cleanCode):")
+                || searchable.contains("-\(cleanCode)") {
+                return true
+            }
+        }
+
+        for station in stationNames {
+            let clean = station
+                .replacingOccurrences(of: "Milano ", with: "", options: .caseInsensitive)
+                .replacingOccurrences(of: "(Passante)", with: "", options: .caseInsensitive)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            guard clean.count >= 4 else { continue }
+            if searchable.contains(clean) {
+                return true
+            }
+        }
+
+        return false
+    }
 }
 
 struct SharedFormatters {
+    nonisolated static let italian24HourLocale: Locale = {
+        var components = Locale.Components(identifier: "it_IT")
+        components.hourCycle = .zeroToTwentyThree
+        return Locale(components: components)
+    }()
+
+    nonisolated static func format24HourTimeString(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        if let d = Self.time.date(from: trimmed) {
+            return Self.time.string(from: d)
+        }
+        let cleaned = trimmed.replacingOccurrences(of: "\u{202F}", with: " ")
+        let f12 = DateFormatter()
+        f12.locale = Locale(identifier: "en_US_POSIX")
+        f12.timeZone = TimeZone(identifier: "Europe/Rome")
+        f12.dateFormat = "h:mm a"
+        if let d = f12.date(from: cleaned) {
+            return Self.time.string(from: d)
+        }
+        return trimmed
+    }
+
     nonisolated static var time: DateFormatter {
         if let formatter = Thread.current.threadDictionary["timeFormatter"] as? DateFormatter {
             return formatter
@@ -309,6 +738,23 @@ struct SavedTrain: Codable, Identifiable, Equatable {
     var platformChangeStationName: String? = nil
     var notifyScheduledTime: Bool? = false
     var scheduledNotificationTime: String? = nil
+    var notificationsPaused: Bool? = false
+
+    var isNotificationsPaused: Bool {
+        notificationsPaused ?? false
+    }
+
+    var hasAnyConfiguredNotification: Bool {
+        (notifyDelay ?? false)
+        || (notifyStationPass ?? false)
+        || (notifyDeparture ?? false)
+        || (notifyPlatformChange ?? false)
+        || (notifyScheduledTime ?? false)
+    }
+
+    var hasActiveNotifications: Bool {
+        hasAnyConfiguredNotification && !isNotificationsPaused
+    }
     
     var lastDelayText: String? = nil
     var lastDelayColorName: String? = nil
@@ -1265,6 +1711,18 @@ struct Station: Identifiable, Codable, Hashable {
             .joined(separator: " ")
     }
 
+    var uniqueMetroLineBadges: [(code: String, color: Color)] {
+        var seen: Set<String> = []
+        var result: [(code: String, color: Color)] = []
+        for line in metroLines {
+            let code = line.name.split(separator: " ").first.map(String.init) ?? line.name
+            if seen.insert(code).inserted {
+                result.append((code: code, color: line.color))
+            }
+        }
+        return result
+    }
+
     var metroLines: [MetroLine] {
         // 1. Match autorevole per rfiID / vtID: garantisce corrispondenza univoca alla stazione reale
         let cleanRfiID = (self.rfiID ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1301,6 +1759,16 @@ enum AppSection: String, Codable, CaseIterable {
     case favoriteTrains = "I miei Treni"
     case favoriteRoutes = "Le Mie Tratte Abituali"
     case passante = "Linee Suburbane"
+
+    nonisolated var displayTitle: String {
+        switch self {
+        case .nearby: return "Stazione Vicina"
+        case .myStations: return "Stazioni"
+        case .favoriteTrains: return "Treni"
+        case .favoriteRoutes: return "Viaggi e Tratte"
+        case .passante: return "Linee"
+        }
+    }
 }
 
 struct SuburbanLine: Identifiable, Codable, Hashable {
@@ -1487,6 +1955,17 @@ struct FavoriteRoute: Codable, Identifiable, Equatable, Hashable {
     let destinationName: String
     let destinationID: String
     var lastViewedAt: Date? = nil
+    var isReversed: Bool? = nil
+
+    var effectiveIsReversed: Bool { isReversed ?? false }
+    var effectiveOriginName: String { effectiveIsReversed ? destinationName : originName }
+    var effectiveOriginID: String { effectiveIsReversed ? destinationID : originID }
+    var effectiveDestinationName: String { effectiveIsReversed ? originName : destinationName }
+    var effectiveDestinationID: String { effectiveIsReversed ? originID : destinationID }
+
+    func matchesUndirected(originID a: String, destID b: String) -> Bool {
+        (originID == a && destinationID == b) || (originID == b && destinationID == a)
+    }
 }
 
 enum TravelSolutionsSource: Equatable {
@@ -1495,7 +1974,7 @@ enum TravelSolutionsSource: Equatable {
     case favoriteRoute
 }
 
-struct SavedTripSegment: Codable, Equatable {
+struct SavedTripSegment: Codable, Equatable, Hashable {
     let origin: String
     let destination: String
     let departureTime: String
@@ -1504,7 +1983,7 @@ struct SavedTripSegment: Codable, Equatable {
     let trainCategory: String
 }
 
-struct SavedTrip: Codable, Identifiable, Equatable {
+struct SavedTrip: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let origin: String
     let destination: String
@@ -1868,6 +2347,34 @@ extension String {
             .replacingOccurrences(of: " Passante", with: "")
         
         return result
+    }
+
+    var compactStationName: String {
+        let base = formattedStationName
+        let lower = base.lowercased()
+        let replacements: [(String, String)] = [
+            ("Milano Porta Garibaldi (Passante)", "Milano P. Garibaldi (Pass.)"),
+            ("Milano Porta Garibaldi", "Milano P. Garibaldi"),
+            ("Milano Porta Venezia", "Milano P. Venezia"),
+            ("Milano Porta Vittoria", "Milano P. Vittoria"),
+            ("Milano Porta Romana", "Milano P. Romana"),
+            ("Milano Greco Pirelli", "Milano Greco P."),
+            ("Milano Bovisa Politecnico", "Milano Bovisa"),
+            ("Milano San Cristoforo", "Milano S. Cristoforo"),
+            ("Milano Scalo Romana", "Milano S. Romana"),
+            ("Torino Porta Nuova", "Torino P. Nuova"),
+            ("Torino Porta Susa", "Torino P. Susa"),
+            ("Verona Porta Nuova", "Verona P. Nuova"),
+            ("Venezia Santa Lucia", "Venezia S. Lucia"),
+            ("Firenze Santa Maria Novella", "Firenze S.M.N."),
+            ("Genova Piazza Principe", "Genova P. Principe")
+        ]
+        for (target, replacement) in replacements {
+            if lower == target.lowercased() {
+                return replacement
+            }
+        }
+        return base
     }
 }
 

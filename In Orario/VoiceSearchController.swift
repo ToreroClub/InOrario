@@ -22,9 +22,18 @@ final class VoiceSearchController: ObservableObject {
     private var committedTranscript = ""
     private var activeContextualStrings: [String] = []
     private var autoRestartCount = 0
+    private var sessionGeneration: UInt64 = 0
+    private var isAudioSessionActive = false
+
+    private nonisolated static let audioSessionQueue = DispatchQueue(
+        label: "com.toreroclub.inorario.voice.audioSession",
+        qos: .userInitiated
+    )
 
     func startListening(contextualStrings: [String], onFinalResult: @escaping (String) -> Void) {
         stopListening(triggerFinal: false)
+        sessionGeneration &+= 1
+        let generation = sessionGeneration
         errorMessage = nil
         permissionDenied = false
         transcript = ""
@@ -40,7 +49,7 @@ final class VoiceSearchController: ObservableObject {
             let speechAuthorized = await Self.requestSpeechAuthStatus()
             let micAuthorized = await AVAudioApplication.requestRecordPermission()
 
-            guard !userRequestedStop else { return }
+            guard generation == self.sessionGeneration, !self.userRequestedStop else { return }
 
             guard speechAuthorized && micAuthorized else {
                 self.permissionDenied = true
@@ -48,11 +57,12 @@ final class VoiceSearchController: ObservableObject {
                 return
             }
 
-            beginAudioRecognition(contextualStrings: contextualStrings)
+            await beginAudioRecognition(contextualStrings: contextualStrings, generation: generation)
         }
     }
 
     func stopListening(triggerFinal: Bool = false) {
+        sessionGeneration &+= 1
         userRequestedStop = true
 
         if audioEngine.isRunning {
@@ -64,7 +74,10 @@ final class VoiceSearchController: ObservableObject {
         recognitionTask?.cancel()
         recognitionTask = nil
 
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        if isAudioSessionActive {
+            isAudioSessionActive = false
+            Self.deactivateAudioSessionAsync()
+        }
 
         let capturedText = VoiceTranscriptCleaner.normalize(transcript)
         isListening = false
@@ -80,20 +93,28 @@ final class VoiceSearchController: ObservableObject {
         }
     }
 
-    private func beginAudioRecognition(contextualStrings: [String]) {
+    private func beginAudioRecognition(contextualStrings: [String], generation: UInt64) async {
         guard let speechRecognizer, speechRecognizer.isAvailable else {
             errorMessage = "Il riconoscimento vocale non è al momento disponibile sul dispositivo."
             return
         }
 
         do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            try await Self.activateAudioSession()
         } catch {
+            guard generation == sessionGeneration, !userRequestedStop else { return }
             errorMessage = "Impossibile avviare il microfono: \(error.localizedDescription)"
             return
         }
+
+        guard generation == sessionGeneration, !userRequestedStop else {
+            if userRequestedStop {
+                Self.deactivateAudioSessionAsync()
+            }
+            return
+        }
+
+        isAudioSessionActive = true
 
         let request = makeRecognitionRequest(contextualStrings: contextualStrings)
         self.recognitionRequest = request
@@ -169,7 +190,10 @@ final class VoiceSearchController: ObservableObject {
                 audioEngine.stop()
                 audioEngine.inputNode.removeTap(onBus: 0)
             }
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            if isAudioSessionActive {
+                isAudioSessionActive = false
+                Self.deactivateAudioSessionAsync()
+            }
             isListening = false
             audioLevel = 0.0
             return
@@ -189,6 +213,27 @@ final class VoiceSearchController: ObservableObject {
         }
 
         startCurrentRecognitionTask(speechRecognizer: speechRecognizer, request: newRequest)
+    }
+
+    private nonisolated static func activateAudioSession() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            audioSessionQueue.async {
+                do {
+                    let audioSession = AVAudioSession.sharedInstance()
+                    try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+                    try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    private nonisolated static func deactivateAudioSessionAsync() {
+        audioSessionQueue.async {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
     }
 
     private nonisolated static func requestSpeechAuthStatus() async -> Bool {

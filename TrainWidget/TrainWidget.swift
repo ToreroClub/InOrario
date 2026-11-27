@@ -342,12 +342,8 @@ struct Provider: TimelineProvider {
             return true
         }
         
-        let rotationEnabled = defaults.object(forKey: "widgetTimeRotationEnabled_v1") == nil ? true : defaults.bool(forKey: "widgetTimeRotationEnabled_v1")
-        if rotationEnabled {
-            return sortTrainsByProximity(trains: filtered)
-        } else {
-            return filtered
-        }
+        // Segue sempre l'ordine intelligente (in viaggio → prossime partenze), saltando automaticamente i treni disattivati
+        return sortTrainsByProximity(trains: filtered)
     }
     
     private func sortTrainsByProximity(trains: [WidgetSavedTrain]) -> [WidgetSavedTrain] {

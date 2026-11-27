@@ -1,0 +1,6030 @@
+[
+  {
+    "id": "S1",
+    "code": "S1",
+    "name": "S1 Saronno - Lodi",
+    "subtitle": "Linea Suburbana • Passante Ferroviario",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#e30613",
+    "stations": [
+      "Saronno",
+      "Caronno Pertusella",
+      "Cesate",
+      "Garbagnate Milanese",
+      "Garbagnate Parco delle Groane",
+      "Bollate Nord",
+      "Bollate Centro",
+      "Novate Milanese",
+      "Milano Quarto Oggiaro",
+      "Milano Bovisa Politecnico",
+      "Lancetti",
+      "P. Garibaldi Passante",
+      "Repubblica",
+      "Porta Venezia",
+      "Dateo",
+      "Porta Vittoria",
+      "Milano Rogoredo",
+      "San Donato Milanese",
+      "Borgolombardo",
+      "San Giuliano Milanese",
+      "Melegnano",
+      "Tavazzano",
+      "Lodi"
+    ],
+    "probeStations": [
+      "Saronno",
+      "Lodi"
+    ],
+    "categoryPrefixes": [
+      "S1"
+    ],
+    "usesPassanteTunnel": true,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S2",
+    "code": "S2",
+    "name": "S2 Mariano - Rogoredo",
+    "subtitle": "Linea Suburbana • Passante Ferroviario",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#009640",
+    "stations": [
+      "Mariano Comense",
+      "Cabiate",
+      "Meda",
+      "Seveso",
+      "Cesano Maderno",
+      "Bovisio Masciago-Mombello",
+      "Varedo",
+      "Palazzolo Milanese",
+      "Paderno Dugnano",
+      "Cormano-Cusano Milanino",
+      "Milano Bruzzano Parco Nord",
+      "Milano Affori",
+      "Milano Bovisa Politecnico",
+      "Lancetti",
+      "P. Garibaldi Passante",
+      "Repubblica",
+      "Porta Venezia",
+      "Dateo",
+      "Porta Vittoria",
+      "Milano Rogoredo"
+    ],
+    "probeStations": [
+      "Mariano Comense",
+      "Milano Rogoredo"
+    ],
+    "categoryPrefixes": [
+      "S2"
+    ],
+    "usesPassanteTunnel": true,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S3",
+    "code": "S3",
+    "name": "S3 Saronno – Milano Cadorna",
+    "subtitle": "Linea Suburbana • FerrovieNord",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#e51937",
+    "stations": [
+      "Saronno",
+      "Caronno Pertusella",
+      "Cesate",
+      "Garbagnate Milanese",
+      "Garbagnate Parco delle Groane",
+      "Bollate Nord",
+      "Bollate Centro",
+      "Novate Milanese",
+      "Milano Quarto Oggiaro",
+      "Milano Bovisa Politecnico",
+      "Milano Domodossola",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Saronno"
+    ],
+    "categoryPrefixes": [
+      "S3"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S4",
+    "code": "S4",
+    "name": "S4 Camnago – Milano Cadorna",
+    "subtitle": "Linea Suburbana • FerrovieNord",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#c8102e",
+    "stations": [
+      "Camnago-Lentate",
+      "Seveso",
+      "Cesano Maderno",
+      "Bovisio Masciago-Mombello",
+      "Varedo",
+      "Palazzolo Milanese",
+      "Paderno Dugnano",
+      "Cormano-Cusano Milanino",
+      "Milano Bruzzano Parco Nord",
+      "Milano Affori",
+      "Milano Bovisa Politecnico",
+      "Milano Domodossola",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Camnago-Lentate"
+    ],
+    "categoryPrefixes": [
+      "S4"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S5",
+    "code": "S5",
+    "name": "S5 Varese - Treviglio",
+    "subtitle": "Linea Suburbana • Passante Ferroviario",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#f39200",
+    "stations": [
+      "Varese",
+      "Gazzada-Schianno-Morazzone",
+      "Castronno",
+      "Albizzate-Solbiate Arno",
+      "Cavaria-Oggiona-Jerago",
+      "Gallarate",
+      "Busto Arsizio",
+      "Legnano",
+      "Canegrate",
+      "Parabiago",
+      "Vanzago-Pogliano",
+      "Rho",
+      "Rho Fiera",
+      "Milano Certosa",
+      "Milano Villapizzone",
+      "Lancetti",
+      "P. Garibaldi Passante",
+      "Repubblica",
+      "Porta Venezia",
+      "Dateo",
+      "Porta Vittoria",
+      "Milano Forlanini",
+      "Segrate",
+      "Pioltello Limito",
+      "Melzo",
+      "Pozzuolo Martesana",
+      "Trecella",
+      "Cassano d'Adda",
+      "Treviglio"
+    ],
+    "probeStations": [
+      "Varese",
+      "Treviglio"
+    ],
+    "categoryPrefixes": [
+      "S5"
+    ],
+    "usesPassanteTunnel": true,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S6",
+    "code": "S6",
+    "name": "S6 Novara – Pioltello / Treviglio",
+    "subtitle": "Linea Suburbana • Passante Ferroviario",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#ffd60a",
+    "stations": [
+      "Novara",
+      "Trecate",
+      "Magenta",
+      "Corbetta-S.Stefano Ticino",
+      "Vittuone-Arluno",
+      "Pregnana Milanese",
+      "Rho",
+      "Rho Fiera",
+      "Milano Certosa",
+      "Milano Villapizzone",
+      "Lancetti",
+      "P. Garibaldi Passante",
+      "Repubblica",
+      "Porta Venezia",
+      "Dateo",
+      "Porta Vittoria",
+      "Milano Forlanini",
+      "Segrate",
+      "Pioltello Limito",
+      "Melzo",
+      "Pozzuolo Martesana",
+      "Trecella",
+      "Cassano d'Adda",
+      "Treviglio"
+    ],
+    "probeStations": [
+      "Novara",
+      "Pioltello Limito"
+    ],
+    "categoryPrefixes": [
+      "S6"
+    ],
+    "usesPassanteTunnel": true,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Pioltello Limito",
+        "label": "Prolungamento ore di punta",
+        "stations": [
+          "Melzo",
+          "Pozzuolo Martesana",
+          "Trecella",
+          "Cassano d'Adda",
+          "Treviglio"
+        ],
+        "position": "after",
+        "isDashed": true
+      }
+    ]
+  },
+  {
+    "id": "S7",
+    "code": "S7",
+    "name": "S7 Lecco – Milano P. Garibaldi",
+    "subtitle": "Linea Suburbana • Via Molteno (Besanino)",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#8E24AA",
+    "stations": [
+      "Lecco",
+      "Oggiono",
+      "Molteno",
+      "Besana",
+      "Villasanta Parco",
+      "Monza",
+      "Sesto S.Giovanni",
+      "Milano Greco Pirelli",
+      "Milano Porta Garibaldi"
+    ],
+    "probeStations": [
+      "Milano Porta Garibaldi",
+      "Lecco"
+    ],
+    "categoryPrefixes": [
+      "S7"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S8",
+    "code": "S8",
+    "name": "S8 Lecco – Carnate – Milano P. Garibaldi",
+    "subtitle": "Linea Suburbana • Via Carnate-Usmate",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#00796B",
+    "stations": [
+      "Lecco",
+      "Calolziocorte Olginate",
+      "Cernusco-Merate",
+      "Carnate Usmate",
+      "Arcore",
+      "Monza",
+      "Sesto S.Giovanni",
+      "Milano Greco Pirelli",
+      "Milano Porta Garibaldi"
+    ],
+    "probeStations": [
+      "Milano Porta Garibaldi",
+      "Lecco"
+    ],
+    "categoryPrefixes": [
+      "S8"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S9",
+    "code": "S9",
+    "name": "S9 Saronno – Seregno – Albairate",
+    "subtitle": "Linea Suburbana • Cintura Nord / Sud",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#5C6BC0",
+    "stations": [
+      "Saronno",
+      "Cesano Maderno",
+      "Seregno",
+      "Desio",
+      "Lissone-Muggio'",
+      "Monza",
+      "Sesto S.Giovanni",
+      "Milano Greco Pirelli",
+      "Milano Lambrate",
+      "Milano Forlanini",
+      "Milano Scalo Romana",
+      "Milano Tibaldi Universita' Bocconi",
+      "Milano Romolo",
+      "Milano S.Cristoforo",
+      "Corsico",
+      "Albairate-Vermezzo"
+    ],
+    "probeStations": [
+      "Saronno",
+      "Albairate-Vermezzo"
+    ],
+    "categoryPrefixes": [
+      "S9"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S10",
+    "code": "S10",
+    "name": "S10 Bellinzona – Lugano – Chiasso – Como",
+    "subtitle": "Linea Suburbana Transfrontaliera • TILO",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#E30613",
+    "stations": [
+      "Biasca",
+      "Bellinzona",
+      "Lugano",
+      "Mendrisio",
+      "Chiasso",
+      "Como S.Giovanni"
+    ],
+    "probeStations": [
+      "Como S.Giovanni",
+      "Chiasso"
+    ],
+    "categoryPrefixes": [
+      "S10",
+      "S",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S11",
+    "code": "S11",
+    "name": "S11 Chiasso – Como – Milano – Rho",
+    "subtitle": "Linea Suburbana • Superficie",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#8a8bbf",
+    "stations": [
+      "Chiasso",
+      "Como S.Giovanni",
+      "Como Camerlata",
+      "Seregno",
+      "Monza",
+      "Sesto S.Giovanni",
+      "Milano Greco Pirelli",
+      "Milano Porta Garibaldi",
+      "Milano Villapizzone",
+      "Milano Certosa",
+      "Rho Fiera",
+      "Rho"
+    ],
+    "probeStations": [
+      "Chiasso",
+      "Rho"
+    ],
+    "categoryPrefixes": [
+      "S11"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S12",
+    "code": "S12",
+    "name": "S12 Cormano - Melegnano",
+    "subtitle": "Linea Suburbana • Passante Ferroviario",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#005a2b",
+    "stations": [
+      "Cormano-Cusano Milanino",
+      "Milano Bruzzano Parco Nord",
+      "Milano Affori",
+      "Milano Bovisa Politecnico",
+      "Lancetti",
+      "P. Garibaldi Passante",
+      "Repubblica",
+      "Porta Venezia",
+      "Dateo",
+      "Porta Vittoria",
+      "Milano Rogoredo",
+      "San Donato Milanese",
+      "Borgolombardo",
+      "San Giuliano Milanese",
+      "Melegnano"
+    ],
+    "probeStations": [
+      "Milano Bovisa Politecnico",
+      "Melegnano"
+    ],
+    "categoryPrefixes": [
+      "S12"
+    ],
+    "usesPassanteTunnel": true,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S13",
+    "code": "S13",
+    "name": "S13 Garbagnate – Bovisa – Pavia",
+    "subtitle": "Linea Suburbana • Passante Ferroviario",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#a37a3e",
+    "stations": [
+      "Garbagnate Milanese",
+      "Garbagnate Parco delle Groane",
+      "Bollate Nord",
+      "Bollate Centro",
+      "Novate Milanese",
+      "Milano Quarto Oggiaro",
+      "Milano Bovisa Politecnico",
+      "Lancetti",
+      "P. Garibaldi Passante",
+      "Repubblica",
+      "Porta Venezia",
+      "Dateo",
+      "Porta Vittoria",
+      "Milano Rogoredo",
+      "Locate Triulzi",
+      "Pieve Emanuele",
+      "Villamaggiore",
+      "Certosa di Pavia",
+      "Pavia"
+    ],
+    "probeStations": [
+      "Milano Bovisa Politecnico",
+      "Pavia"
+    ],
+    "categoryPrefixes": [
+      "S13"
+    ],
+    "usesPassanteTunnel": true,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Milano Bovisa Politecnico",
+        "label": "Corse da Garbagnate",
+        "stations": [
+          "Garbagnate Milanese",
+          "Garbagnate Parco delle Groane",
+          "Bollate Nord",
+          "Bollate Centro",
+          "Novate Milanese",
+          "Milano Quarto Oggiaro"
+        ],
+        "position": "before",
+        "isDashed": true
+      }
+    ]
+  },
+  {
+    "id": "S19",
+    "code": "S19",
+    "name": "S19 Albairate – Milano Rogoredo",
+    "subtitle": "Linea Suburbana • Cintura Sud",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#00A0DF",
+    "stations": [
+      "Albairate-Vermezzo",
+      "Gaggiano",
+      "Trezzano Sul Naviglio",
+      "Cesano Boscone",
+      "Corsico",
+      "Milano S.Cristoforo",
+      "Milano Romolo",
+      "Milano Tibaldi Universita' Bocconi",
+      "Milano Scalo Romana",
+      "Milano Rogoredo"
+    ],
+    "probeStations": [
+      "Albairate-Vermezzo",
+      "Milano Rogoredo"
+    ],
+    "categoryPrefixes": [
+      "S19"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S40",
+    "code": "S40",
+    "name": "S40 Varese – Mendrisio – Como",
+    "subtitle": "Linea Suburbana Transfrontaliera • TILO",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#0072BC",
+    "stations": [
+      "Varese",
+      "Induno Olona",
+      "Cantello-Gaggiolo",
+      "Stabio",
+      "Mendrisio",
+      "Chiasso",
+      "Como S.Giovanni"
+    ],
+    "probeStations": [
+      "Como S.Giovanni",
+      "Varese"
+    ],
+    "categoryPrefixes": [
+      "S40",
+      "S",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "S50",
+    "code": "S50",
+    "name": "S50 Bellinzona – Lugano – Varese – Malpensa",
+    "subtitle": "Linea Suburbana Aeroportuale • TILO",
+    "kind": "Suburbana",
+    "region": "Lombardia",
+    "hexColor": "#0072BC",
+    "stations": [
+      "Bellinzona",
+      "Lugano",
+      "Mendrisio",
+      "Stabio",
+      "Induno Olona",
+      "Varese",
+      "Gallarate",
+      "Malpensa Aeroporto Terminal 1",
+      "Malpensa Aeroporto Terminal 2"
+    ],
+    "probeStations": [
+      "Varese",
+      "Gallarate"
+    ],
+    "categoryPrefixes": [
+      "S50",
+      "S",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MXP",
+    "code": "MXP",
+    "name": "Malpensa Express",
+    "subtitle": "Aeroportuale • Milano ↔ Aeroporto Malpensa",
+    "kind": "Aeroportuale",
+    "region": "Lombardia",
+    "hexColor": "#A6192E",
+    "stations": [
+      "Malpensa Aeroporto Terminal 2",
+      "Malpensa Aeroporto Terminal 1",
+      "Ferno - Lonate Pozzolo",
+      "Busto Arsizio Nord",
+      "Saronno",
+      "Milano Bovisa Politecnico",
+      "Milano Porta Garibaldi",
+      "Milano Centrale",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Milano Centrale"
+    ],
+    "categoryPrefixes": [
+      "MXP",
+      "XP",
+      "RE",
+      "R"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Milano Bovisa Politecnico",
+        "label": "Ramo Cadorna",
+        "stations": [
+          "Milano Cadorna"
+        ],
+        "position": "after",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "MI-LAV",
+    "code": "RE1",
+    "name": "RE1 Laveno – Varese Nord – Milano Cadorna",
+    "subtitle": "RegioExpress • FerrovieNord",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#7B1FA2",
+    "stations": [
+      "Laveno Mombello Lago",
+      "Gavirate",
+      "Varese Nord",
+      "Malnate",
+      "Tradate",
+      "Saronno",
+      "Milano Bovisa Politecnico",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Varese Nord"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-BG",
+    "code": "RE2",
+    "name": "RE2 Milano – Treviglio – Bergamo",
+    "subtitle": "RegioExpress • Lombardia Est",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Milano Centrale",
+      "Milano Lambrate",
+      "Pioltello Limito",
+      "Treviglio",
+      "Verdello Dalmine",
+      "Bergamo"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Bergamo"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "RE3",
+    "code": "RE3",
+    "name": "RE3 Edolo – Iseo – Brescia",
+    "subtitle": "RegioExpress • Val Camonica",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#00695C",
+    "stations": [
+      "Edolo",
+      "Breno",
+      "Darfo - Corna",
+      "Pisogne",
+      "Iseo",
+      "Bornato - Calino",
+      "Brescia"
+    ],
+    "probeStations": [
+      "Brescia",
+      "Iseo"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-DOM",
+    "code": "RE4",
+    "name": "RE4 Domodossola – Stresa – Arona – Milano",
+    "subtitle": "RegioExpress • Asse Sempione",
+    "kind": "Regionale",
+    "region": "Lombardia / Piemonte",
+    "hexColor": "#4527A0",
+    "stations": [
+      "Domodossola",
+      "Verbania-Pallanza",
+      "Stresa",
+      "Arona",
+      "Sesto Calende",
+      "Gallarate",
+      "Rho Fiera",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Arona"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-VA",
+    "code": "RE5",
+    "name": "RE5 P. Ceresio – Varese – Gallarate – Milano",
+    "subtitle": "RegioExpress • Nord-Ovest Lombardia",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#6A1B9A",
+    "stations": [
+      "Porto Ceresio",
+      "Arcisate",
+      "Varese",
+      "Gallarate",
+      "Busto Arsizio",
+      "Legnano",
+      "Rho Fiera",
+      "Milano Porta Garibaldi"
+    ],
+    "probeStations": [
+      "Milano Porta Garibaldi",
+      "Varese"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-BS-VR",
+    "code": "RE6",
+    "name": "RE6 Milano – Brescia – Verona",
+    "subtitle": "RegioExpress • Direttrice Garda",
+    "kind": "Regionale",
+    "region": "Lombardia / Veneto",
+    "hexColor": "#00838F",
+    "stations": [
+      "Milano Centrale",
+      "Milano Lambrate",
+      "Treviglio",
+      "Romano",
+      "Rovato",
+      "Brescia",
+      "Desenzano del Garda-Sirmione",
+      "Peschiera del Garda",
+      "Verona Porta Nuova"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Verona Porta Nuova"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-COL",
+    "code": "RE7",
+    "name": "RE7 Como Lago – Saronno – Milano Cadorna",
+    "subtitle": "RegioExpress • FerrovieNord",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Como Lago",
+      "Como Borghi",
+      "Como Camerlata (FNM)",
+      "Lomazzo",
+      "Saronno",
+      "Milano Bovisa Politecnico",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Como Lago"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "RE8",
+    "code": "RE8",
+    "name": "RE8 Tirano – Sondrio – Lecco – Milano",
+    "subtitle": "RegioExpress • Direttrice Valtellina",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#0277BD",
+    "stations": [
+      "Tirano",
+      "Sondrio",
+      "Morbegno",
+      "Colico",
+      "Bellano Tartavalle Terme",
+      "Varenna Esino",
+      "Lecco",
+      "Monza",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Lecco"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-MN",
+    "code": "RE11",
+    "name": "RE11 Milano – Codogno – Cremona – Mantova",
+    "subtitle": "RegioExpress • Lombardia Sud-Est",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#558B2F",
+    "stations": [
+      "Milano Centrale",
+      "Milano Rogoredo",
+      "Lodi",
+      "Codogno",
+      "Cremona",
+      "Piadena",
+      "Mantova"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Cremona"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-AL",
+    "code": "RE13",
+    "name": "RE13 Milano – Pavia – Voghera – Alessandria",
+    "subtitle": "RegioExpress • Oltrepò Pavese",
+    "kind": "Regionale",
+    "region": "Lombardia / Piemonte",
+    "hexColor": "#00897B",
+    "stations": [
+      "Milano Centrale",
+      "Milano Rogoredo",
+      "Pavia",
+      "Voghera",
+      "Tortona",
+      "Alessandria"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Pavia"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-CO",
+    "code": "RE80",
+    "name": "RE80 Locarno – Lugano – Como – Milano",
+    "subtitle": "RegioExpress Transfrontaliero • TILO",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#E30613",
+    "stations": [
+      "Locarno",
+      "Lugano",
+      "Chiasso",
+      "Como S.Giovanni",
+      "Seregno",
+      "Monza",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Como S.Giovanni"
+    ],
+    "categoryPrefixes": [
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R1-BS-PR",
+    "code": "R1",
+    "name": "R1 Brescia – Piadena – Parma",
+    "subtitle": "Regionale • Lombardia / Emilia",
+    "kind": "Regionale",
+    "region": "Lombardia / Emilia-Romagna",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Brescia",
+      "San Zeno-Folzano",
+      "Manerbio",
+      "Verolanuova",
+      "Piadena",
+      "Casalmaggiore",
+      "Colorno",
+      "Parma"
+    ],
+    "probeStations": [
+      "Brescia",
+      "Piadena"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R2-BS-CR",
+    "code": "R2",
+    "name": "R2 Brescia – Olmeneta – Cremona",
+    "subtitle": "Regionale • Bassa Bresciana",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#388E3C",
+    "stations": [
+      "Brescia",
+      "Manerbio",
+      "Verolanuova",
+      "Olmeneta",
+      "Cremona"
+    ],
+    "probeStations": [
+      "Brescia",
+      "Cremona"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BS-EDOLO",
+    "code": "R3",
+    "name": "R3 Edolo – Iseo – Brescia",
+    "subtitle": "Regionale • Ferrovia della Val Camonica",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#00695C",
+    "stations": [
+      "Edolo",
+      "Breno",
+      "Darfo - Corna",
+      "Pisogne",
+      "Sulzano",
+      "Iseo",
+      "Bornato - Calino",
+      "Brescia"
+    ],
+    "probeStations": [
+      "Brescia",
+      "Iseo"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R4-BS-BG",
+    "code": "R4",
+    "name": "R4 Bergamo – Rovato – Brescia",
+    "subtitle": "Regionale • Pedemontana Lombarda",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#43A047",
+    "stations": [
+      "Bergamo",
+      "Seriate",
+      "Grumello del Monte",
+      "Palazzolo Sull'Oglio",
+      "Rovato",
+      "Brescia"
+    ],
+    "probeStations": [
+      "Brescia",
+      "Bergamo"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R5-BG-TRV",
+    "code": "R5",
+    "name": "R5 Bergamo – Treviglio",
+    "subtitle": "Regionale • Collegamento Treviglio",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#558B2F",
+    "stations": [
+      "Bergamo",
+      "Stezzano",
+      "Verdello Dalmine",
+      "Treviglio"
+    ],
+    "probeStations": [
+      "Bergamo",
+      "Treviglio"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R6-BG-LC",
+    "code": "R6",
+    "name": "R6 Lecco – Ponte S.Pietro – Bergamo",
+    "subtitle": "Regionale • Valle San Martino",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#00796B",
+    "stations": [
+      "Lecco",
+      "Calolziocorte Olginate",
+      "Cisano-Caprino Bergamasco",
+      "Ponte S.Pietro",
+      "Bergamo"
+    ],
+    "probeStations": [
+      "Ponte S.Pietro",
+      "Lecco"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R7-LC-SO",
+    "code": "R7",
+    "name": "R7 Lecco – Colico – Sondrio",
+    "subtitle": "Regionale • Lago di Como / Valtellina",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Lecco",
+      "Mandello del Lario",
+      "Varenna Esino",
+      "Bellano Tartavalle Terme",
+      "Colico",
+      "Morbegno",
+      "Sondrio"
+    ],
+    "probeStations": [
+      "Lecco",
+      "Colico"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R8-SO-TIR",
+    "code": "R8",
+    "name": "R8 Sondrio – Tirano",
+    "subtitle": "Regionale • Alta Valtellina",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#0277BD",
+    "stations": [
+      "Sondrio",
+      "Tresenda-Aprica-Teglio",
+      "Tirano"
+    ],
+    "probeStations": [
+      "Sondrio",
+      "Tirano"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R12-COL-CHI",
+    "code": "R12",
+    "name": "R12 Chiavenna – Colico",
+    "subtitle": "Regionale • Valchiavenna",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#0097A7",
+    "stations": [
+      "Chiavenna",
+      "Novate Mezzola",
+      "Dubino",
+      "Colico"
+    ],
+    "probeStations": [
+      "Colico",
+      "Chiavenna"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R13-CO-LC",
+    "code": "R13",
+    "name": "R13 Como – Molteno – Lecco",
+    "subtitle": "Regionale • Brianza Comasca",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#5E35B1",
+    "stations": [
+      "Como S.Giovanni",
+      "Albate-Camerlata",
+      "Cantu'",
+      "Merone",
+      "Molteno",
+      "Oggiono",
+      "Lecco"
+    ],
+    "probeStations": [
+      "Como S.Giovanni",
+      "Molteno"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-BG-CAR",
+    "code": "R14",
+    "name": "R14 Milano P.G. – Carnate – Bergamo",
+    "subtitle": "Regionale • Via Carnate-Usmate",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#388E3C",
+    "stations": [
+      "Milano Porta Garibaldi",
+      "Milano Greco Pirelli",
+      "Monza",
+      "Carnate Usmate",
+      "Paderno Robbiate",
+      "Calusco",
+      "Terno",
+      "Ponte S.Pietro",
+      "Bergamo"
+    ],
+    "probeStations": [
+      "Milano Porta Garibaldi",
+      "Ponte S.Pietro"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RE"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-ASSO",
+    "code": "R16",
+    "name": "R16 Asso – Erba – Seveso – Milano Cadorna",
+    "subtitle": "Regionale • FerrovieNord Brianza",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Asso",
+      "Erba",
+      "Merone",
+      "Inverigo",
+      "Arosio",
+      "Meda",
+      "Seveso",
+      "Milano Bovisa Politecnico",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Erba"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "RE",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R17-MI-CO",
+    "code": "R17",
+    "name": "R17 Como Lago – Saronno – Milano Cadorna",
+    "subtitle": "Regionale Locale • FerrovieNord",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#039BE5",
+    "stations": [
+      "Como Lago",
+      "Como Borghi",
+      "Como Camerlata (FNM)",
+      "Grandate-Breccia",
+      "Lomazzo",
+      "Saronno",
+      "Milano Bovisa Politecnico",
+      "Milano Domodossola",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Como Lago"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R22-MI-VA",
+    "code": "R22",
+    "name": "R22 Varese Nord – Saronno – Milano Cadorna",
+    "subtitle": "Regionale Locale • FerrovieNord",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#8E24AA",
+    "stations": [
+      "Varese Nord",
+      "Malnate",
+      "Tradate",
+      "Saronno",
+      "Milano Bovisa Politecnico",
+      "Milano Domodossola",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Varese Nord"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R23-GA-LUI",
+    "code": "R23",
+    "name": "R23 Luino – Laveno – Gallarate",
+    "subtitle": "Regionale • Lago Maggiore Orientale",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#3949AB",
+    "stations": [
+      "Luino",
+      "Laveno Mombello",
+      "Besozzo",
+      "Ternate-Varano Borghi",
+      "Besnate",
+      "Gallarate"
+    ],
+    "probeStations": [
+      "Gallarate",
+      "Luino"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "S30"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-NOV-FN",
+    "code": "R27",
+    "name": "R27 Novara Nord – Saronno – Milano Cadorna",
+    "subtitle": "Regionale • FerrovieNord",
+    "kind": "Regionale",
+    "region": "Lombardia / Piemonte",
+    "hexColor": "#546E7A",
+    "stations": [
+      "Novara Nord",
+      "Turbigo",
+      "Vanzaghello - Magnago",
+      "Busto Arsizio Nord",
+      "Castellanza",
+      "Rescaldina",
+      "Saronno",
+      "Milano Bovisa Politecnico",
+      "Milano Cadorna"
+    ],
+    "probeStations": [
+      "Milano Cadorna",
+      "Novara Nord"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-MORT",
+    "code": "R31",
+    "name": "R31 Mortara – Abbiategrasso – Milano Rogoredo",
+    "subtitle": "Regionale • Lomellina",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#F9A825",
+    "stations": [
+      "Mortara",
+      "Vigevano",
+      "Abbiategrasso",
+      "Albairate-Vermezzo",
+      "Gaggiano",
+      "Trezzano Sul Naviglio",
+      "Cesano Boscone",
+      "Corsico",
+      "Milano S.Cristoforo",
+      "Milano Romolo",
+      "Milano Tibaldi Universita' Bocconi",
+      "Milano Scalo Romana",
+      "Milano Rogoredo"
+    ],
+    "probeStations": [
+      "Milano Rogoredo",
+      "Mortara"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R32-PV-AL",
+    "code": "R32",
+    "name": "R32 Alessandria – Voghera – Pavia",
+    "subtitle": "Regionale • Oltrepò Pavese",
+    "kind": "Regionale",
+    "region": "Lombardia / Piemonte",
+    "hexColor": "#00897B",
+    "stations": [
+      "Alessandria",
+      "Tortona",
+      "Voghera",
+      "Bressana Bottarone",
+      "Pavia"
+    ],
+    "probeStations": [
+      "Pavia",
+      "Voghera"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R34-PV-PC",
+    "code": "R34",
+    "name": "R34 Pavia – Stradella – Piacenza",
+    "subtitle": "Regionale • Oltrepò / Emilia",
+    "kind": "Regionale",
+    "region": "Lombardia / Emilia-Romagna",
+    "hexColor": "#6D4C41",
+    "stations": [
+      "Pavia",
+      "Bressana Bottarone",
+      "Broni",
+      "Stradella",
+      "Castel S.Giovanni",
+      "Piacenza"
+    ],
+    "probeStations": [
+      "Pavia",
+      "Piacenza"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R35-PV-COD",
+    "code": "R35",
+    "name": "R35 Pavia – Casalpusterlengo – Codogno",
+    "subtitle": "Regionale • Basso Pavese / Lodigiano",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#795548",
+    "stations": [
+      "Pavia",
+      "Belgioioso",
+      "Corteolona",
+      "Casalpusterlengo",
+      "Codogno"
+    ],
+    "probeStations": [
+      "Pavia",
+      "Codogno"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R36-PV-VC",
+    "code": "R36",
+    "name": "R36 Vercelli – Mortara – Pavia",
+    "subtitle": "Regionale • Lomellina / Vercellese",
+    "kind": "Regionale",
+    "region": "Lombardia / Piemonte",
+    "hexColor": "#F57C00",
+    "stations": [
+      "Vercelli",
+      "Robbio",
+      "Mortara",
+      "Garlasco",
+      "Pavia"
+    ],
+    "probeStations": [
+      "Pavia",
+      "Mortara"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R38-MI-PC",
+    "code": "R38",
+    "name": "R38 Milano Greco Pirelli – Lodi – Piacenza",
+    "subtitle": "Regionale • Direttrice Lodigiana",
+    "kind": "Regionale",
+    "region": "Lombardia / Emilia-Romagna",
+    "hexColor": "#E65100",
+    "stations": [
+      "Milano Greco Pirelli",
+      "Milano Lambrate",
+      "Milano Rogoredo",
+      "Lodi",
+      "Secugnago",
+      "Casalpusterlengo",
+      "Codogno",
+      "Piacenza"
+    ],
+    "probeStations": [
+      "Milano Rogoredo",
+      "Piacenza"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R41-CR-MN",
+    "code": "R41",
+    "name": "R41 Cremona – Piadena – Mantova",
+    "subtitle": "Regionale • Bassa Padana",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#689F38",
+    "stations": [
+      "Cremona",
+      "Piadena",
+      "Bozzolo",
+      "Castellucchio",
+      "Mantova"
+    ],
+    "probeStations": [
+      "Cremona",
+      "Mantova"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "R42-CR-TRV",
+    "code": "R42",
+    "name": "R42 Treviglio – Crema – Cremona",
+    "subtitle": "Regionale • Cremasco",
+    "kind": "Regionale",
+    "region": "Lombardia",
+    "hexColor": "#33691E",
+    "stations": [
+      "Treviglio",
+      "Caravaggio",
+      "Crema",
+      "Castelleone",
+      "Soresina",
+      "Cremona"
+    ],
+    "probeStations": [
+      "Cremona",
+      "Treviglio"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SFM1",
+    "code": "SFM1",
+    "name": "SFM1 Rivarolo – Torino – Chieri",
+    "subtitle": "Servizio Ferroviario Metropolitano",
+    "kind": "Suburbana",
+    "region": "Piemonte",
+    "hexColor": "#D81B60",
+    "stations": [
+      "Rivarolo Canavese",
+      "Bosconero",
+      "Settimo Torinese",
+      "Torino Stura",
+      "Torino Rebaudengo Fossata",
+      "Torino Porta Susa",
+      "Torino Lingotto",
+      "Trofarello",
+      "Chieri"
+    ],
+    "probeStations": [
+      "Torino Porta Susa",
+      "Chieri"
+    ],
+    "categoryPrefixes": [
+      "SFM1",
+      "SFM",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SFM2",
+    "code": "SFM2",
+    "name": "SFM2 Pinerolo – Torino – Chivasso",
+    "subtitle": "Servizio Ferroviario Metropolitano",
+    "kind": "Suburbana",
+    "region": "Piemonte",
+    "hexColor": "#E53935",
+    "stations": [
+      "Pinerolo",
+      "Airasca",
+      "None",
+      "Nichelino",
+      "Torino Lingotto",
+      "Torino Porta Susa",
+      "Torino Rebaudengo Fossata",
+      "Torino Stura",
+      "Settimo Torinese",
+      "Brandizzo",
+      "Chivasso"
+    ],
+    "probeStations": [
+      "Torino Porta Susa",
+      "Pinerolo"
+    ],
+    "categoryPrefixes": [
+      "SFM2",
+      "SFM",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SFM3",
+    "code": "SFM3",
+    "name": "SFM3 Bardonecchia / Susa – Torino P. Nuova",
+    "subtitle": "Servizio Ferroviario Metropolitano • Val di Susa",
+    "kind": "Suburbana",
+    "region": "Piemonte",
+    "hexColor": "#FB8C00",
+    "stations": [
+      "Bardonecchia",
+      "Oulx Cesana Claviere Sestriere",
+      "Chiomonte",
+      "Susa",
+      "Bussoleno",
+      "S.Ambrogio",
+      "Avigliana",
+      "Alpignano",
+      "Collegno",
+      "Grugliasco",
+      "Torino Porta Nuova"
+    ],
+    "probeStations": [
+      "Torino Porta Nuova",
+      "Bussoleno"
+    ],
+    "categoryPrefixes": [
+      "SFM3",
+      "SFM",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Bussoleno",
+        "label": "Ramo Susa",
+        "stations": [
+          "Susa"
+        ],
+        "position": "before",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "SFM4",
+    "code": "SFM4",
+    "name": "SFM4 Ceres – Torino – Alba",
+    "subtitle": "Servizio Ferroviario Metropolitano",
+    "kind": "Suburbana",
+    "region": "Piemonte",
+    "hexColor": "#8E24AA",
+    "stations": [
+      "Ceres",
+      "Germagnano",
+      "Lanzo Torinese",
+      "Cirie'",
+      "Caselle",
+      "Torino Aeroporto",
+      "Venaria Reale",
+      "Torino Rebaudengo Fossata",
+      "Torino Porta Susa",
+      "Torino Lingotto",
+      "Trofarello",
+      "Carmagnola",
+      "Sommariva del Bosco",
+      "Bra",
+      "Alba"
+    ],
+    "probeStations": [
+      "Torino Lingotto",
+      "Alba"
+    ],
+    "categoryPrefixes": [
+      "SFM4",
+      "SFM",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SFM6",
+    "code": "SFM6",
+    "name": "SFM6 Torino Aeroporto – Asti",
+    "subtitle": "Servizio Ferroviario Metropolitano",
+    "kind": "Suburbana",
+    "region": "Piemonte",
+    "hexColor": "#43A047",
+    "stations": [
+      "Torino Aeroporto",
+      "Venaria Reale",
+      "Torino Rebaudengo Fossata",
+      "Torino Porta Susa",
+      "Torino Lingotto",
+      "Trofarello",
+      "Cambiano-Santena",
+      "Villanova d'Asti",
+      "Villafranca-Cantarana",
+      "Asti"
+    ],
+    "probeStations": [
+      "Torino Lingotto",
+      "Asti"
+    ],
+    "categoryPrefixes": [
+      "SFM6",
+      "SFM",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SFM7",
+    "code": "SFM7",
+    "name": "SFM7 Cirié – Torino – Fossano",
+    "subtitle": "Servizio Ferroviario Metropolitano",
+    "kind": "Suburbana",
+    "region": "Piemonte",
+    "hexColor": "#039BE5",
+    "stations": [
+      "Cirie'",
+      "Caselle",
+      "Torino Aeroporto",
+      "Venaria Reale",
+      "Torino Rebaudengo Fossata",
+      "Torino Porta Susa",
+      "Torino Lingotto",
+      "Trofarello",
+      "Carmagnola",
+      "Racconigi",
+      "Cavallermaggiore",
+      "Savigliano",
+      "Fossano"
+    ],
+    "probeStations": [
+      "Torino Lingotto",
+      "Fossano"
+    ],
+    "categoryPrefixes": [
+      "SFM7",
+      "SFM",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-TO",
+    "code": "MI-TO",
+    "name": "Torino – Novara – Milano",
+    "subtitle": "Linea Storica • Regionale Veloce",
+    "kind": "Regionale",
+    "region": "Lombardia / Piemonte",
+    "hexColor": "#1565C0",
+    "stations": [
+      "Torino Porta Nuova",
+      "Torino Porta Susa",
+      "Chivasso",
+      "Santhia'",
+      "Vercelli",
+      "Novara",
+      "Trecate",
+      "Magenta",
+      "Rho",
+      "Rho Fiera",
+      "Milano Porta Garibaldi",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Torino Porta Susa"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Rho Fiera",
+        "label": "Corse P. Garibaldi",
+        "stations": [
+          "Milano Porta Garibaldi"
+        ],
+        "position": "after",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "TO-AO",
+    "code": "TO-AO",
+    "name": "Aosta – Ivrea – Torino",
+    "subtitle": "Direttrice Canavese / Valle d'Aosta • RV / R",
+    "kind": "Regionale",
+    "region": "Piemonte / Valle d'Aosta",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Aosta",
+      "Nus",
+      "Chatillon-Saint-Vincent",
+      "Verres",
+      "Pont-Saint-Martin",
+      "Ivrea",
+      "Strambino",
+      "Caluso",
+      "Chivasso",
+      "Torino Porta Susa",
+      "Torino Porta Nuova"
+    ],
+    "probeStations": [
+      "Torino Porta Nuova",
+      "Ivrea"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TO-BI",
+    "code": "TO-BI",
+    "name": "Biella – Santhià – Torino",
+    "subtitle": "Regionale • Biellese",
+    "kind": "Regionale",
+    "region": "Piemonte",
+    "hexColor": "#00897B",
+    "stations": [
+      "Biella S.Paolo",
+      "Sandigliano",
+      "Salussola",
+      "Santhia'",
+      "Chivasso",
+      "Torino Porta Susa",
+      "Torino Porta Nuova"
+    ],
+    "probeStations": [
+      "Santhia'",
+      "Biella S.Paolo"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "NO-BI",
+    "code": "NO-BI",
+    "name": "Biella S.Paolo – Novara",
+    "subtitle": "Regionale • Piemonte Nord-Est",
+    "kind": "Regionale",
+    "region": "Piemonte",
+    "hexColor": "#00796B",
+    "stations": [
+      "Biella S.Paolo",
+      "Cossato",
+      "Rovasenda",
+      "Carpignano Sesia",
+      "Novara"
+    ],
+    "probeStations": [
+      "Novara",
+      "Biella S.Paolo"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "NO-DOM",
+    "code": "NO-DOM",
+    "name": "Domodossola – Omegna – Borgomanero – Novara",
+    "subtitle": "Regionale • Lago d'Orta / Ossola",
+    "kind": "Regionale",
+    "region": "Piemonte",
+    "hexColor": "#5E35B1",
+    "stations": [
+      "Domodossola",
+      "Premosello-Chiovenda",
+      "Gravellona Toce",
+      "Omegna",
+      "Orta-Miasino",
+      "Gozzano",
+      "Borgomanero",
+      "Vignale",
+      "Novara"
+    ],
+    "probeStations": [
+      "Novara",
+      "Domodossola"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "NO-AL",
+    "code": "NO-AL",
+    "name": "Novara – Mortara – Alessandria",
+    "subtitle": "Regionale • Asse Novarese / Lomellina",
+    "kind": "Regionale",
+    "region": "Piemonte / Lombardia",
+    "hexColor": "#546E7A",
+    "stations": [
+      "Novara",
+      "Vespolate",
+      "Mortara",
+      "Olevano",
+      "Sartirana",
+      "Torreberetti",
+      "Valenza",
+      "Alessandria"
+    ],
+    "probeStations": [
+      "Novara",
+      "Alessandria"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CH-AL",
+    "code": "CH-AL",
+    "name": "Chivasso – Casale Monferrato – Alessandria",
+    "subtitle": "Regionale • Monferrato",
+    "kind": "Regionale",
+    "region": "Piemonte",
+    "hexColor": "#689F38",
+    "stations": [
+      "Chivasso",
+      "Crescentino",
+      "Trino Vercellese",
+      "Casale Monferrato",
+      "Valenza",
+      "Alessandria"
+    ],
+    "probeStations": [
+      "Chivasso",
+      "Alessandria"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AT-ALBA",
+    "code": "AT-ALBA",
+    "name": "Asti – Castagnole – Alba",
+    "subtitle": "Regionale • Langhe e Roero",
+    "kind": "Regionale",
+    "region": "Piemonte",
+    "hexColor": "#8E24AA",
+    "stations": [
+      "Asti",
+      "Isola d'Asti",
+      "Costigliole d'Asti",
+      "Castagnole delle Lanze",
+      "Neive",
+      "Alba"
+    ],
+    "probeStations": [
+      "Asti",
+      "Alba"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TO-GE",
+    "code": "TO-GE",
+    "name": "Torino – Asti – Alessandria – Genova",
+    "subtitle": "Direttrice Piemonte – Liguria • RV / R",
+    "kind": "Regionale",
+    "region": "Piemonte / Liguria",
+    "hexColor": "#0277BD",
+    "stations": [
+      "Torino Porta Nuova",
+      "Torino Lingotto",
+      "Asti",
+      "Alessandria",
+      "Novi Ligure",
+      "Arquata Scrivia",
+      "Genova Piazza Principe",
+      "Genova Brignole"
+    ],
+    "probeStations": [
+      "Torino Porta Nuova",
+      "Alessandria"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TO-CN",
+    "code": "TO-CN",
+    "name": "Torino – Fossano – Cuneo",
+    "subtitle": "Direttrice Piemonte Sud • RV / R",
+    "kind": "Regionale",
+    "region": "Piemonte",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Torino Porta Nuova",
+      "Torino Lingotto",
+      "Carmagnola",
+      "Cavallermaggiore",
+      "Savigliano",
+      "Fossano",
+      "Cuneo"
+    ],
+    "probeStations": [
+      "Torino Porta Nuova",
+      "Fossano"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TO-SV",
+    "code": "TO-SV",
+    "name": "Torino – Fossano – Ceva – Savona",
+    "subtitle": "Direttrice Piemonte – Riviera di Ponente • RV / R",
+    "kind": "Regionale",
+    "region": "Piemonte / Liguria",
+    "hexColor": "#00838F",
+    "stations": [
+      "Torino Porta Nuova",
+      "Torino Lingotto",
+      "Carmagnola",
+      "Savigliano",
+      "Fossano",
+      "Mondovi'",
+      "Ceva",
+      "S.Giuseppe di Cairo",
+      "Savona"
+    ],
+    "probeStations": [
+      "Torino Porta Nuova",
+      "Savona"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CN-XXM",
+    "code": "CN-XXM",
+    "name": "Cuneo – Limone – Ventimiglia",
+    "subtitle": "Ferrovia delle Meraviglie • Valle Roya",
+    "kind": "Regionale",
+    "region": "Piemonte / Liguria",
+    "hexColor": "#388E3C",
+    "stations": [
+      "Cuneo",
+      "Borgo S.Dalmazzo",
+      "Robilante",
+      "Vernante",
+      "Limone",
+      "Tenda",
+      "Breil-sur-Roya",
+      "Ventimiglia"
+    ],
+    "probeStations": [
+      "Cuneo",
+      "Ventimiglia"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AL-SV",
+    "code": "AL-SV",
+    "name": "Alessandria – Acqui Terme – Savona",
+    "subtitle": "Regionale • Alto Monferrato / Val Bormida",
+    "kind": "Regionale",
+    "region": "Piemonte / Liguria",
+    "hexColor": "#00695C",
+    "stations": [
+      "Alessandria",
+      "Acqui Terme",
+      "Spigno",
+      "Dego",
+      "S.Giuseppe di Cairo",
+      "Savona"
+    ],
+    "probeStations": [
+      "Alessandria",
+      "Savona"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "GE-URB",
+    "code": "GE-MET",
+    "name": "Genova Voltri – Principe – Brignole – Nervi",
+    "subtitle": "Servizio Ferroviario Urbano di Genova",
+    "kind": "Suburbana",
+    "region": "Liguria",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Genova Voltri",
+      "Genova Pra",
+      "Genova Pegli",
+      "Genova Sestri Ponente Aeroporto",
+      "Genova Cornigliano",
+      "Genova Sampierdarena",
+      "Genova Piazza Principe",
+      "Genova Brignole",
+      "Genova Sturla",
+      "Genova Quarto dei Mille",
+      "Genova Quinto al Mare",
+      "Genova Nervi"
+    ],
+    "probeStations": [
+      "Genova Piazza Principe",
+      "Genova Brignole"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "MET"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "5T-EXP",
+    "code": "5T",
+    "name": "Cinque Terre Express • Levanto – La Spezia",
+    "subtitle": "Servizio Turistico Cadenzato • Cinque Terre",
+    "kind": "Suburbana",
+    "region": "Liguria",
+    "hexColor": "#00897B",
+    "stations": [
+      "Levanto",
+      "Monterosso",
+      "Vernazza",
+      "Corniglia",
+      "Manarola",
+      "Riomaggiore",
+      "La Spezia Centrale"
+    ],
+    "probeStations": [
+      "La Spezia Centrale",
+      "Levanto"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-GE",
+    "code": "MI-GE",
+    "name": "Milano – Pavia – Genova",
+    "subtitle": "Linea dei Giovi • Regionale Veloce",
+    "kind": "Regionale",
+    "region": "Lombardia / Liguria",
+    "hexColor": "#00695C",
+    "stations": [
+      "Milano Centrale",
+      "Milano Rogoredo",
+      "Pavia",
+      "Voghera",
+      "Tortona",
+      "Arquata Scrivia",
+      "Genova Piazza Principe",
+      "Genova Brignole"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Genova Piazza Principe"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "RE",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "GE-XXM",
+    "code": "GE-XXM",
+    "name": "Ventimiglia – Imperia – Savona – Genova",
+    "subtitle": "Linea Riviera di Ponente • RV / R",
+    "kind": "Regionale",
+    "region": "Liguria",
+    "hexColor": "#0097A7",
+    "stations": [
+      "Ventimiglia",
+      "Bordighera",
+      "Sanremo",
+      "Taggia Arma",
+      "Imperia",
+      "Diano",
+      "Alassio",
+      "Albenga",
+      "Loano",
+      "Pietra Ligure",
+      "Finale Ligure Marina",
+      "Savona",
+      "Varazze",
+      "Genova Voltri",
+      "Genova Piazza Principe",
+      "Genova Brignole"
+    ],
+    "probeStations": [
+      "Genova Piazza Principe",
+      "Savona"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "GE-PI",
+    "code": "GE-PI",
+    "name": "Genova – La Spezia – Viareggio – Pisa",
+    "subtitle": "Linea Riviera di Levante / Tirrenica • RV / R",
+    "kind": "Regionale",
+    "region": "Liguria / Toscana",
+    "hexColor": "#00796B",
+    "stations": [
+      "Genova Brignole",
+      "Recco",
+      "Santa Margherita Ligure-Portofino",
+      "Rapallo",
+      "Chiavari",
+      "Lavagna",
+      "Sestri Levante",
+      "Levanto",
+      "Monterosso",
+      "La Spezia Centrale",
+      "Sarzana",
+      "Carrara-Avenza",
+      "Massa Centro",
+      "Viareggio",
+      "Pisa Centrale"
+    ],
+    "probeStations": [
+      "Genova Brignole",
+      "La Spezia Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "GE-ACQ",
+    "code": "GE-ACQ",
+    "name": "Acqui Terme – Ovada – Genova",
+    "subtitle": "Regionale • Linea del Turchino",
+    "kind": "Regionale",
+    "region": "Liguria / Piemonte",
+    "hexColor": "#455A64",
+    "stations": [
+      "Acqui Terme",
+      "Ovada",
+      "Rossiglione",
+      "Campo Ligure-Masone",
+      "Mele",
+      "Genova Borzoli",
+      "Genova Piazza Principe",
+      "Genova Brignole"
+    ],
+    "probeStations": [
+      "Genova Piazza Principe",
+      "Acqui Terme"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SP-PR",
+    "code": "SP-PR",
+    "name": "Parma – Pontremoli – La Spezia",
+    "subtitle": "Ferrovia Pontremolese • RV / R",
+    "kind": "Regionale",
+    "region": "Liguria / Toscana / Emilia-Romagna",
+    "hexColor": "#6D4C41",
+    "stations": [
+      "Parma",
+      "Fornovo",
+      "Borgo Val di Taro",
+      "Pontremoli",
+      "Villafranca-Bagnone",
+      "Aulla Lunigiana",
+      "S.Stefano di Magra",
+      "Vezzano Ligure",
+      "La Spezia Centrale"
+    ],
+    "probeStations": [
+      "La Spezia Centrale",
+      "Parma"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-SFM1",
+    "code": "S1",
+    "name": "S1 Porretta – Bologna – Pianoro / S. Benedetto",
+    "subtitle": "SFM Bologna • Rami S1A / S1B",
+    "kind": "Suburbana",
+    "region": "Emilia-Romagna",
+    "hexColor": "#E64A19",
+    "stations": [
+      "Porretta Terme",
+      "Vergato",
+      "Marzabotto",
+      "Sasso Marconi",
+      "Casalecchio Garibaldi",
+      "Casalecchio di Reno",
+      "Bologna Centrale",
+      "Bologna Mazzini",
+      "Rastignano",
+      "Pianoro",
+      "Monzuno-Vado",
+      "S.Benedetto Sambro-Castiglione Pepoli"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Porretta Terme"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-S2A",
+    "code": "S2A",
+    "name": "S2A Vignola – Casalecchio – Bologna",
+    "subtitle": "SFM Bologna • Ferrovia Casalecchio – Vignola",
+    "kind": "Suburbana",
+    "region": "Emilia-Romagna",
+    "hexColor": "#00897B",
+    "stations": [
+      "Vignola",
+      "Savignano Mulino",
+      "Bazzano",
+      "Crespellano",
+      "Zola Predosa",
+      "Casalecchio Garibaldi",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Vignola"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-S2B",
+    "code": "S2B",
+    "name": "S2B Bologna – Budrio – Portomaggiore",
+    "subtitle": "SFM Bologna • Direttrice Est",
+    "kind": "Suburbana",
+    "region": "Emilia-Romagna",
+    "hexColor": "#00796B",
+    "stations": [
+      "Bologna Centrale",
+      "Bologna Zanolini",
+      "Bologna Roveri",
+      "Castenaso",
+      "Budrio",
+      "Molinella",
+      "Portomaggiore"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Portomaggiore"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-S3",
+    "code": "S3",
+    "name": "S3 Poggio Rusco – S. Pietro in Casale – Bologna",
+    "subtitle": "SFM Bologna • Direttrice Nord",
+    "kind": "Suburbana",
+    "region": "Emilia-Romagna",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Poggio Rusco",
+      "Mirandola",
+      "San Felice sul Panaro",
+      "Crevalcore",
+      "S.Pietro in Casale",
+      "S.Giorgio di Piano",
+      "Castel Maggiore",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Poggio Rusco"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-S4A",
+    "code": "S4A",
+    "name": "S4A Ferrara – Bologna Centrale",
+    "subtitle": "SFM Bologna • Direttrice Ferrarese",
+    "kind": "Suburbana",
+    "region": "Emilia-Romagna",
+    "hexColor": "#7B1FA2",
+    "stations": [
+      "Ferrara",
+      "Poggio Renatico",
+      "Galliera",
+      "S.Pietro in Casale",
+      "S.Giorgio di Piano",
+      "Castel Maggiore",
+      "Bologna Corticella",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Ferrara"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-S4B",
+    "code": "S4B",
+    "name": "S4B Bologna Centrale – Imola",
+    "subtitle": "SFM Bologna • Direttrice Romagna",
+    "kind": "Suburbana",
+    "region": "Emilia-Romagna",
+    "hexColor": "#8E24AA",
+    "stations": [
+      "Bologna Centrale",
+      "Bologna S.Vitale",
+      "S.Lazzaro di Savena",
+      "Ozzano dell'Emilia",
+      "Castel S.Pietro Terme",
+      "Imola"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Imola"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-S5",
+    "code": "S5",
+    "name": "S5 Modena – Castelfranco – Bologna",
+    "subtitle": "SFM Bologna • Direttrice Emilia",
+    "kind": "Suburbana",
+    "region": "Emilia-Romagna",
+    "hexColor": "#F9A825",
+    "stations": [
+      "Modena",
+      "Castelfranco Emilia",
+      "Samoggia",
+      "Anzola dell'Emilia",
+      "Bologna Borgo Panigale",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Modena"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MI-BO",
+    "code": "MI-BO",
+    "name": "Milano – Piacenza – Parma – Bologna",
+    "subtitle": "Linea Storica Emilia • Regionale Veloce / R",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna / Lombardia",
+    "hexColor": "#D84315",
+    "stations": [
+      "Milano Centrale",
+      "Milano Rogoredo",
+      "Lodi",
+      "Piacenza",
+      "Fidenza",
+      "Parma",
+      "Reggio Emilia",
+      "Modena",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Piacenza"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-AN",
+    "code": "BO-AN",
+    "name": "Bologna – Rimini – Ancona",
+    "subtitle": "Linea Adriatica Settentrionale • RV / R",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna / Marche",
+    "hexColor": "#039BE5",
+    "stations": [
+      "Bologna Centrale",
+      "Imola",
+      "Faenza",
+      "Forli'",
+      "Cesena",
+      "Rimini",
+      "Riccione",
+      "Cattolica S.Giovanni Gabicce",
+      "Pesaro",
+      "Fano",
+      "Senigallia",
+      "Ancona"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Rimini"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-FI",
+    "code": "BO-FI",
+    "name": "Bologna – Prato – Firenze SMN",
+    "subtitle": "Direttissima Convenzionale Appenninica • RV / R",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna / Toscana",
+    "hexColor": "#6D4C41",
+    "stations": [
+      "Bologna Centrale",
+      "S.Benedetto Sambro-Castiglione Pepoli",
+      "Vernio-Montepiano-Cantagallo",
+      "Vaiano",
+      "Prato Centrale",
+      "Firenze Rifredi",
+      "Firenze Santa Maria Novella"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Firenze Santa Maria Novella"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-VE",
+    "code": "BO-VE",
+    "name": "Venezia – Padova – Ferrara – Bologna",
+    "subtitle": "Direttrice Emilia – Veneto • RV / R",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna / Veneto",
+    "hexColor": "#00838F",
+    "stations": [
+      "Venezia S.Lucia",
+      "Venezia Mestre",
+      "Padova",
+      "Terme Euganee-Abano-Montegrotto",
+      "Monselice",
+      "Rovigo",
+      "Ferrara",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Padova"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-VR",
+    "code": "BO-VR",
+    "name": "Verona – Poggio Rusco – Bologna",
+    "subtitle": "Direttrice Asse Brennero Sud • RV / R",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna / Veneto",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Verona Porta Nuova",
+      "Isola della Scala",
+      "Nogara",
+      "Ostiglia",
+      "Poggio Rusco",
+      "Mirandola",
+      "San Felice sul Panaro",
+      "Crevalcore",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Verona Porta Nuova"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BO-RA-RN",
+    "code": "BO-RA",
+    "name": "Bologna – Castel Bolognese – Ravenna – Rimini",
+    "subtitle": "Direttrice Romagna / Riviera • RV / R",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna",
+    "hexColor": "#0097A7",
+    "stations": [
+      "Bologna Centrale",
+      "Imola",
+      "Castel Bolognese-Riolo Terme",
+      "Lugo",
+      "Bagnacavallo",
+      "Ravenna",
+      "Cervia-Milano Marittima",
+      "Cesenatico",
+      "Bellaria",
+      "Rimini"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Ravenna"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FE-RA-RN",
+    "code": "FE-RA",
+    "name": "Ferrara – Ravenna – Rimini",
+    "subtitle": "Ferrovia Adriatica Romagnola • R",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna",
+    "hexColor": "#00897B",
+    "stations": [
+      "Ferrara",
+      "Portomaggiore",
+      "Argenta",
+      "Alfonsine",
+      "Ravenna",
+      "Cervia-Milano Marittima",
+      "Cesenatico",
+      "Rimini"
+    ],
+    "probeStations": [
+      "Ferrara",
+      "Ravenna"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FA-RA",
+    "code": "FA-RA",
+    "name": "Faenza – Russi – Ravenna",
+    "subtitle": "Regionale • Collegamento Romagna",
+    "kind": "Regionale",
+    "region": "Emilia-Romagna",
+    "hexColor": "#546E7A",
+    "stations": [
+      "Faenza",
+      "Granarolo Faentino",
+      "Russi",
+      "Godo",
+      "Ravenna"
+    ],
+    "probeStations": [
+      "Faenza",
+      "Ravenna"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VR-MN-MO",
+    "code": "VR-MO",
+    "name": "Verona – Mantova – Carpi – Modena",
+    "subtitle": "Direttrice Veneto – Lombardia – Emilia • RV / R",
+    "kind": "Regionale",
+    "region": "Veneto / Lombardia / Emilia-Romagna",
+    "hexColor": "#558B2F",
+    "stations": [
+      "Verona Porta Nuova",
+      "Villafranca di Verona",
+      "Roverbella",
+      "Mantova",
+      "Suzzara",
+      "Rolo-Novi-Fabbrico",
+      "Carpi",
+      "Modena"
+    ],
+    "probeStations": [
+      "Verona Porta Nuova",
+      "Mantova"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VR-BZ",
+    "code": "100",
+    "name": "100 Brennero – Bolzano – Trento – Verona",
+    "subtitle": "Ferrovia del Brennero • RV / R",
+    "kind": "Regionale",
+    "region": "Veneto / Trentino-AA",
+    "hexColor": "#388E3C",
+    "stations": [
+      "Brennero/Brenner",
+      "Vipiteno Val di Vizze/Sterzing Pfitsch",
+      "Fortezza/Franzensfeste",
+      "Bressanone/Brixen",
+      "Chiusa/Klausen",
+      "Ponte Gardena-Laion/Waidbruck-Lajen",
+      "Bolzano/Bozen",
+      "Ora/Auer",
+      "Mezzocorona",
+      "Trento",
+      "Rovereto",
+      "Ala",
+      "Domegliara-S.Ambrogio",
+      "Verona Porta Nuova"
+    ],
+    "probeStations": [
+      "Verona Porta Nuova",
+      "Bolzano/Bozen"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BZ-ME",
+    "code": "200",
+    "name": "200 Merano – Bolzano",
+    "subtitle": "Linea Alto Adige • Val d'Adige",
+    "kind": "Regionale",
+    "region": "Trentino-AA",
+    "hexColor": "#43A047",
+    "stations": [
+      "Merano/Meran",
+      "Merano Maia Bassa/Meran Untermais",
+      "Lana-Postal/Lana-Burgstall",
+      "Vilpiano-Nalles/Vilpian-Nals",
+      "Terlano-Andriano/Terlan-Andrian",
+      "Ponte Adige/Sigmundskron",
+      "Bolzano Sud/Bozen Sud",
+      "Bolzano/Bozen"
+    ],
+    "probeStations": [
+      "Bolzano/Bozen",
+      "Merano/Meran"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "ME-MA",
+    "code": "250",
+    "name": "250 Malles – Silandro – Merano",
+    "subtitle": "Ferrovia della Val Venosta • SAD",
+    "kind": "Regionale",
+    "region": "Trentino-AA",
+    "hexColor": "#689F38",
+    "stations": [
+      "Malles Venosta/Mals",
+      "Spondigna/Spondinig",
+      "Lasa/Laas",
+      "Silandro/Schlanders",
+      "Laces/Latsch",
+      "Castelbello/Kastelbell",
+      "Naturno/Naturns",
+      "Lagundo/Algund",
+      "Merano/Meran"
+    ],
+    "probeStations": [
+      "Merano/Meran",
+      "Malles Venosta/Mals"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FO-SC",
+    "code": "400",
+    "name": "400 Fortezza – Brunico – San Candido",
+    "subtitle": "Ferrovia della Val Pusteria • SAD / Trenitalia",
+    "kind": "Regionale",
+    "region": "Trentino-AA",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Fortezza/Franzensfeste",
+      "Rio di Pusteria/Muehlbach",
+      "Vandoies/Vintl",
+      "Casteldarne/Ehrenburg",
+      "S.Lorenzo/St.Lorenzen",
+      "Brunico/Bruneck",
+      "Valdaora-Anterselva/Olang-Antholz",
+      "Monguelfo-Valle di Casies/Welsberg-Gsies",
+      "Villabassa-Braies/Niederdorf-Prags",
+      "Dobbiaco/Toblach",
+      "San Candido/Innichen"
+    ],
+    "probeStations": [
+      "Fortezza/Franzensfeste",
+      "San Candido/Innichen"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TN-VE",
+    "code": "TN-VE",
+    "name": "Trento – Borgo Valsugana – Bassano – Venezia",
+    "subtitle": "Ferrovia della Valsugana • R / RV",
+    "kind": "Regionale",
+    "region": "Trentino-AA / Veneto",
+    "hexColor": "#00695C",
+    "stations": [
+      "Trento",
+      "Pergine",
+      "Levico Terme",
+      "Borgo Valsugana Centro",
+      "Grigno",
+      "Primolano",
+      "Bassano del Grappa",
+      "Castelfranco Veneto",
+      "Venezia Mestre",
+      "Venezia S.Lucia"
+    ],
+    "probeStations": [
+      "Trento",
+      "Bassano del Grappa"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VE-VR",
+    "code": "VE-VR",
+    "name": "Verona – Vicenza – Padova – Venezia",
+    "subtitle": "Linea Storica • Regionale Veloce / R",
+    "kind": "Regionale",
+    "region": "Veneto",
+    "hexColor": "#1976D2",
+    "stations": [
+      "Verona Porta Nuova",
+      "S.Bonifacio",
+      "Vicenza",
+      "Padova",
+      "Venezia Mestre",
+      "Venezia S.Lucia"
+    ],
+    "probeStations": [
+      "Venezia Mestre",
+      "Verona Porta Nuova"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VE-TS",
+    "code": "VE-TS",
+    "name": "Venezia – Portogruaro – Monfalcone – Trieste",
+    "subtitle": "Linea Adriatica Nord-Est • RV / R",
+    "kind": "Regionale",
+    "region": "Veneto / FVG",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Venezia S.Lucia",
+      "Venezia Mestre",
+      "Quarto d'Altino",
+      "S.Dona' di Piave-Jesolo",
+      "Portogruaro Caorle",
+      "Latisana Lignano-Bibione",
+      "Cervignano-Aquileia-Grado",
+      "Trieste Airport",
+      "Monfalcone",
+      "Trieste Centrale"
+    ],
+    "probeStations": [
+      "Venezia Mestre",
+      "Trieste Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VE-UD-TS",
+    "code": "VE-UD",
+    "name": "Venezia – Treviso – Udine – Trieste",
+    "subtitle": "Linea Pontebbana / Pedemontana • RV / R",
+    "kind": "Regionale",
+    "region": "Veneto / FVG",
+    "hexColor": "#1565C0",
+    "stations": [
+      "Venezia S.Lucia",
+      "Venezia Mestre",
+      "Mogliano Veneto",
+      "Treviso Centrale",
+      "Conegliano",
+      "Sacile",
+      "Pordenone",
+      "Casarsa",
+      "Codroipo",
+      "Udine",
+      "Cormons",
+      "Gorizia Centrale",
+      "Monfalcone",
+      "Trieste Centrale"
+    ],
+    "probeStations": [
+      "Venezia Mestre",
+      "Udine"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VE-BL-CAL",
+    "code": "VE-BL",
+    "name": "Calalzo – Belluno – Venezia",
+    "subtitle": "Ferrovia delle Dolomiti • Via Conegliano / Montebelluna",
+    "kind": "Regionale",
+    "region": "Veneto",
+    "hexColor": "#3949AB",
+    "stations": [
+      "Calalzo-Pieve di Cadore-Cortina",
+      "Longarone-Zoldo",
+      "Belluno",
+      "Ponte nelle Alpi-Polpet",
+      "Vittorio Veneto",
+      "Conegliano",
+      "Montebelluna",
+      "Treviso Centrale",
+      "Venezia Mestre",
+      "Venezia S.Lucia"
+    ],
+    "probeStations": [
+      "Treviso Centrale",
+      "Belluno"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Treviso Centrale",
+        "label": "Via Montebelluna",
+        "stations": [
+          "Montebelluna"
+        ],
+        "position": "before",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "PD-BAS",
+    "code": "PD-BAS",
+    "name": "Bassano del Grappa – Camposampiero – Padova",
+    "subtitle": "Regionale • SFMR Veneto",
+    "kind": "Regionale",
+    "region": "Veneto",
+    "hexColor": "#00897B",
+    "stations": [
+      "Bassano del Grappa",
+      "Rossano Veneto",
+      "Cittadella",
+      "Camposampiero",
+      "Campodarsego",
+      "Vigodarzere",
+      "Padova"
+    ],
+    "probeStations": [
+      "Padova",
+      "Bassano del Grappa"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VI-TV",
+    "code": "VI-TV",
+    "name": "Vicenza – Cittadella – Castelfranco – Treviso",
+    "subtitle": "Regionale • Trasversale Veneta",
+    "kind": "Regionale",
+    "region": "Veneto",
+    "hexColor": "#00796B",
+    "stations": [
+      "Vicenza",
+      "S.Pietro in Gu'",
+      "Cittadella",
+      "Castelfranco Veneto",
+      "Istrana",
+      "Paese",
+      "Treviso Centrale"
+    ],
+    "probeStations": [
+      "Vicenza",
+      "Treviso Centrale"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VI-SCH",
+    "code": "VI-SCH",
+    "name": "Schio – Thiene – Vicenza",
+    "subtitle": "Regionale • Alto Vicentino",
+    "kind": "Regionale",
+    "region": "Veneto",
+    "hexColor": "#5E35B1",
+    "stations": [
+      "Schio",
+      "Thiene",
+      "Villaverla-Montecchio",
+      "Dueville",
+      "Cavazzale",
+      "Vicenza"
+    ],
+    "probeStations": [
+      "Vicenza",
+      "Schio"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VR-RO-CH",
+    "code": "VR-RO",
+    "name": "Verona – Legnago – Rovigo – Chioggia",
+    "subtitle": "Regionale • Basso Veneto / Polesine",
+    "kind": "Regionale",
+    "region": "Veneto",
+    "hexColor": "#0277BD",
+    "stations": [
+      "Verona Porta Nuova",
+      "Isola della Scala",
+      "Bovolone",
+      "Cerea",
+      "Legnago",
+      "Badia Polesine",
+      "Lendinara",
+      "Rovigo",
+      "Adria",
+      "Loreo",
+      "Chioggia"
+    ],
+    "probeStations": [
+      "Verona Porta Nuova",
+      "Rovigo"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TS-UD-TAR",
+    "code": "UD-TAR",
+    "name": "Tarvisio Boscoverde – Udine – Trieste",
+    "subtitle": "Ferrovia Pontebbana • Regionale",
+    "kind": "Regionale",
+    "region": "Friuli-Venezia Giulia",
+    "hexColor": "#1E88E5",
+    "stations": [
+      "Tarvisio Boscoverde",
+      "Ugovizza-Valbruna",
+      "Pontebba",
+      "Carnia",
+      "Venzone",
+      "Gemona del Friuli",
+      "Artegna",
+      "Udine",
+      "Palmanova",
+      "Cervignano-Aquileia-Grado",
+      "Monfalcone",
+      "Trieste Centrale"
+    ],
+    "probeStations": [
+      "Udine",
+      "Tarvisio Boscoverde"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "MICOTRA",
+    "code": "MiCoTra",
+    "name": "Villach – Tarvisio – Mi.Co.Tra. Trieste / Udine",
+    "subtitle": "Servizio Transfrontaliero • FUC / ÖBB",
+    "kind": "Regionale",
+    "region": "Friuli-Venezia Giulia",
+    "hexColor": "#00838F",
+    "stations": [
+      "Villach Hbf",
+      "Arnoldstein",
+      "Tarvisio Boscoverde",
+      "Ugovizza-Valbruna",
+      "Pontebba",
+      "Carnia",
+      "Gemona del Friuli",
+      "Udine",
+      "Trieste Centrale"
+    ],
+    "probeStations": [
+      "Udine",
+      "Tarvisio Boscoverde"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "EC"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SAC-GEM",
+    "code": "SAC-GEM",
+    "name": "Sacile – Maniago – Gemona del Friuli",
+    "subtitle": "Ferrovia Pedemontana del Friuli • R",
+    "kind": "Regionale",
+    "region": "Friuli-Venezia Giulia",
+    "hexColor": "#455A64",
+    "stations": [
+      "Sacile",
+      "Budoia-Polcenigo",
+      "Aviano",
+      "Montereale Valcellina",
+      "Maniago",
+      "Meduno",
+      "Pinzano",
+      "Forgaria-Bagni Anduins",
+      "Cornino",
+      "Gemona del Friuli"
+    ],
+    "probeStations": [
+      "Sacile",
+      "Maniago"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FL1",
+    "code": "FL1",
+    "name": "FL1 Orte – Roma – Fiumicino",
+    "subtitle": "Ferrovia Regionale Lazio",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#00897B",
+    "stations": [
+      "Orte",
+      "Poggio Mirteto",
+      "Monterotondo-Mentana",
+      "Roma Tiburtina",
+      "Roma Tuscolana",
+      "Roma Ostiense",
+      "Roma Trastevere",
+      "Fiumicino Aeroporto"
+    ],
+    "probeStations": [
+      "Roma Tiburtina",
+      "Roma Ostiense"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FL2",
+    "code": "FL2",
+    "name": "FL2 Roma Tiburtina – Tivoli",
+    "subtitle": "Ferrovia Regionale Lazio",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#3949AB",
+    "stations": [
+      "Roma Tiburtina",
+      "Roma Prenestina",
+      "Lunghezza",
+      "Bagni di Tivoli",
+      "Guidonia-Montecelio-S.Angelo",
+      "Tivoli"
+    ],
+    "probeStations": [
+      "Roma Tiburtina",
+      "Tivoli"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FL3",
+    "code": "FL3",
+    "name": "FL3 Viterbo – Ostiense – Roma Tiburtina",
+    "subtitle": "Ferrovia Regionale Lazio",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#5E35B1",
+    "stations": [
+      "Viterbo Porta Fiorentina",
+      "Bracciano",
+      "Cesano di Roma",
+      "Roma S.Pietro",
+      "Roma Trastevere",
+      "Roma Ostiense",
+      "Roma Tuscolana",
+      "Roma Tiburtina"
+    ],
+    "probeStations": [
+      "Roma Ostiense",
+      "Bracciano"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FL4",
+    "code": "FL4",
+    "name": "FL4 Roma Termini – Castelli Romani",
+    "subtitle": "Ferrovia Regionale Lazio • Velletri / Frascati / Albano",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#C0CA33",
+    "stations": [
+      "Roma Termini",
+      "Ciampino",
+      "Frascati",
+      "Albano Laziale",
+      "Cecchina",
+      "Velletri"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Velletri"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Ciampino",
+        "label": "Ramo Frascati",
+        "stations": [
+          "Frascati"
+        ],
+        "position": "after",
+        "isDashed": false
+      },
+      {
+        "junctionStation": "Ciampino",
+        "label": "Ramo Albano",
+        "stations": [
+          "Albano Laziale"
+        ],
+        "position": "after",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "FL5",
+    "code": "FL5",
+    "name": "FL5 Civitavecchia – Roma Termini",
+    "subtitle": "Ferrovia Regionale Lazio • Tirrenica",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#6D4C41",
+    "stations": [
+      "Civitavecchia",
+      "Ladispoli-Cerveteri",
+      "Roma S.Pietro",
+      "Roma Trastevere",
+      "Roma Ostiense",
+      "Roma Termini"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Civitavecchia"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FL6",
+    "code": "FL6",
+    "name": "FL6 Roma Termini – Cassino",
+    "subtitle": "Ferrovia Regionale Lazio",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#F4511E",
+    "stations": [
+      "Roma Termini",
+      "Ciampino",
+      "Colleferro-Segni-Paliano",
+      "Frosinone",
+      "Cassino"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Cassino"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FL7",
+    "code": "FL7",
+    "name": "FL7 Roma Termini – Formia – Minturno",
+    "subtitle": "Ferrovia Regionale Lazio",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#D81B60",
+    "stations": [
+      "Roma Termini",
+      "Pomezia-S.Palomba",
+      "Latina",
+      "Priverno Fossanova",
+      "Formia-Gaeta",
+      "Minturno-Scauri"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Formia-Gaeta"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FL8",
+    "code": "FL8",
+    "name": "FL8 Roma Termini – Nettuno",
+    "subtitle": "Ferrovia Regionale Lazio",
+    "kind": "Suburbana",
+    "region": "Lazio",
+    "hexColor": "#1E88E5",
+    "stations": [
+      "Roma Termini",
+      "Pomezia-S.Palomba",
+      "Campoleone",
+      "Aprilia",
+      "Anzio",
+      "Nettuno"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Nettuno"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "LEO",
+    "code": "LEO",
+    "name": "Leonardo Express",
+    "subtitle": "Aeroportuale • Roma Termini ↔ Fiumicino",
+    "kind": "Aeroportuale",
+    "region": "Lazio",
+    "hexColor": "#880E4F",
+    "stations": [
+      "Fiumicino Aeroporto",
+      "Roma Termini"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Fiumicino Aeroporto"
+    ],
+    "categoryPrefixes": [
+      "LEO",
+      "LE",
+      "RV",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FI-PI",
+    "code": "FI-PI",
+    "name": "Livorno – Pisa – Empoli – Firenze SMN",
+    "subtitle": "Linea Leopolda Toscana • RV / R",
+    "kind": "Regionale",
+    "region": "Toscana",
+    "hexColor": "#8E24AA",
+    "stations": [
+      "Livorno Centrale",
+      "Pisa Centrale",
+      "Pontedera Casciana Terme",
+      "S.Miniato Fucecchio",
+      "Empoli",
+      "Firenze Rifredi",
+      "Firenze Santa Maria Novella"
+    ],
+    "probeStations": [
+      "Firenze Santa Maria Novella",
+      "Pisa Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FI-VIAR",
+    "code": "FI-VIAR",
+    "name": "Viareggio – Lucca – Pistoia – Prato – Firenze SMN",
+    "subtitle": "Ferrovia Maria Antonia • RV / R",
+    "kind": "Regionale",
+    "region": "Toscana",
+    "hexColor": "#00897B",
+    "stations": [
+      "Viareggio",
+      "Lucca",
+      "Pescia",
+      "Montecatini Centro",
+      "Pistoia",
+      "Prato Centrale",
+      "Firenze Rifredi",
+      "Firenze Santa Maria Novella"
+    ],
+    "probeStations": [
+      "Firenze Santa Maria Novella",
+      "Lucca"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FI-SI",
+    "code": "FI-SI",
+    "name": "Firenze SMN – Empoli – Poggibonsi – Siena",
+    "subtitle": "Direttrice Valdelsa / Siena • RV / R",
+    "kind": "Regionale",
+    "region": "Toscana",
+    "hexColor": "#D84315",
+    "stations": [
+      "Firenze Santa Maria Novella",
+      "Firenze Rifredi",
+      "Empoli",
+      "Castelfiorentino",
+      "Certaldo",
+      "Poggibonsi-S.Gimignano",
+      "Siena"
+    ],
+    "probeStations": [
+      "Firenze Santa Maria Novella",
+      "Siena"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SI-GR",
+    "code": "SI-GR",
+    "name": "Siena – Buonconvento – Grosseto",
+    "subtitle": "Regionale • Val d'Arbia / Maremma",
+    "kind": "Regionale",
+    "region": "Toscana",
+    "hexColor": "#E65100",
+    "stations": [
+      "Siena",
+      "Buonconvento",
+      "Monte Antico",
+      "Roccastrada",
+      "Montepescali",
+      "Grosseto"
+    ],
+    "probeStations": [
+      "Siena",
+      "Grosseto"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SI-CH",
+    "code": "SI-CH",
+    "name": "Siena – Sinalunga – Chiusi",
+    "subtitle": "Regionale • Valdichiana Senese",
+    "kind": "Regionale",
+    "region": "Toscana",
+    "hexColor": "#F57C00",
+    "stations": [
+      "Siena",
+      "Asciano",
+      "Rapolano Terme",
+      "Sinalunga",
+      "Montepulciano",
+      "Chiusi-Chianciano Terme"
+    ],
+    "probeStations": [
+      "Siena",
+      "Chiusi-Chianciano Terme"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FI-FAE",
+    "code": "FI-FAE",
+    "name": "Faenza – Borgo S.Lorenzo – Firenze SMN",
+    "subtitle": "Ferrovia Faentina • Mugello / Appennino",
+    "kind": "Regionale",
+    "region": "Toscana / Emilia-Romagna",
+    "hexColor": "#558B2F",
+    "stations": [
+      "Faenza",
+      "Brisighella",
+      "Marradi-Palazzuolo sul Senio",
+      "Borgo S.Lorenzo",
+      "S.Piero a Sieve",
+      "Vaglia",
+      "Firenze S.Marco Vecchio",
+      "Firenze Santa Maria Novella"
+    ],
+    "probeStations": [
+      "Firenze Santa Maria Novella",
+      "Borgo S.Lorenzo"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PI-LU-AU",
+    "code": "PI-AU",
+    "name": "Aulla – Castelnuovo – Lucca – Pisa",
+    "subtitle": "Ferrovia della Garfagnana • R",
+    "kind": "Regionale",
+    "region": "Toscana",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Aulla Lunigiana",
+      "Piazza al Serchio",
+      "Castelnuovo di Garfagnana",
+      "Barga-Gallicano",
+      "Borgo a Mozzano",
+      "Lucca",
+      "Pisa S.Rossore",
+      "Pisa Centrale"
+    ],
+    "probeStations": [
+      "Lucca",
+      "Aulla Lunigiana"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PI-RM",
+    "code": "PI-RM",
+    "name": "Pisa – Livorno – Grosseto – Civitavecchia – Roma",
+    "subtitle": "Linea Tirrenica Toscana-Lazio • RV / R",
+    "kind": "Regionale",
+    "region": "Toscana / Lazio",
+    "hexColor": "#0277BD",
+    "stations": [
+      "Pisa Centrale",
+      "Livorno Centrale",
+      "Cecina",
+      "Campiglia Marittima",
+      "Follonica",
+      "Grosseto",
+      "Orbetello-Monte Argentario",
+      "Montalto di Castro",
+      "Tarquinia",
+      "Civitavecchia",
+      "Roma Ostiense",
+      "Roma Termini"
+    ],
+    "probeStations": [
+      "Pisa Centrale",
+      "Grosseto"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FI-RM",
+    "code": "FI-RM",
+    "name": "Firenze – Arezzo – Orte – Roma",
+    "subtitle": "Linea Lenta Convenzionale • RV / R",
+    "kind": "Regionale",
+    "region": "Toscana / Umbria / Lazio",
+    "hexColor": "#5E35B1",
+    "stations": [
+      "Firenze Santa Maria Novella",
+      "Firenze Campo di Marte",
+      "Arezzo",
+      "Terontola Cortona",
+      "Chiusi-Chianciano Terme",
+      "Orvieto",
+      "Orte",
+      "Roma Tiburtina",
+      "Roma Termini"
+    ],
+    "probeStations": [
+      "Firenze Santa Maria Novella",
+      "Roma Termini"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FI-PG-FO",
+    "code": "FI-PG",
+    "name": "Firenze – Terontola – Perugia – Assisi – Foligno",
+    "subtitle": "Direttrice Toscana – Umbria • RV / R",
+    "kind": "Regionale",
+    "region": "Toscana / Umbria",
+    "hexColor": "#388E3C",
+    "stations": [
+      "Firenze Santa Maria Novella",
+      "Firenze Campo di Marte",
+      "Arezzo",
+      "Terontola Cortona",
+      "Passignano sul Trasimeno",
+      "Perugia",
+      "Perugia Ponte S.Giovanni",
+      "Assisi",
+      "Foligno"
+    ],
+    "probeStations": [
+      "Perugia",
+      "Foligno"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "RM-AN",
+    "code": "RM-AN",
+    "name": "Ancona – Foligno – Terni – Orte – Roma",
+    "subtitle": "Direttrice Trasversale Centro • RV / R",
+    "kind": "Regionale",
+    "region": "Lazio / Umbria / Marche",
+    "hexColor": "#1565C0",
+    "stations": [
+      "Ancona",
+      "Falconara Marittima",
+      "Jesi",
+      "Fabriano",
+      "Fossato di Vico-Gubbio",
+      "Gualdo Tadino",
+      "Foligno",
+      "Spoleto",
+      "Terni",
+      "Orte",
+      "Roma Tiburtina",
+      "Roma Termini"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Foligno"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CIV-FAB",
+    "code": "MC-FAB",
+    "name": "Fabriano – Macerata – Civitanova Marche",
+    "subtitle": "Regionale • Entroterra Marchigiano",
+    "kind": "Regionale",
+    "region": "Marche",
+    "hexColor": "#00838F",
+    "stations": [
+      "Fabriano",
+      "Albacina",
+      "Matelica",
+      "Castelraimondo-Camerino",
+      "S.Severino Marche",
+      "Tolentino",
+      "Macerata",
+      "Civitanova Marche-Montegranaro"
+    ],
+    "probeStations": [
+      "Civitanova Marche-Montegranaro",
+      "Fabriano"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SBT-AP",
+    "code": "SBT-AP",
+    "name": "Ascoli Piceno – San Benedetto del Tronto",
+    "subtitle": "Regionale • Valle del Tronto",
+    "kind": "Regionale",
+    "region": "Marche",
+    "hexColor": "#0097A7",
+    "stations": [
+      "Ascoli Piceno",
+      "Offida-Castel di Lama",
+      "Porto d'Ascoli",
+      "S.Benedetto del Tronto"
+    ],
+    "probeStations": [
+      "S.Benedetto del Tronto",
+      "Ascoli Piceno"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "VT-ORTE",
+    "code": "VT-ORTE",
+    "name": "Viterbo – Attigliano – Orte",
+    "subtitle": "Regionale • Tuscia",
+    "kind": "Regionale",
+    "region": "Lazio / Umbria",
+    "hexColor": "#6D4C41",
+    "stations": [
+      "Viterbo Porta Fiorentina",
+      "Attigliano-Bomarzo",
+      "Orte"
+    ],
+    "probeStations": [
+      "Viterbo Porta Fiorentina",
+      "Orte"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AVE-CAS",
+    "code": "AVE-CAS",
+    "name": "Avezzano – Sora – Roccasecca – Cassino",
+    "subtitle": "Regionale • Valle del Liri",
+    "kind": "Regionale",
+    "region": "Abruzzo / Lazio",
+    "hexColor": "#455A64",
+    "stations": [
+      "Avezzano",
+      "Balsorano",
+      "Sora",
+      "Isola Liri",
+      "Arpino",
+      "Roccasecca",
+      "Cassino"
+    ],
+    "probeStations": [
+      "Avezzano",
+      "Cassino"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PE-RM",
+    "code": "PE-RM",
+    "name": "Roma – Avezzano – Sulmona – Pescara",
+    "subtitle": "Direttrice Abruzzo – Lazio • RV / R",
+    "kind": "Regionale",
+    "region": "Abruzzo / Lazio",
+    "hexColor": "#00695C",
+    "stations": [
+      "Roma Termini",
+      "Roma Tiburtina",
+      "Tivoli",
+      "Carsoli",
+      "Tagliacozzo",
+      "Avezzano",
+      "Sulmona",
+      "Chieti",
+      "Pescara"
+    ],
+    "probeStations": [
+      "Pescara",
+      "Sulmona"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SUL-TE",
+    "code": "AQ-TE",
+    "name": "Terni – Rieti – L'Aquila – Sulmona",
+    "subtitle": "Regionale • Appennino Abruzzese-Umbro",
+    "kind": "Regionale",
+    "region": "Abruzzo / Lazio / Umbria",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Terni",
+      "Marmore",
+      "Rieti",
+      "Antrodoco-Borgo Velino",
+      "L'Aquila",
+      "Sulmona"
+    ],
+    "probeStations": [
+      "L'Aquila",
+      "Terni"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "GIU-TE",
+    "code": "GIU-TE",
+    "name": "Teramo – Giulianova",
+    "subtitle": "Regionale • Abruzzo Nord",
+    "kind": "Regionale",
+    "region": "Abruzzo",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Teramo",
+      "Notaresco",
+      "Mosciano S.Angelo",
+      "Giulianova"
+    ],
+    "probeStations": [
+      "Giulianova",
+      "Teramo"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CB-TERM",
+    "code": "CB-TERM",
+    "name": "Termoli – Larino – Campobasso",
+    "subtitle": "Regionale • Molise Adriatico",
+    "kind": "Regionale",
+    "region": "Molise",
+    "hexColor": "#546E7A",
+    "stations": [
+      "Termoli",
+      "Larino",
+      "Casacalenda-Guardialfiera",
+      "Campobasso"
+    ],
+    "probeStations": [
+      "Campobasso",
+      "Termoli"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CB-RM-NA",
+    "code": "CB-RM",
+    "name": "Roma – Venafro – Isernia – Campobasso",
+    "subtitle": "Regionale • Molise – Lazio / Campania",
+    "kind": "Regionale",
+    "region": "Molise / Lazio",
+    "hexColor": "#795548",
+    "stations": [
+      "Roma Termini",
+      "Cassino",
+      "Vairano-Caianello",
+      "Venafro",
+      "Isernia",
+      "Bojano",
+      "Campobasso"
+    ],
+    "probeStations": [
+      "Isernia",
+      "Venafro"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "NA-L2",
+    "code": "L2",
+    "name": "Linea 2 Pozzuoli – Napoli – Barra",
+    "subtitle": "Passante Ferroviario Metropolitano",
+    "kind": "Suburbana",
+    "region": "Campania",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Pozzuoli Solfatara",
+      "Bagnoli-Agnano Terme",
+      "Cavalleggeri Aosta",
+      "Napoli Campi Flegrei",
+      "Napoli Piazza Leopardi",
+      "Napoli Mergellina",
+      "Napoli Piazza Amedeo",
+      "Napoli Montesanto",
+      "Napoli Piazza Cavour",
+      "Napoli Piazza Garibaldi",
+      "Napoli Gianturco",
+      "Napoli S.Giovanni Barra"
+    ],
+    "probeStations": [
+      "Napoli Piazza Garibaldi",
+      "Napoli Campi Flegrei"
+    ],
+    "categoryPrefixes": [
+      "MET",
+      "M",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SA-MET",
+    "code": "M-SA",
+    "name": "Metro Salerno • Salerno – Arechi",
+    "subtitle": "Servizio Metropolitano di Salerno",
+    "kind": "Suburbana",
+    "region": "Campania",
+    "hexColor": "#005596",
+    "stations": [
+      "Salerno",
+      "Torrione",
+      "Pastena",
+      "Mercatello",
+      "Arbostella",
+      "Arechi"
+    ],
+    "probeStations": [
+      "Salerno",
+      "Arechi"
+    ],
+    "categoryPrefixes": [
+      "MET",
+      "M",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "RM-NA",
+    "code": "RM-NA",
+    "name": "Roma Termini – Formia – Napoli Centrale",
+    "subtitle": "Direttissima Convenzionale Tirrenica • RV / R",
+    "kind": "Regionale",
+    "region": "Lazio / Campania",
+    "hexColor": "#E65100",
+    "stations": [
+      "Roma Termini",
+      "Pomezia-S.Palomba",
+      "Latina",
+      "Priverno Fossanova",
+      "Monte S.Biagio-Terracina Mare",
+      "Fondi-Sperlonga",
+      "Formia-Gaeta",
+      "Minturno-Scauri",
+      "Villa Literno",
+      "Aversa",
+      "Napoli Centrale"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Napoli Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "RM-NA-CAS",
+    "code": "RM-CAS-NA",
+    "name": "Roma Termini – Cassino – Caserta – Napoli",
+    "subtitle": "Linea Interna via Cassino • RV / R",
+    "kind": "Regionale",
+    "region": "Lazio / Campania",
+    "hexColor": "#F57C00",
+    "stations": [
+      "Roma Termini",
+      "Colleferro-Segni-Paliano",
+      "Frosinone",
+      "Cassino",
+      "Vairano-Caianello",
+      "Caserta",
+      "Maddaloni Inferiore",
+      "Cancello",
+      "Acerra",
+      "Napoli Centrale"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Caserta"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "NA-FG",
+    "code": "NA-FG",
+    "name": "Napoli – Caserta – Benevento – Foggia",
+    "subtitle": "Trasversale Tirreno – Adriatico • RV / R",
+    "kind": "Regionale",
+    "region": "Campania / Puglia",
+    "hexColor": "#6D4C41",
+    "stations": [
+      "Napoli Centrale",
+      "Aversa",
+      "Caserta",
+      "Telese-Cerreto",
+      "Benevento",
+      "Ariano Irpino",
+      "Bovino-Deliceto",
+      "Foggia"
+    ],
+    "probeStations": [
+      "Caserta",
+      "Benevento"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "NA-SA-STO",
+    "code": "NA-SA",
+    "name": "Napoli – Pompei – Nocera Inferiore – Salerno",
+    "subtitle": "Linea Storica Vesuviana / Agro Nocerino • R / MET",
+    "kind": "Regionale",
+    "region": "Campania",
+    "hexColor": "#00838F",
+    "stations": [
+      "Napoli Centrale",
+      "Portici-Ercolano",
+      "Torre del Greco",
+      "Torre Annunziata Centrale",
+      "Pompei",
+      "Scafati",
+      "Angri",
+      "Pagani",
+      "Nocera Inferiore",
+      "Cava dei Tirreni",
+      "Vietri sul Mare-Amalfi",
+      "Salerno"
+    ],
+    "probeStations": [
+      "Napoli Centrale",
+      "Salerno"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "MET"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SA-AV-BN",
+    "code": "SA-BN",
+    "name": "Benevento – Avellino – Mercato S.Severino – Salerno",
+    "subtitle": "Regionale • Entroterra Campano",
+    "kind": "Regionale",
+    "region": "Campania",
+    "hexColor": "#558B2F",
+    "stations": [
+      "Benevento",
+      "Avellino",
+      "Solofra",
+      "Mercato S.Severino",
+      "Fisciano",
+      "Baronissi",
+      "Salerno"
+    ],
+    "probeStations": [
+      "Salerno",
+      "Mercato S.Severino"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "NA-SA-RC",
+    "code": "NA-RC",
+    "name": "Napoli – Salerno – Paola – Reggio Calabria",
+    "subtitle": "Linea Tirrenica Meridionale • RV / R",
+    "kind": "Regionale",
+    "region": "Campania / Calabria",
+    "hexColor": "#00897B",
+    "stations": [
+      "Napoli Centrale",
+      "Salerno",
+      "Battipaglia",
+      "Agropoli Castellabate",
+      "Vallo Della Lucania-Castelnuovo",
+      "Sapri",
+      "Maratea",
+      "Praja-Ajeta-Tortora",
+      "Scalea S.Domenica Talao",
+      "Paola",
+      "Amantea",
+      "Lamezia Terme Centrale",
+      "Vibo Valentia-Pizzo",
+      "Tropea",
+      "Rosarno",
+      "Villa S.Giovanni",
+      "Reggio di Calabria Centrale"
+    ],
+    "probeStations": [
+      "Napoli Centrale",
+      "Salerno"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AN-BA-LE",
+    "code": "AN-BA-LE",
+    "name": "Ancona – Pescara – Foggia – Bari – Lecce",
+    "subtitle": "Linea Adriatica Centro-Sud • RV / R",
+    "kind": "Regionale",
+    "region": "Marche / Abruzzo / Puglia",
+    "hexColor": "#1565C0",
+    "stations": [
+      "Ancona",
+      "Civitanova Marche-Montegranaro",
+      "S.Benedetto del Tronto",
+      "Giulianova",
+      "Pescara",
+      "Vasto S.Salvo",
+      "Termoli",
+      "Foggia",
+      "Barletta",
+      "Trani",
+      "Molfetta",
+      "Bari Centrale",
+      "Monopoli",
+      "Fasano",
+      "Ostuni",
+      "Brindisi",
+      "Lecce"
+    ],
+    "probeStations": [
+      "Bari Centrale",
+      "Foggia"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BA-MET",
+    "code": "BA-MET",
+    "name": "Molfetta – Bari Centrale – Mola di Bari",
+    "subtitle": "Servizio Metropolitano RFI di Bari",
+    "kind": "Suburbana",
+    "region": "Puglia",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Molfetta",
+      "Giovinazzo",
+      "Bari S.Spirito",
+      "Bari Palese Macchie",
+      "Bari Zona Industriale",
+      "Bari Centrale",
+      "Bari Marconi",
+      "Bari Parco Sud",
+      "Bari Torre Quetta",
+      "Bari Torre a Mare",
+      "Mola di Bari"
+    ],
+    "probeStations": [
+      "Bari Centrale",
+      "Molfetta"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "MET"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "BA-TA",
+    "code": "BA-TA",
+    "name": "Bari Centrale – Gioia del Colle – Taranto",
+    "subtitle": "Direttrice Murgia • RV / R",
+    "kind": "Regionale",
+    "region": "Puglia",
+    "hexColor": "#00796B",
+    "stations": [
+      "Bari Centrale",
+      "Modugno",
+      "Bitetto-Palo del Colle",
+      "Grumo Appula",
+      "Acquaviva delle Fonti",
+      "Gioia del Colle",
+      "Castellaneta",
+      "Palagianello",
+      "Massafra",
+      "Taranto"
+    ],
+    "probeStations": [
+      "Bari Centrale",
+      "Taranto"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TA-BR",
+    "code": "TA-BR",
+    "name": "Taranto – Francavilla Fontana – Brindisi",
+    "subtitle": "Regionale • Trasversale Salentina",
+    "kind": "Regionale",
+    "region": "Puglia",
+    "hexColor": "#0097A7",
+    "stations": [
+      "Taranto",
+      "Grottaglie",
+      "Francavilla Fontana",
+      "Oria",
+      "Latiano",
+      "Mesagne",
+      "Brindisi"
+    ],
+    "probeStations": [
+      "Taranto",
+      "Brindisi"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SA-PZ-TA",
+    "code": "SA-TA",
+    "name": "Salerno – Battipaglia – Potenza – Metaponto – Taranto",
+    "subtitle": "Direttrice Tirreno – Basilicata – Jonio • RV / R",
+    "kind": "Regionale",
+    "region": "Campania / Basilicata / Puglia",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Salerno",
+      "Battipaglia",
+      "Eboli",
+      "Sicignano degli Alburni",
+      "Potenza Centrale",
+      "Ferrandina Scalo Matera",
+      "Bernalda",
+      "Metaponto",
+      "Taranto"
+    ],
+    "probeStations": [
+      "Potenza Centrale",
+      "Taranto"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "FG-PZ",
+    "code": "FG-PZ",
+    "name": "Foggia – Melfi – Potenza",
+    "subtitle": "Regionale • Vulture / Basilicata Nord",
+    "kind": "Regionale",
+    "region": "Puglia / Basilicata",
+    "hexColor": "#546E7A",
+    "stations": [
+      "Foggia",
+      "Rocchetta S.Antonio-Lacedonia",
+      "Melfi",
+      "Rionero-Atella-Ripacandida",
+      "Avigliano Lucania",
+      "Potenza Centrale"
+    ],
+    "probeStations": [
+      "Foggia",
+      "Potenza Centrale"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "TA-RC-JON",
+    "code": "JONICA",
+    "name": "Taranto – Sibari – Crotone – Catanzaro Lido – Reggio C.",
+    "subtitle": "Ferrovia Jonica • RV / R",
+    "kind": "Regionale",
+    "region": "Puglia / Basilicata / Calabria",
+    "hexColor": "#0277BD",
+    "stations": [
+      "Taranto",
+      "Metaponto",
+      "Policoro-Tursi",
+      "Sibari",
+      "Corigliano Calabro",
+      "Rossano",
+      "Ciro'",
+      "Crotone",
+      "Botricello",
+      "Catanzaro Lido",
+      "Soverato",
+      "Monasterace-Stilo",
+      "Roccella Jonica",
+      "Siderno",
+      "Locri",
+      "Bovalino",
+      "Brancaleone",
+      "Melito di Porto Salvo",
+      "Reggio di Calabria Centrale"
+    ],
+    "probeStations": [
+      "Catanzaro Lido",
+      "Reggio di Calabria Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PA-CS-SIB",
+    "code": "CS-SIB",
+    "name": "Sibari – Cosenza – Paola",
+    "subtitle": "Trasversale Calabria Nord • R / RV",
+    "kind": "Regionale",
+    "region": "Calabria",
+    "hexColor": "#388E3C",
+    "stations": [
+      "Sibari",
+      "Spezzano Albanese Terme",
+      "Torano-Lattarico",
+      "Cosenza",
+      "Castiglione Cosentino",
+      "Paola"
+    ],
+    "probeStations": [
+      "Paola",
+      "Cosenza"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "LT-CZ",
+    "code": "LT-CZ",
+    "name": "Lamezia Terme – Catanzaro Lido",
+    "subtitle": "Trasversale Istmo Calabrese • R",
+    "kind": "Regionale",
+    "region": "Calabria",
+    "hexColor": "#689F38",
+    "stations": [
+      "Lamezia Terme Centrale",
+      "Lamezia Terme Nicastro",
+      "Marcellinara",
+      "Settingiano",
+      "Catanzaro",
+      "Catanzaro Lido"
+    ],
+    "probeStations": [
+      "Lamezia Terme Centrale",
+      "Catanzaro Lido"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "RC-MET",
+    "code": "RC-MET",
+    "name": "Rosarno – Villa S.Giovanni – Reggio C. – Melito P.S.",
+    "subtitle": "Servizio Metropolitano dello Stretto",
+    "kind": "Suburbana",
+    "region": "Calabria",
+    "hexColor": "#039BE5",
+    "stations": [
+      "Rosarno",
+      "Gioia Tauro",
+      "Palmi",
+      "Bagnara",
+      "Scilla",
+      "Villa S.Giovanni",
+      "Reggio di Calabria Lido",
+      "Reggio di Calabria Centrale",
+      "Reggio di Calabria Aeroporto",
+      "Pellaro",
+      "Melito di Porto Salvo"
+    ],
+    "probeStations": [
+      "Villa S.Giovanni",
+      "Reggio di Calabria Centrale"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "MET"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PA-SFM",
+    "code": "PA-AERO",
+    "name": "Punta Raisi – Notarbartolo – Palermo Centrale",
+    "subtitle": "Passante Ferroviario Palermo / Aeroporto",
+    "kind": "Suburbana",
+    "region": "Sicilia",
+    "hexColor": "#D81B60",
+    "stations": [
+      "Punta Raisi",
+      "Piraineto",
+      "Carini",
+      "Capaci",
+      "Isola delle Femmine",
+      "Palermo S.Lorenzo",
+      "Palermo Francia",
+      "Palermo Notarbartolo",
+      "Palermo Lolli",
+      "Palermo Palazzo Reale-Orleans",
+      "Palermo Vespri",
+      "Palermo Centrale"
+    ],
+    "probeStations": [
+      "Palermo Centrale",
+      "Punta Raisi"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "MET"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PA-ANELLO",
+    "code": "PA-AN",
+    "name": "Anello Ferroviario Palermo • Notarbartolo – Politeama",
+    "subtitle": "Servizio Urbano Palermo",
+    "kind": "Suburbana",
+    "region": "Sicilia",
+    "hexColor": "#8E24AA",
+    "stations": [
+      "Palermo Notarbartolo",
+      "Palermo Imperatore Federico",
+      "Palermo Fiera",
+      "Palermo Giachery",
+      "Palermo Liberta'",
+      "Palermo Politeama"
+    ],
+    "probeStations": [
+      "Palermo Notarbartolo",
+      "Palermo Giachery"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "MET"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "ME-MET",
+    "code": "ME-MET",
+    "name": "Metroferrovia Messina • Messina C.le – Giampilieri",
+    "subtitle": "Servizio Metropolitano di Messina",
+    "kind": "Suburbana",
+    "region": "Sicilia",
+    "hexColor": "#0288D1",
+    "stations": [
+      "Messina Centrale",
+      "Fiumara Gazzi",
+      "Contesse",
+      "Tremestieri",
+      "Mili Marina",
+      "Galati",
+      "Ponte S.Stefano",
+      "Giampilieri"
+    ],
+    "probeStations": [
+      "Messina Centrale",
+      "Giampilieri"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "MET"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "ME-CT-SR",
+    "code": "ME-CT-SR",
+    "name": "Messina – Taormina – Catania – Siracusa",
+    "subtitle": "Linea Jonica Siciliana • RV / R (incl. Fontanarossa)",
+    "kind": "Regionale",
+    "region": "Sicilia",
+    "hexColor": "#1565C0",
+    "stations": [
+      "Messina Centrale",
+      "Taormina-Giardini",
+      "Giarre-Riposto",
+      "Acireale",
+      "Catania Centrale",
+      "Catania Aeroporto Fontanarossa",
+      "Bicocca",
+      "Lentini",
+      "Augusta",
+      "Priolo-Melilli",
+      "Siracusa"
+    ],
+    "probeStations": [
+      "Catania Centrale",
+      "Messina Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "ME-PA",
+    "code": "ME-PA",
+    "name": "Palermo – Cefalù – Milazzo – Messina",
+    "subtitle": "Linea Tirrenica Siciliana • RV / R",
+    "kind": "Regionale",
+    "region": "Sicilia",
+    "hexColor": "#00897B",
+    "stations": [
+      "Palermo Centrale",
+      "Bagheria",
+      "Termini Imerese",
+      "Cefalu'",
+      "S.Stefano di Camastra-Mistretta",
+      "S.Agata di Militello",
+      "Capo d'Orlando-Naso",
+      "Patti-S.Piero Patti",
+      "Barcellona-Castroreale",
+      "Milazzo",
+      "Messina Centrale"
+    ],
+    "probeStations": [
+      "Palermo Centrale",
+      "Messina Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PA-CT",
+    "code": "PA-CT",
+    "name": "Palermo – Caltanissetta Xirbi – Enna – Catania",
+    "subtitle": "Direttrice Interna Siciliana • RV / R",
+    "kind": "Regionale",
+    "region": "Sicilia",
+    "hexColor": "#D84315",
+    "stations": [
+      "Palermo Centrale",
+      "Termini Imerese",
+      "Roccapalumba-Alia",
+      "Caltanissetta Xirbi",
+      "Enna",
+      "Dittaino",
+      "Catenanuova-Centuripe",
+      "Bicocca",
+      "Catania Centrale"
+    ],
+    "probeStations": [
+      "Palermo Centrale",
+      "Catania Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PA-AG",
+    "code": "PA-AG",
+    "name": "Palermo – Termini Imerese – Agrigento",
+    "subtitle": "Direttrice Valle dei Templi • RV / R",
+    "kind": "Regionale",
+    "region": "Sicilia",
+    "hexColor": "#F57C00",
+    "stations": [
+      "Palermo Centrale",
+      "Termini Imerese",
+      "Roccapalumba-Alia",
+      "Cammarata-S.Giovanni Gemini",
+      "Aragona-Caldare",
+      "Agrigento Bassa",
+      "Agrigento Centrale"
+    ],
+    "probeStations": [
+      "Palermo Centrale",
+      "Agrigento Centrale"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "PA-TP",
+    "code": "PA-TP",
+    "name": "Trapani – Marsala – Castelvetrano – Palermo",
+    "subtitle": "Direttrice Sicilia Occidentale • R / RV",
+    "kind": "Regionale",
+    "region": "Sicilia",
+    "hexColor": "#00695C",
+    "stations": [
+      "Trapani",
+      "Marsala",
+      "Mazara del Vallo",
+      "Castelvetrano",
+      "Alcamo Diramazione",
+      "Partinico",
+      "Piraineto",
+      "Palermo Centrale"
+    ],
+    "probeStations": [
+      "Marsala",
+      "Trapani"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "SR-RG-CL",
+    "code": "SR-RG",
+    "name": "Caltanissetta – Gela – Ragusa – Modica – Siracusa",
+    "subtitle": "Ferrovia del Barocco • Sicilia Sud-Est",
+    "kind": "Regionale",
+    "region": "Sicilia",
+    "hexColor": "#6D4C41",
+    "stations": [
+      "Caltanissetta Centrale",
+      "Canicatti'",
+      "Licata",
+      "Gela",
+      "Vittoria",
+      "Comiso",
+      "Ragusa",
+      "Modica",
+      "Scicli",
+      "Pozzallo",
+      "Noto",
+      "Avola",
+      "Siracusa"
+    ],
+    "probeStations": [
+      "Siracusa",
+      "Ragusa"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CA-MET",
+    "code": "CA-MET",
+    "name": "Decimomannu – Elmas Aeroporto – Cagliari",
+    "subtitle": "Servizio Metropolitano / Aeroportuale Cagliari",
+    "kind": "Suburbana",
+    "region": "Sardegna",
+    "hexColor": "#00897B",
+    "stations": [
+      "Decimomannu",
+      "Assemini Santa Lucia",
+      "Assemini",
+      "Assemini Carmine",
+      "Elmas Aeroporto",
+      "Cagliari Elmas",
+      "Cagliari Santa Gilla",
+      "Cagliari"
+    ],
+    "probeStations": [
+      "Cagliari",
+      "Decimomannu"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG",
+      "RV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CA-OLB",
+    "code": "CA-OLB",
+    "name": "Golfo Aranci – Olbia – Macomer – Oristano – Cagliari",
+    "subtitle": "Dorsale Sarda Nord-Est • RV / R",
+    "kind": "Regionale",
+    "region": "Sardegna",
+    "hexColor": "#0277BD",
+    "stations": [
+      "Golfo Aranci",
+      "Olbia Terranova",
+      "Monti-Telti",
+      "Oschiri",
+      "Ozieri-Chilivani",
+      "Macomer",
+      "Abbasanta",
+      "Oristano",
+      "San Gavino",
+      "Decimomannu",
+      "Elmas Aeroporto",
+      "Cagliari"
+    ],
+    "probeStations": [
+      "Cagliari",
+      "Olbia Terranova"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CA-SS",
+    "code": "CA-SS",
+    "name": "Porto Torres – Sassari – Oristano – Cagliari",
+    "subtitle": "Dorsale Sarda Nord-Ovest • RV / R",
+    "kind": "Regionale",
+    "region": "Sardegna",
+    "hexColor": "#1565C0",
+    "stations": [
+      "Porto Torres Marittima",
+      "Sassari",
+      "Ozieri-Chilivani",
+      "Macomer",
+      "Oristano",
+      "San Gavino",
+      "Decimomannu",
+      "Elmas Aeroporto",
+      "Cagliari"
+    ],
+    "probeStations": [
+      "Cagliari",
+      "Sassari"
+    ],
+    "categoryPrefixes": [
+      "RV",
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "CA-IGL",
+    "code": "CA-IGL",
+    "name": "Carbonia / Iglesias – Decimomannu – Cagliari",
+    "subtitle": "Direttrice Sulcis-Iglesiente • R",
+    "kind": "Regionale",
+    "region": "Sardegna",
+    "hexColor": "#2E7D32",
+    "stations": [
+      "Carbonia Serbariu",
+      "Iglesias",
+      "Villamassargia-Domusnovas",
+      "Siliqua",
+      "Decimomannu",
+      "Elmas Aeroporto",
+      "Cagliari"
+    ],
+    "probeStations": [
+      "Cagliari",
+      "Carbonia Serbariu"
+    ],
+    "categoryPrefixes": [
+      "R",
+      "REG"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Villamassargia-Domusnovas",
+        "label": "Ramo Iglesias",
+        "stations": [
+          "Iglesias"
+        ],
+        "position": "before",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "AV-TO-MI",
+    "code": "AV TO-MI",
+    "name": "AV Torino – Milano",
+    "subtitle": "Linea Alta Velocità • Frecciarossa / Italo",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#B71C1C",
+    "stations": [
+      "Torino Porta Nuova",
+      "Torino Porta Susa",
+      "Rho Fiera",
+      "Milano Porta Garibaldi",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Torino Porta Susa"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Rho Fiera",
+        "label": "Ramo P. Garibaldi",
+        "stations": [
+          "Milano Porta Garibaldi"
+        ],
+        "position": "after",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "AV-MI-BO",
+    "code": "AV MI-BO",
+    "name": "AV Milano – Reggio Emilia – Bologna",
+    "subtitle": "Linea Alta Velocità • Frecciarossa / Italo",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#C62828",
+    "stations": [
+      "Milano Centrale",
+      "Milano Rogoredo",
+      "Reggio Emilia AV Mediopadana",
+      "Bologna C.le/AV"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Bologna C.le/AV"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-BO-FI",
+    "code": "AV BO-FI",
+    "name": "AV Bologna – Firenze SMN",
+    "subtitle": "Linea Alta Velocità • Frecciarossa / Italo",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#D32F2F",
+    "stations": [
+      "Bologna C.le/AV",
+      "Firenze Santa Maria Novella"
+    ],
+    "probeStations": [
+      "Bologna C.le/AV",
+      "Firenze Santa Maria Novella"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-FI-RM",
+    "code": "AV FI-RM",
+    "name": "AV Firenze – Roma",
+    "subtitle": "Direttissima Alta Velocità • Frecciarossa / Italo",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#C62828",
+    "stations": [
+      "Firenze Santa Maria Novella",
+      "Roma Tiburtina",
+      "Roma Termini"
+    ],
+    "probeStations": [
+      "Firenze Santa Maria Novella",
+      "Roma Termini"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-RM-NA",
+    "code": "AV RM-NA",
+    "name": "AV Roma – Napoli Afragola – Napoli",
+    "subtitle": "Linea Alta Velocità • Frecciarossa / Italo",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#B71C1C",
+    "stations": [
+      "Roma Tiburtina",
+      "Roma Termini",
+      "Napoli Afragola",
+      "Napoli Centrale"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Napoli Centrale"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-NA-SA",
+    "code": "AV NA-SA",
+    "name": "AV Napoli – Salerno",
+    "subtitle": "Linea Alta Velocità A Monte del Vesuvio",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#D84315",
+    "stations": [
+      "Napoli Afragola",
+      "Napoli Centrale",
+      "Salerno"
+    ],
+    "probeStations": [
+      "Napoli Centrale",
+      "Salerno"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-MI-VE",
+    "code": "AV MI-VE",
+    "name": "AV Milano – Verona – Padova – Venezia",
+    "subtitle": "Linea Alta Velocità • Frecciarossa / Italo",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#AD1457",
+    "stations": [
+      "Milano Centrale",
+      "Brescia",
+      "Verona Porta Nuova",
+      "Vicenza",
+      "Padova",
+      "Venezia Mestre",
+      "Venezia S.Lucia"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Venezia Mestre"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-VE-BO",
+    "code": "AV VE-BO",
+    "name": "AV Venezia – Padova – Ferrara – Bologna",
+    "subtitle": "Direttrice AV Nord-Est ↔ Centro-Sud",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#C2185B",
+    "stations": [
+      "Venezia S.Lucia",
+      "Venezia Mestre",
+      "Padova",
+      "Rovigo",
+      "Ferrara",
+      "Bologna C.le/AV"
+    ],
+    "probeStations": [
+      "Venezia Mestre",
+      "Bologna C.le/AV"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "ITA",
+      "NTV",
+      "AV",
+      "FA"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-ADR",
+    "code": "AV ADR",
+    "name": "AV Adriatica • Bologna – Ancona – Bari – Lecce",
+    "subtitle": "Frecciarossa / Frecciargento / Italo • Dorsale Adriatica",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#C8102E",
+    "stations": [
+      "Bologna Centrale",
+      "Rimini",
+      "Pesaro",
+      "Ancona",
+      "Pescara",
+      "Termoli",
+      "Foggia",
+      "Barletta",
+      "Bari Centrale",
+      "Brindisi",
+      "Lecce"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Bari Centrale"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "FA",
+      "ITA",
+      "NTV",
+      "AV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-SA-RC",
+    "code": "AV SA-RC",
+    "name": "AV Salerno – Paola – Lamezia – Reggio Calabria",
+    "subtitle": "Frecciarossa / Frecciargento / Italo • Tirrenica Sud",
+    "kind": "Alta Velocità",
+    "region": "Nazionale AV",
+    "hexColor": "#B71C1C",
+    "stations": [
+      "Salerno",
+      "Agropoli Castellabate",
+      "Vallo Della Lucania-Castelnuovo",
+      "Sapri",
+      "Paola",
+      "Lamezia Terme Centrale",
+      "Vibo Valentia-Pizzo",
+      "Rosarno",
+      "Villa S.Giovanni",
+      "Reggio di Calabria Centrale"
+    ],
+    "probeStations": [
+      "Salerno",
+      "Reggio di Calabria Centrale"
+    ],
+    "categoryPrefixes": [
+      "FR",
+      "FA",
+      "ITA",
+      "NTV",
+      "AV"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "IC-TIR",
+    "code": "IC TIR",
+    "name": "IC Tirrenica • Torino / Milano – Genova – Roma – Napoli – Sicilia",
+    "subtitle": "Intercity / Intercity Notte / Frecciabianca",
+    "kind": "Intercity",
+    "region": "Nazionale IC",
+    "hexColor": "#005596",
+    "stations": [
+      "Milano Centrale",
+      "Torino Porta Nuova",
+      "Genova Piazza Principe",
+      "Genova Brignole",
+      "La Spezia Centrale",
+      "Pisa Centrale",
+      "Livorno Centrale",
+      "Grosseto",
+      "Roma Termini",
+      "Roma Ostiense",
+      "Latina",
+      "Formia-Gaeta",
+      "Napoli Centrale",
+      "Salerno",
+      "Paola",
+      "Lamezia Terme Centrale",
+      "Villa S.Giovanni",
+      "Reggio di Calabria Centrale",
+      "Messina Centrale",
+      "Palermo Centrale",
+      "Catania Centrale",
+      "Siracusa"
+    ],
+    "probeStations": [
+      "Genova Piazza Principe",
+      "Roma Termini"
+    ],
+    "categoryPrefixes": [
+      "IC",
+      "ICN",
+      "FB"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Genova Piazza Principe",
+        "label": "Ramo Torino",
+        "stations": [
+          "Torino Porta Nuova"
+        ],
+        "position": "before",
+        "isDashed": false
+      },
+      {
+        "junctionStation": "Messina Centrale",
+        "label": "Ramo Palermo",
+        "stations": [
+          "Palermo Centrale"
+        ],
+        "position": "after",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "IC-ADR",
+    "code": "IC ADR",
+    "name": "IC Adriatica • Milano – Bologna – Ancona – Bari – Lecce",
+    "subtitle": "Intercity / Intercity Notte • Dorsale Adriatica",
+    "kind": "Intercity",
+    "region": "Nazionale IC",
+    "hexColor": "#005596",
+    "stations": [
+      "Milano Centrale",
+      "Piacenza",
+      "Parma",
+      "Modena",
+      "Bologna Centrale",
+      "Rimini",
+      "Pesaro",
+      "Ancona",
+      "Civitanova Marche-Montegranaro",
+      "S.Benedetto del Tronto",
+      "Giulianova",
+      "Pescara",
+      "Vasto S.Salvo",
+      "Termoli",
+      "Foggia",
+      "Barletta",
+      "Trani",
+      "Bari Centrale",
+      "Monopoli",
+      "Brindisi",
+      "Lecce"
+    ],
+    "probeStations": [
+      "Bologna Centrale",
+      "Ancona"
+    ],
+    "categoryPrefixes": [
+      "IC",
+      "ICN"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "IC-JON",
+    "code": "IC JON",
+    "name": "IC Jonica • Taranto – Crotone – Catanzaro L. – Reggio C.",
+    "subtitle": "Intercity • Linea Jonica",
+    "kind": "Intercity",
+    "region": "Nazionale IC",
+    "hexColor": "#1B365D",
+    "stations": [
+      "Taranto",
+      "Metaponto",
+      "Policoro-Tursi",
+      "Sibari",
+      "Corigliano Calabro",
+      "Rossano",
+      "Ciro'",
+      "Crotone",
+      "Catanzaro Lido",
+      "Soverato",
+      "Roccella Jonica",
+      "Locri",
+      "Melito di Porto Salvo",
+      "Reggio di Calabria Centrale"
+    ],
+    "probeStations": [
+      "Taranto",
+      "Catanzaro Lido"
+    ],
+    "categoryPrefixes": [
+      "IC"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "IC-RM-BA",
+    "code": "IC RM-BA",
+    "name": "IC Roma – Caserta – Benevento – Foggia – Bari – Taranto",
+    "subtitle": "Intercity • Trasversale Centro-Sud",
+    "kind": "Intercity",
+    "region": "Nazionale IC",
+    "hexColor": "#005596",
+    "stations": [
+      "Roma Termini",
+      "Caserta",
+      "Benevento",
+      "Foggia",
+      "Barletta",
+      "Bari Centrale",
+      "Gioia del Colle",
+      "Taranto"
+    ],
+    "probeStations": [
+      "Roma Termini",
+      "Bari Centrale"
+    ],
+    "categoryPrefixes": [
+      "IC",
+      "ICN"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "IC-MI-XXM",
+    "code": "IC MI-XXM",
+    "name": "IC Milano – Genova – Savona – Sanremo – Ventimiglia",
+    "subtitle": "Intercity • Riviera di Ponente",
+    "kind": "Intercity",
+    "region": "Nazionale IC",
+    "hexColor": "#005596",
+    "stations": [
+      "Milano Centrale",
+      "Pavia",
+      "Voghera",
+      "Genova Piazza Principe",
+      "Savona",
+      "Finale Ligure Marina",
+      "Albenga",
+      "Alassio",
+      "Imperia",
+      "Sanremo",
+      "Bordighera",
+      "Ventimiglia"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Genova Piazza Principe"
+    ],
+    "categoryPrefixes": [
+      "IC",
+      "EC"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "IC-VE-TS",
+    "code": "IC MI-TS",
+    "name": "IC / ICN Trieste – Venezia – Bologna – Roma",
+    "subtitle": "Intercity / Intercity Notte • Nord-Est",
+    "kind": "Intercity",
+    "region": "Nazionale IC",
+    "hexColor": "#1B365D",
+    "stations": [
+      "Trieste Centrale",
+      "Monfalcone",
+      "Trieste Airport",
+      "Cervignano-Aquileia-Grado",
+      "Portogruaro Caorle",
+      "Venezia Mestre",
+      "Padova",
+      "Ferrara",
+      "Bologna Centrale",
+      "Firenze Campo di Marte",
+      "Roma Termini"
+    ],
+    "probeStations": [
+      "Venezia Mestre",
+      "Trieste Centrale"
+    ],
+    "categoryPrefixes": [
+      "IC",
+      "ICN"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "EC-GOTT",
+    "code": "EC CH",
+    "name": "EC Gottardo • Zurigo / Basilea – Lugano – Como – Milano",
+    "subtitle": "EuroCity • Trenitalia / SBB",
+    "kind": "Internazionale",
+    "region": "Internazionale",
+    "hexColor": "#283593",
+    "stations": [
+      "Basel SBB",
+      "Zuerich HB",
+      "Arth-Goldau",
+      "Bellinzona",
+      "Lugano",
+      "Chiasso",
+      "Como S.Giovanni",
+      "Monza",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Como S.Giovanni"
+    ],
+    "categoryPrefixes": [
+      "EC"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Arth-Goldau",
+        "label": "Ramo Basilea",
+        "stations": [
+          "Basel SBB"
+        ],
+        "position": "before",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "EC-SEMP",
+    "code": "EC GE/BS",
+    "name": "EC Sempione • Ginevra / Basilea – Briga – Domodossola – Milano",
+    "subtitle": "EuroCity • Trenitalia / SBB",
+    "kind": "Internazionale",
+    "region": "Internazionale",
+    "hexColor": "#283593",
+    "stations": [
+      "Basel SBB",
+      "Bern",
+      "Geneve",
+      "Lausanne",
+      "Visp",
+      "Brig",
+      "Domodossola",
+      "Stresa",
+      "Gallarate",
+      "Rho Fiera",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Domodossola"
+    ],
+    "categoryPrefixes": [
+      "EC"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Visp",
+        "label": "Ramo Basilea / Berna",
+        "stations": [
+          "Basel SBB",
+          "Bern"
+        ],
+        "position": "before",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "EC-BREN",
+    "code": "EC / RJ",
+    "name": "EC / RJ Brennero • Monaco – Bolzano – Verona – Bologna / Venezia",
+    "subtitle": "EuroCity / Railjet • DB-ÖBB",
+    "kind": "Internazionale",
+    "region": "Internazionale",
+    "hexColor": "#283593",
+    "stations": [
+      "Muenchen Hbf",
+      "Innsbruck Hbf",
+      "Brennero/Brenner",
+      "Fortezza/Franzensfeste",
+      "Bressanone/Brixen",
+      "Bolzano/Bozen",
+      "Trento",
+      "Rovereto",
+      "Verona Porta Nuova",
+      "Venezia S.Lucia",
+      "Bologna Centrale"
+    ],
+    "probeStations": [
+      "Verona Porta Nuova",
+      "Bolzano/Bozen"
+    ],
+    "categoryPrefixes": [
+      "EC",
+      "RJ",
+      "EN"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Verona Porta Nuova",
+        "label": "Ramo Venezia",
+        "stations": [
+          "Venezia S.Lucia"
+        ],
+        "position": "after",
+        "isDashed": false
+      }
+    ]
+  },
+  {
+    "id": "RJ-PONT",
+    "code": "RJ / EN",
+    "name": "RJ / EN Pontebbana • Venezia – Udine – Tarvisio – Vienna",
+    "subtitle": "Railjet / EuroNight • ÖBB",
+    "kind": "Internazionale",
+    "region": "Internazionale",
+    "hexColor": "#1A237E",
+    "stations": [
+      "Venezia S.Lucia",
+      "Venezia Mestre",
+      "Treviso Centrale",
+      "Conegliano",
+      "Pordenone",
+      "Udine",
+      "Tarvisio Boscoverde",
+      "Villach Hbf",
+      "Klagenfurt Hbf",
+      "Wien Hbf"
+    ],
+    "probeStations": [
+      "Venezia Mestre",
+      "Udine"
+    ],
+    "categoryPrefixes": [
+      "RJ",
+      "EN",
+      "EC"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false
+  },
+  {
+    "id": "AV-FR",
+    "code": "TGV / FR",
+    "name": "TGV / Frecciarossa • Parigi – Lione – Torino – Milano",
+    "subtitle": "Alta Velocità Internazionale • SNCF / Trenitalia",
+    "kind": "Internazionale",
+    "region": "Internazionale",
+    "hexColor": "#880E4F",
+    "stations": [
+      "Paris Gare de Lyon",
+      "Lyon Part-Dieu",
+      "Chambery",
+      "Modane",
+      "Bardonecchia",
+      "Oulx Cesana Claviere Sestriere",
+      "Torino Porta Susa",
+      "Milano Porta Garibaldi",
+      "Milano Centrale"
+    ],
+    "probeStations": [
+      "Milano Centrale",
+      "Torino Porta Susa"
+    ],
+    "categoryPrefixes": [
+      "TGV",
+      "FR",
+      "EC"
+    ],
+    "usesPassanteTunnel": false,
+    "isAutoSuggested": false,
+    "branches": [
+      {
+        "junctionStation": "Torino Porta Susa",
+        "label": "Ramo TGV P. Garibaldi",
+        "stations": [
+          "Milano Porta Garibaldi"
+        ],
+        "position": "after",
+        "isDashed": false
+      }
+    ]
+  }
+]

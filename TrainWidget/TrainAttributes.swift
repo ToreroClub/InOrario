@@ -9,17 +9,29 @@ struct TrainLiveActivityAttributes: ActivityAttributes {
         var lastStation: String
         var progress: Double // Range 0.0 - 1.0 representing train route completion
         var lastDetectionTime: String?
+        var nextStation: String?
+        var nextStationEstimatedTime: String?
         
-        public init(delay: String, statusMessage: String, lastStation: String, progress: Double, lastDetectionTime: String? = nil) {
+        public init(
+            delay: String,
+            statusMessage: String,
+            lastStation: String,
+            progress: Double,
+            lastDetectionTime: String? = nil,
+            nextStation: String? = nil,
+            nextStationEstimatedTime: String? = nil
+        ) {
             self.delay = delay
             self.statusMessage = statusMessage
             self.lastStation = lastStation
             self.progress = progress
             self.lastDetectionTime = lastDetectionTime
+            self.nextStation = nextStation
+            self.nextStationEstimatedTime = nextStationEstimatedTime
         }
         
         enum CodingKeys: String, CodingKey {
-            case delay, statusMessage, lastStation, progress, lastDetectionTime
+            case delay, statusMessage, lastStation, progress, lastDetectionTime, nextStation, nextStationEstimatedTime
         }
         
         public init(from decoder: Decoder) throws {
@@ -29,6 +41,8 @@ struct TrainLiveActivityAttributes: ActivityAttributes {
             self.lastStation = try container.decode(String.self, forKey: .lastStation)
             self.progress = try container.decode(Double.self, forKey: .progress)
             self.lastDetectionTime = try container.decodeIfPresent(String.self, forKey: .lastDetectionTime)
+            self.nextStation = try container.decodeIfPresent(String.self, forKey: .nextStation)
+            self.nextStationEstimatedTime = try container.decodeIfPresent(String.self, forKey: .nextStationEstimatedTime)
         }
     }
 

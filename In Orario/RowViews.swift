@@ -376,12 +376,26 @@ struct TrainRowView: View {
     }
     
     func categoryColor(_ cat: String) -> Color {
-        let c = cat.uppercased()
-        if c.contains("ITALO") || c.contains("NTV") { return Color(red: 0.65, green: 0.05, blue: 0.12) }
-        if c.contains("FR") || c == "AV" { return .red }
-        if c == "IC" || c == "EC" { return .gray }
-        if c.contains("S") { return Color(red: 0.0, green: 0.6, blue: 0.2) }
-        if c.contains("RV") || c.contains("RE") { return .blue }
+        let c = cat.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if c == "BUS" {
+            return .gray
+        }
+        if c.contains("ITALO") || c.contains("NTV") || c == "ITA"
+            || c.contains("FR") || c == "AV" || c == "FA" || c == "FB" || c == "ES" {
+            return .red
+        }
+        if c == "IC" || c == "ICN" || c == "EC" || c == "EN" {
+            return .gray
+        }
+        if c.contains("MXP") || c == "XP" {
+            return Color(red: 0.65, green: 0.10, blue: 0.18)
+        }
+        if c == "S" || (c.hasPrefix("S") && c.count <= 3 && c.dropFirst().allSatisfy(\.isNumber)) {
+            return Color(red: 0.0, green: 0.6, blue: 0.2)
+        }
+        if c.contains("RV") || c.contains("RE") || c == "REG" || c == "R" {
+            return .blue
+        }
         return .gray
     }
 }

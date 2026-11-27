@@ -160,7 +160,25 @@ class StationBoardDataProvider {
               let decoded = try? JSONDecoder().decode([WidgetStation].self, from: data) else {
             return []
         }
-        return decoded
+
+        var excludedSet = Set<String>()
+        if let rawData = defaults.data(forKey: "excludedWidgetStationKeys_v1"),
+           let set = try? JSONDecoder().decode(Set<String>.self, from: rawData) {
+            excludedSet = set
+        } else if let arr = defaults.stringArray(forKey: "excludedWidgetStationKeys_v1") {
+            excludedSet = Set(arr)
+        }
+
+        guard !excludedSet.isEmpty else { return decoded }
+        return decoded.filter { st in
+            let nameKey = st.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let vtKey = (st.vtID ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let rfiKey = (st.rfiID ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if !nameKey.isEmpty && excludedSet.contains(nameKey) { return false }
+            if !vtKey.isEmpty && excludedSet.contains(vtKey) { return false }
+            if !rfiKey.isEmpty && excludedSet.contains(rfiKey) { return false }
+            return true
+        }
     }
     
     func resolveStation() -> (station: WidgetStation?, index: Int, total: Int) {
@@ -502,9 +520,8 @@ struct NextStationIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         let suiteName = "group.carlo.InOrario"
         let selectedIndexKey = "widgetStationBoardSelectedIndex"
+        let stations = StationBoardDataProvider.shared.getSavedStations()
         guard let defaults = UserDefaults(suiteName: suiteName),
-              let data = defaults.data(forKey: "savedMyStations_v3"),
-              let stations = try? JSONDecoder().decode([WidgetStation].self, from: data),
               !stations.isEmpty else {
             return .result()
         }
@@ -696,7 +713,7 @@ struct StationBoardWidgetEntryView: View {
         VStack(alignment: .leading, spacing: 6) {
             // Header
             HStack(alignment: .center, spacing: 6) {
-                Image(systemName: "train.side.front.car")
+                Image(systemName: "tram.fill")
                     .foregroundColor(.blue)
                     .font(.subheadline)
                 

@@ -180,7 +180,11 @@ struct InOrario: App {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var usageTracker = UsageTracker()
     @StateObject private var guessingEngine = TrainGuessingEngine()
+    @StateObject private var personalLinesManager = PersonalLinesManager()
+    @StateObject private var navigationCoordinator = MainNavigationCoordinator()
     @Environment(\.scenePhase) private var scenePhase
+    @State private var foregroundHousekeepingTask: Task<Void, Never>? = nil
+    @State private var lastEntitlementCheckAt: Date = .distantPast
     
     @AppStorage("app_language") private var appLanguage: String = "it"
 
@@ -194,10 +198,9 @@ struct InOrario: App {
                 .environmentObject(locationManager)
                 .environmentObject(usageTracker)
                 .environmentObject(guessingEngine)
+                .environmentObject(personalLinesManager)
+                .environmentObject(navigationCoordinator)
                 .environment(\.locale, Locale(identifier: appLanguage))
-                .task {
-                    await TipManager.shared.updatePurchases()
-                }
                 .onAppear {
                     appDelegate.manager = manager
                     if let pending = appDelegate.pendingDeepLinkTrain {
@@ -213,6 +216,7 @@ struct InOrario: App {
                             manager.apnsToken = savedToken
                         }
                     }
+                    UserInterestTelemetryManager.shared.syncIfNeededForToday(manager: manager, usageTracker: usageTracker)
                 }
                 .onContinueUserActivity(CSSearchableItemActionType) { activity in
                     if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
@@ -230,23 +234,33 @@ struct InOrario: App {
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             if newPhase == .background {
+                foregroundHousekeepingTask?.cancel()
+                foregroundHousekeepingTask = nil
+                UserInterestTelemetryManager.shared.flushToDiskNow()
                 scheduleAppRefresh()
                 scheduleAIProcessing()
                 WidgetCenter.shared.reloadAllTimelines()
             }
             if newPhase == .active {
-                // Aggiorna spazio libero ogni volta che l'app torna in foreground
-                AIFeatureManager.shared.refreshFreeSpace()
-                
-                // Trigger guessing engine single-shot GPS and logic
+                // Operazioni leggere/visibili immediate al ritorno in foreground
+                manager.syncLiveActivities()
                 guessingEngine.appEnteredActive(locationManager: locationManager, passanteManager: passanteManager, manager: manager)
-                
-                // Verifica StoreKit entitlements e poi sincronizza notifiche remote e Live Activities
                 Task {
-                    await TipManager.shared.updatePurchases()
-                    manager.syncRemoteNotifications()
-                    manager.syncLiveActivities()
                     await manager.backgroundLiveActivityUpdate()
+                }
+
+                // Scagliona i task secondari (StoreKit, spazio libero, sync push, telemetria) per evitare picchi al risveglio
+                foregroundHousekeepingTask?.cancel()
+                foregroundHousekeepingTask = Task {
+                    try? await Task.sleep(for: .milliseconds(1500))
+                    guard !Task.isCancelled else { return }
+                    AIFeatureManager.shared.refreshFreeSpace()
+                    if Date().timeIntervalSince(lastEntitlementCheckAt) >= 30 {
+                        lastEntitlementCheckAt = Date()
+                        await TipManager.shared.updatePurchases()
+                    }
+                    manager.syncRemoteNotifications()
+                    UserInterestTelemetryManager.shared.syncIfNeededForToday(manager: manager, usageTracker: usageTracker)
                 }
             }
         }

@@ -1,49 +1,204 @@
 import SwiftUI
 import CoreLocation
 import UserNotifications
+import UIKit
+
+enum OnboardingCampaign {
+    static let currentUpdateID = "2026_v3_4_commute_redesign_v3"
+    static let seenUpdateIDKey = "lastSeenOnboardingUpdateID_v1"
+}
+
+enum OnboardingPresentationMode: Equatable {
+    case fullFirstLaunch
+    case updateWhatsNew
+}
+
+enum OnboardingAudience: Equatable {
+    case free
+    case pro
+
+    nonisolated static func resolve(hasSupport: Bool) -> OnboardingAudience {
+        hasSupport ? .pro : .free
+    }
+}
+
+enum OnboardingNotificationState: Equatable {
+    case authorizedActive
+    case authorizedAppToggleOff
+    case notDetermined
+    case denied
+}
+
+enum OnboardingLocationState: Equatable {
+    case authorized
+    case notDetermined
+    case deniedOrRestricted
+}
+
+struct OnboardingPermissionSnapshot: Equatable {
+    var notifications: OnboardingNotificationState
+    var location: OnboardingLocationState
+
+    var isNotificationsReady: Bool { notifications == .authorizedActive }
+    var isLocationReady: Bool { location == .authorized }
+    var needsNotifications: Bool { !isNotificationsReady }
+    var needsLocation: Bool { !isLocationReady }
+    var needsAnyPermission: Bool { needsNotifications || needsLocation }
+
+    static func from(
+        notificationStatus: UNAuthorizationStatus,
+        remoteNotificationsEnabled: Bool,
+        locationStatus: CLAuthorizationStatus
+    ) -> OnboardingPermissionSnapshot {
+        let notifState: OnboardingNotificationState
+        switch notificationStatus {
+        case .authorized, .provisional, .ephemeral:
+            notifState = remoteNotificationsEnabled ? .authorizedActive : .authorizedAppToggleOff
+        case .notDetermined:
+            notifState = .notDetermined
+        case .denied:
+            notifState = .denied
+        @unknown default:
+            notifState = .denied
+        }
+
+        let locState: OnboardingLocationState
+        switch locationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            locState = .authorized
+        case .notDetermined:
+            locState = .notDetermined
+        case .denied, .restricted:
+            locState = .deniedOrRestricted
+        @unknown default:
+            locState = .deniedOrRestricted
+        }
+
+        return OnboardingPermissionSnapshot(notifications: notifState, location: locState)
+    }
+}
+
+enum OnboardingLaunchDecision: Equatable {
+    case showFullOnboarding
+    case showUpdateOnboarding
+    case none
+
+    static func resolve(
+        hasCompletedOnboarding: Bool,
+        lastSeenUpdateID: String?,
+        currentUpdateID: String = OnboardingCampaign.currentUpdateID
+    ) -> OnboardingLaunchDecision {
+        if !hasCompletedOnboarding {
+            return .showFullOnboarding
+        }
+        if lastSeenUpdateID != currentUpdateID {
+            return .showUpdateOnboarding
+        }
+        return .none
+    }
+}
 
 enum OnboardingStep: String, CaseIterable, Identifiable {
     case welcome
+    case whatsNew
+    case quickGuide
     case region
     case passante
     case stations
-    case features
-    
+    case permissions
+
     var id: String { rawValue }
+
+    static func steps(
+        for mode: OnboardingPresentationMode,
+        strikeRegion: String,
+        includePermissionsStep: Bool
+    ) -> [OnboardingStep] {
+        switch mode {
+        case .updateWhatsNew:
+            var steps: [OnboardingStep] = [.whatsNew]
+            if includePermissionsStep {
+                steps.append(.permissions)
+            }
+            steps.append(.quickGuide)
+            return steps
+        case .fullFirstLaunch:
+            var steps: [OnboardingStep] = [.welcome]
+            if includePermissionsStep {
+                steps.append(.permissions)
+            }
+            steps.append(.region)
+            if strikeRegion == "Lombardia" || strikeRegion == "Piemonte" || strikeRegion == "Veneto" {
+                steps.append(.passante)
+            }
+            steps.append(.stations)
+            steps.append(.quickGuide)
+            return steps
+        }
+    }
 }
 
 struct OnboardingView: View {
     @Binding var showOnboarding: Bool
-    @State private var currentStep: OnboardingStep = .welcome
+    let mode: OnboardingPresentationMode
+    let initialPermissionSnapshot: OnboardingPermissionSnapshot
+    var onOpenCommuteSettings: (() -> Void)? = nil
+
+    @State private var currentStep: OnboardingStep
+    @State private var permissionSnapshot: OnboardingPermissionSnapshot
+    @State private var shouldIncludePermissionsStep: Bool
+    @State private var didOpenSystemSettings = false
+    @State private var isRequestingPermissions = false
+
+    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var manager: TrainManager
     @EnvironmentObject var passanteManager: PassanteManager
-    
-    private var allowsPassanteStep: Bool {
-        manager.strikeRegion == "Lombardia" ||
-        manager.strikeRegion == "Piemonte" ||
-        manager.strikeRegion == "Veneto"
+
+    init(
+        showOnboarding: Binding<Bool>,
+        mode: OnboardingPresentationMode = .fullFirstLaunch,
+        initialPermissionSnapshot: OnboardingPermissionSnapshot = OnboardingPermissionSnapshot(
+            notifications: .notDetermined,
+            location: .notDetermined
+        ),
+        onOpenCommuteSettings: (() -> Void)? = nil
+    ) {
+        self._showOnboarding = showOnboarding
+        self.mode = mode
+        self.initialPermissionSnapshot = initialPermissionSnapshot
+        self.onOpenCommuteSettings = onOpenCommuteSettings
+        self._currentStep = State(initialValue: mode == .updateWhatsNew ? .whatsNew : .welcome)
+        self._permissionSnapshot = State(initialValue: initialPermissionSnapshot)
+        self._shouldIncludePermissionsStep = State(initialValue: initialPermissionSnapshot.needsAnyPermission)
     }
-    
+
     private var activeSteps: [OnboardingStep] {
-        var steps: [OnboardingStep] = [.welcome, .region]
-        if allowsPassanteStep {
-            steps.append(.passante)
-        }
-        steps.append(.stations)
-        steps.append(.features)
-        return steps
+        OnboardingStep.steps(
+            for: mode,
+            strikeRegion: manager.strikeRegion,
+            includePermissionsStep: shouldIncludePermissionsStep
+        )
     }
-    
+
+    private var isLastStep: Bool {
+        currentStep == activeSteps.last
+    }
+
+    private var hasActionableInAppPermissions: Bool {
+        permissionSnapshot.notifications == .notDetermined ||
+        permissionSnapshot.notifications == .authorizedAppToggleOff ||
+        permissionSnapshot.location == .notDetermined
+    }
+
     var body: some View {
         ZStack {
             Color(.systemBackground)
                 .ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 // Barra superiore: indicatore step e pulsante Salta
                 HStack {
-                    // Indicatori di avanzamento a capsula
                     HStack(spacing: 6) {
                         ForEach(activeSteps) { step in
                             Capsule()
@@ -52,66 +207,89 @@ struct OnboardingView: View {
                                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: currentStep)
                         }
                     }
-                    
+
                     Spacer()
-                    
+
                     Button("Salta") {
                         Haptics.play(.light)
                         completeOnboarding()
                     }
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(.secondary)
-                    .opacity(currentStep == activeSteps.last ? 0 : 1)
+                    .opacity(isLastStep ? 0 : 1)
+                    .disabled(isLastStep)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 14)
                 .padding(.bottom, 8)
-                
+
                 // Contenitore pagine
                 TabView(selection: $currentStep) {
-                    OnboardingWelcomeView(onContinue: {
-                        requestPermissions()
-                        advanceStep()
-                    })
-                    .tag(OnboardingStep.welcome)
-                    
-                    OnboardingRegionPickerView()
-                    .tag(OnboardingStep.region)
-                    
-                    if allowsPassanteStep {
-                        OnboardingPassanteLinePickerView()
-                        .tag(OnboardingStep.passante)
+                    ForEach(activeSteps) { step in
+                        stepView(for: step)
+                            .tag(step)
                     }
-                    
-                    OnboardingStationsPreferenceView()
-                    .tag(OnboardingStep.stations)
-                    
-                    OnboardingFeaturesView()
-                    .tag(OnboardingStep.features)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                
-                // Pulsante inferiore principale
-                Button(action: {
-                    handleForwardAction()
-                }) {
-                    HStack(spacing: 8) {
-                        Text(buttonTitle)
-                            .font(.headline)
-                            .bold()
-                        
-                        Image(systemName: currentStep == activeSteps.last ? "arrow.right" : "chevron.right")
-                            .font(.subheadline.bold())
+
+                // Pulsanti inferiori
+                VStack(spacing: 10) {
+                    Button(action: {
+                        handleForwardAction()
+                    }) {
+                        HStack(spacing: 8) {
+                            if isRequestingPermissions {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                            Text(primaryButtonTitle)
+                                .font(.headline)
+                                .bold()
+
+                            Image(systemName: primaryButtonIcon)
+                                .font(.subheadline.bold())
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(primaryButtonColor)
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: primaryButtonColor.opacity(0.25), radius: 8, x: 0, y: 4)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: Color.blue.opacity(0.25), radius: 8, x: 0, y: 4)
-                    .padding(.horizontal, 24)
+                    .disabled(isRequestingPermissions)
+
+                    if currentStep == .permissions && permissionSnapshot.needsAnyPermission && hasActionableInAppPermissions {
+                        Button(isLastStep ? "Continua senza attivare" : "Continua comunque") {
+                            Haptics.play(.light)
+                            completeOrAdvance()
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.secondary)
+                        .padding(.top, 2)
+                    }
                 }
+                .padding(.horizontal, 24)
                 .padding(.bottom, 20)
+            }
+        }
+        .task {
+            await refreshPermissionSnapshot(autoEnableIfReturningFromSettings: false)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task {
+                    await refreshPermissionSnapshot(autoEnableIfReturningFromSettings: true)
+                }
+            }
+        }
+        .onChange(of: locationManager.authorizationStatus) { _, _ in
+            Task {
+                await refreshPermissionSnapshot(autoEnableIfReturningFromSettings: false)
+            }
+        }
+        .onChange(of: manager.remoteNotificationsEnabled) { _, _ in
+            Task {
+                await refreshPermissionSnapshot(autoEnableIfReturningFromSettings: false)
             }
         }
         .onChange(of: manager.strikeRegion) { _, newRegion in
@@ -121,29 +299,98 @@ struct OnboardingView: View {
             }
         }
     }
-    
-    private var buttonTitle: String {
-        if currentStep == activeSteps.last {
-            return "Inizia a viaggiare"
-        } else if currentStep == .welcome {
-            return "Continua e autorizza"
-        } else {
-            return "Continua"
+
+    @ViewBuilder
+    private func stepView(for step: OnboardingStep) -> some View {
+        switch step {
+        case .welcome:
+            OnboardingWelcomeView()
+        case .whatsNew:
+            OnboardingWhatsNewView()
+        case .quickGuide:
+            OnboardingQuickGuideView(
+                isUpdateMode: mode == .updateWhatsNew,
+                onOpenCommuteSettings: onOpenCommuteSettings
+            )
+        case .region:
+            OnboardingRegionPickerView()
+        case .passante:
+            OnboardingPassanteLinePickerView()
+        case .stations:
+            OnboardingStationsPreferenceView()
+        case .permissions:
+            OnboardingPermissionsView(
+                snapshot: permissionSnapshot,
+                initiallyNeededNotifications: initialPermissionSnapshot.needsNotifications,
+                initiallyNeededLocation: initialPermissionSnapshot.needsLocation,
+                isRequesting: isRequestingPermissions,
+                onRequestNotifications: {
+                    Task { await handleNotificationsAction() }
+                },
+                onRequestLocation: {
+                    handleLocationAction()
+                }
+            )
         }
     }
-    
+
+    private var primaryButtonTitle: String {
+        if currentStep == .permissions {
+            if !permissionSnapshot.needsAnyPermission {
+                return isLastStep ? "Tutto pronto, inizia!" : "Continua"
+            }
+            if hasActionableInAppPermissions {
+                let canAskNotif = permissionSnapshot.notifications == .notDetermined || permissionSnapshot.notifications == .authorizedAppToggleOff
+                let canAskLoc = permissionSnapshot.location == .notDetermined
+                if canAskNotif && canAskLoc {
+                    return "Attiva notifiche e posizione"
+                } else if canAskNotif {
+                    return "Attiva notifiche"
+                } else if canAskLoc {
+                    return "Attiva posizione"
+                }
+            }
+            return isLastStep ? "Inizia a viaggiare" : "Continua"
+        }
+        return isLastStep ? "Inizia a viaggiare" : "Continua"
+    }
+
+    private var primaryButtonIcon: String {
+        if currentStep == .permissions && permissionSnapshot.needsAnyPermission && hasActionableInAppPermissions {
+            return "checkmark.shield.fill"
+        }
+        if currentStep == .permissions && !permissionSnapshot.needsAnyPermission {
+            return "checkmark.circle.fill"
+        }
+        return isLastStep ? "arrow.right" : "chevron.right"
+    }
+
+    private var primaryButtonColor: Color {
+        if currentStep == .permissions && !permissionSnapshot.needsAnyPermission {
+            return .green
+        }
+        return .blue
+    }
+
     private func handleForwardAction() {
-        if currentStep == .welcome {
-            requestPermissions()
-            advanceStep()
-        } else if currentStep == activeSteps.last {
+        if currentStep == .permissions && permissionSnapshot.needsAnyPermission && hasActionableInAppPermissions {
+            Task {
+                await requestAllActionablePermissions()
+            }
+            return
+        }
+        Haptics.play(.medium)
+        completeOrAdvance()
+    }
+
+    private func completeOrAdvance() {
+        if isLastStep {
             completeOnboarding()
         } else {
-            Haptics.play(.medium)
             advanceStep()
         }
     }
-    
+
     private func advanceStep() {
         let steps = activeSteps
         if let idx = steps.firstIndex(of: currentStep), idx < steps.count - 1 {
@@ -152,24 +399,104 @@ struct OnboardingView: View {
             }
         }
     }
-    
-    private func requestPermissions() {
+
+    private func requestAllActionablePermissions() async {
         Haptics.play(.medium)
-        locationManager.requestAuthorization()
-        locationManager.requestLocation()
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-            DispatchQueue.main.async {
-                if granted {
-                    self.manager.remoteNotificationsEnabled = true
-                    self.manager.strikeNotificationsEnabled = true
-                    self.manager.saveFavorites()
-                    UIApplication.shared.registerForRemoteNotifications()
-                    self.manager.syncRemoteNotifications()
-                }
+        isRequestingPermissions = true
+        defer { isRequestingPermissions = false }
+
+        if permissionSnapshot.notifications == .notDetermined || permissionSnapshot.notifications == .authorizedAppToggleOff {
+            await handleNotificationsAction()
+        }
+        if permissionSnapshot.location == .notDetermined {
+            handleLocationAction()
+        }
+    }
+
+    @MainActor
+    private func handleNotificationsAction() async {
+        Haptics.play(.medium)
+        switch permissionSnapshot.notifications {
+        case .notDetermined:
+            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])) ?? false
+            if granted {
+                enableAppNotificationSettings()
+            }
+            await refreshPermissionSnapshot(autoEnableIfReturningFromSettings: false)
+        case .authorizedAppToggleOff:
+            enableAppNotificationSettings()
+            await refreshPermissionSnapshot(autoEnableIfReturningFromSettings: false)
+        case .denied:
+            didOpenSystemSettings = true
+            if let notifUrl = URL(string: UIApplication.openNotificationSettingsURLString),
+               UIApplication.shared.canOpenURL(notifUrl) {
+                await UIApplication.shared.open(notifUrl)
+            } else if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                await UIApplication.shared.open(settingsUrl)
+            }
+        case .authorizedActive:
+            break
+        }
+    }
+
+    @MainActor
+    private func handleLocationAction() {
+        Haptics.play(.medium)
+        switch permissionSnapshot.location {
+        case .notDetermined:
+            locationManager.requestAuthorization()
+        case .deniedOrRestricted:
+            didOpenSystemSettings = true
+            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsUrl)
+            }
+        case .authorized:
+            break
+        }
+    }
+
+    @MainActor
+    private func enableAppNotificationSettings() {
+        manager.remoteNotificationsEnabled = true
+        if UserDefaults.standard.object(forKey: "strikeNotificationsEnabled_v1") == nil {
+            manager.strikeNotificationsEnabled = true
+        }
+        manager.saveFavorites()
+        UIApplication.shared.registerForRemoteNotifications()
+        manager.syncRemoteNotifications()
+    }
+
+    @MainActor
+    private func refreshPermissionSnapshot(autoEnableIfReturningFromSettings: Bool) async {
+        locationManager.refreshAuthorizationStatus()
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+
+        if autoEnableIfReturningFromSettings && didOpenSystemSettings {
+            let sysGranted = (
+                settings.authorizationStatus == .authorized ||
+                settings.authorizationStatus == .provisional ||
+                settings.authorizationStatus == .ephemeral
+            )
+            if sysGranted && !manager.remoteNotificationsEnabled {
+                enableAppNotificationSettings()
+            }
+            didOpenSystemSettings = false
+        }
+
+        let updated = OnboardingPermissionSnapshot.from(
+            notificationStatus: settings.authorizationStatus,
+            remoteNotificationsEnabled: manager.remoteNotificationsEnabled,
+            locationStatus: locationManager.authorizationStatus
+        )
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            permissionSnapshot = updated
+            if updated.needsAnyPermission && !shouldIncludePermissionsStep {
+                shouldIncludePermissionsStep = true
             }
         }
     }
-    
+
     private func completeOnboarding() {
         Haptics.play(.medium)
         withAnimation(.easeInOut(duration: 0.25)) {
@@ -184,81 +511,277 @@ struct OnboardingHeaderView: View {
     let color: Color
     let title: String
     let subtitle: String
-    
+
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.12))
-                    .frame(width: 76, height: 76)
-                
+                    .frame(width: 72, height: 72)
+
                 Image(systemName: icon)
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.system(size: 34, weight: .semibold))
                     .foregroundColor(color)
             }
             .padding(.top, 4)
-            
+
             Text(LocalizedStringKey(title))
                 .font(.system(.title2, design: .rounded).weight(.bold))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
-            
+
             Text(LocalizedStringKey(subtitle))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 28)
                 .lineSpacing(2)
         }
     }
 }
 
-// MARK: - Scheda 1: Benvenuto & Permessi
-struct OnboardingWelcomeView: View {
-    let onContinue: () -> Void
-    
+// MARK: - Hero Card Notifiche Piano Free (10 Treni)
+struct OnboardingFreeNotificationsHeroCard: View {
+    private let freeLimit = TrainManager.freeScheduledNotificationLimit
+    private let proLimit = TrainManager.proNotificationLimit
+
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            
-            OnboardingHeaderView(
-                icon: "train.side.front.car",
-                color: .blue,
-                title: "Benvenuto su In Orario",
-                subtitle: "Il tuo compagno per viaggiare in treno con i dati ufficiali RFI, partenze e binari sempre aggiornati."
-            )
-            
-            VStack(spacing: 14) {
-                permissionRow(
-                    icon: "location.fill",
-                    color: .blue,
-                    title: "Posizione",
-                    desc: "Per rilevare la tua regione e mostrarti subito i tabelloni delle stazioni attorno a te."
-                )
-                
-                permissionRow(
-                    icon: "bell.badge.fill",
-                    color: .orange,
-                    title: "Notifiche & Live Activity",
-                    desc: "Per seguire binario, ritardi e variazioni del treno direttamente sulla schermata di blocco."
-                )
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("NOVITÀ · PIANO FREE")
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(0.5)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.orange)
+                    .clipShape(Capsule())
+
+                Spacer()
+
+                Image(systemName: "bell.badge.fill")
+                    .font(.title3.bold())
+                    .foregroundColor(.orange)
             }
-            .padding(18)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
+
+            Text("Notifiche gratis fino a \(freeLimit) treni")
+                .font(.headline.weight(.bold))
+                .foregroundColor(.primary)
+
+            Text("Anche con il piano gratuito ora puoi attivare una notifica all'orario che scegli tu fino a \(freeLimit) treni preferiti, per controllare subito ritardi, binario e soppressioni prima di uscire.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineSpacing(2)
+
+            HStack(spacing: 6) {
+                Image(systemName: "crown.fill")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                Text("Con Pro: monitoraggio continuo fino a \(proLimit) treni + riepilogo programmato")
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(.primary.opacity(0.85))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.systemBackground).opacity(0.65))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [Color.orange.opacity(0.16), Color.yellow.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-            .padding(.horizontal, 24)
-            .padding(.top, 10)
-            
-            Spacer()
-            Spacer()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.orange.opacity(0.35), lineWidth: 1.2)
+        )
+    }
+}
+
+// MARK: - Hero Card Novità Piano Pro
+struct OnboardingProWhatsNewHeroCard: View {
+    private let proLimit = TrainManager.proNotificationLimit
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("NOVITÀ · IN ORARIO PRO")
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(0.5)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.indigo)
+                    .clipShape(Capsule())
+
+                Spacer()
+
+                Image(systemName: "crown.fill")
+                    .font(.title3.bold())
+                    .foregroundColor(.indigo)
+            }
+
+            Text("Il tuo In Orario Pro, ancora più potente")
+                .font(.headline.weight(.bold))
+                .foregroundColor(.primary)
+
+            Text("Monitoraggio continuo fino a \(proLimit) treni, avvisi proattivi con Piano B e riepilogo programmato ora integrati nella nuova app a 5 schede, con Assistente IA diretto dalla Home e stazioni Casa ↔ Lavoro senza limiti.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineSpacing(2)
+
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.caption2)
+                    .foregroundColor(.indigo)
+                Text("Grazie per il supporto: tutte le novità e i widget sono già attivi per te")
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(.primary.opacity(0.85))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.systemBackground).opacity(0.65))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [Color.indigo.opacity(0.16), Color.purple.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.indigo.opacity(0.35), lineWidth: 1.2)
+        )
+    }
+}
+
+// MARK: - Scheda Aggiornamento: Le Novità di In Orario
+struct OnboardingWhatsNewView: View {
+    @EnvironmentObject var manager: TrainManager
+
+    private var audience: OnboardingAudience {
+        OnboardingAudience.resolve(hasSupport: manager.hasSupport())
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            OnboardingHeaderView(
+                icon: "sparkles",
+                color: .blue,
+                title: "Le Novità di In Orario",
+                subtitle: "Abbiamo rinnovato l'app per renderla più chiara, veloce e utile ogni giorno."
+            )
+            .padding(.top, 8)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
+                    if audience == .pro {
+                        OnboardingProWhatsNewHeroCard()
+                    } else {
+                        OnboardingFreeNotificationsHeroCard()
+                    }
+
+                    OnboardingHighlightCard(
+                        icon: "square.grid.2x2.fill",
+                        color: .blue,
+                        title: "App a 5 schede & Home su misura",
+                        desc: "Treni, Stazioni, Home, Viaggi e Linee. Scegli cosa mostrare nella Home, righe più compatte e riepilogo immediato degli avvisi."
+                    )
+
+                    OnboardingHighlightCard(
+                        icon: "tram.fill",
+                        color: .indigo,
+                        title: "Nuova sezione Linee",
+                        desc: "Tutte le linee suburbane, regionali e AV d'Italia con fermate personalizzabili e stato del servizio."
+                    )
+
+                    HStack(spacing: 5) {
+                        Image(systemName: "bolt.fill")
+                            .font(.caption2)
+                            .foregroundColor(.secondary.opacity(0.75))
+                        Text("App più leggera, cache soluzioni da 30 min e tratte Casa ↔ Lavoro in Abitudini di viaggio.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 4)
+                    .padding(.horizontal, 6)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 4)
+            }
+
+            Spacer(minLength: 0)
         }
     }
-    
-    private func permissionRow(icon: String, color: Color, title: String, desc: String) -> some View {
+}
+
+// MARK: - Scheda 1 (Nuovi Utenti): Benvenuto su In Orario
+struct OnboardingWelcomeView: View {
+    @EnvironmentObject var manager: TrainManager
+
+    private var audience: OnboardingAudience {
+        OnboardingAudience.resolve(hasSupport: manager.hasSupport())
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            OnboardingHeaderView(
+                icon: "tram.fill",
+                color: .blue,
+                title: "Benvenuto su In Orario",
+                subtitle: "Il tuo compagno per viaggiare in treno con dati ufficiali RFI, partenze, binari e avvisi in tempo reale."
+            )
+            .padding(.top, 8)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
+                    if audience == .pro {
+                        OnboardingProWhatsNewHeroCard()
+                    } else {
+                        OnboardingFreeNotificationsHeroCard()
+                    }
+
+                    OnboardingHighlightCard(
+                        icon: "clock.badge.checkmark.fill",
+                        color: .blue,
+                        title: "Tabelloni e treni in tempo reale",
+                        desc: "Controlla partenze, arrivi, binario previsto o confermato, posizione del treno e andamento in tutta Italia."
+                    )
+
+                    OnboardingHighlightCard(
+                        icon: "iphone.circle.fill",
+                        color: .purple,
+                        title: "Live Activities, Isola Dinamica e Widget",
+                        desc: "Segui il tuo treno sulla schermata di blocco e aggiungi i widget di treni e stazioni direttamente sulla Home di iOS."
+                    )
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 4)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+struct OnboardingHighlightCard: View {
+    let icon: String
+    let color: Color
+    let title: String
+    let desc: String
+
+    var body: some View {
         HStack(alignment: .top, spacing: 14) {
             ZStack {
                 Circle()
@@ -268,7 +791,7 @@ struct OnboardingWelcomeView: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(color)
             }
-            
+
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -280,6 +803,13 @@ struct OnboardingWelcomeView: View {
             }
             Spacer(minLength: 0)
         }
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
+        )
     }
 }
 
@@ -992,78 +1522,133 @@ struct OnboardingStationsPreferenceView: View {
     }
 }
 
-// MARK: - Scheda 5: Funzioni Smart & Gestures
-struct OnboardingFeaturesView: View {
+// MARK: - Scheda Guida Rapida & Funzioni Smart (Ultima pagina)
+struct OnboardingQuickGuideView: View {
+    @EnvironmentObject var manager: TrainManager
+    let isUpdateMode: Bool
+    var onOpenCommuteSettings: (() -> Void)? = nil
+
     var body: some View {
+        let isPro = manager.hasSupport()
         VStack(spacing: 16) {
             OnboardingHeaderView(
-                icon: "sparkles",
+                icon: isUpdateMode ? "hand.draw.fill" : "sparkles",
                 color: .purple,
-                title: "Tutto Pronto per il Viaggio",
-                subtitle: "Funzionalità avanzate per viaggiare in treno senza stress e senza sorprese."
+                title: isUpdateMode ? "Come orientarti al volo" : "Tutto Pronto per il Viaggio",
+                subtitle: isUpdateMode
+                    ? "Pochi gesti rapidi per usare al meglio tutte le nuove funzioni."
+                    : "Pochi gesti rapidi e funzioni smart per viaggiare senza stress."
             )
             .padding(.top, 8)
-            
+
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 12) {
-                    // Feature 1: Live Activity
-                    featureCard(
-                        icon: "iphone.circle.fill",
-                        color: .purple,
-                        title: "Live Activities & Isola Dinamica",
-                        desc: "Segui ritardi, avanzamento e binario direttamente sulla schermata di blocco o nell'Isola Dinamica."
-                    )
-                    
-                    // Feature 2: Coincidenze Metro con Pressione Prolungata
-                    VStack(alignment: .leading, spacing: 8) {
+                    // Card dedicata Casa <-> Lavoro in Abitudini di viaggio
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack(alignment: .top, spacing: 14) {
                             ZStack {
                                 Circle()
                                     .fill(Color.blue.opacity(0.12))
                                     .frame(width: 38, height: 38)
-                                Image(systemName: "hand.tap.fill")
+                                Image(systemName: "clock.arrow.2.circlepath")
                                     .font(.system(size: 17, weight: .bold))
                                     .foregroundColor(.blue)
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("Coincidenze Metro al Volo")
+                                Text("Tratte Casa ↔ Lavoro")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(.primary)
-                                Text("Dalla vista fermate del treno, tieni premuta una stazione per vedere le partenze metro e la stima di fattibilità del trasbordo.")
+                                Text(isPro
+                                     ? "Imposta le tue stazioni di Casa e Lavoro e i tuoi orari: avrai monitoraggio automatico, Piano B e tratta sempre pronta in Home e Viaggi."
+                                     : "Imposta fino a \(SupporterCommuteManager.maxStationsPerSide) stazioni di Casa e Lavoro e i tuoi orari: troverai la tratta pronta in Home e Viaggi con tutte le partenze combinate.")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .lineSpacing(2)
                             }
                         }
-                        
-                        // Badge interattivo esplicativo
-                        HStack(spacing: 6) {
-                            Text("👆 Pressione prolungata")
-                                .font(.system(size: 11, weight: .semibold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.12))
-                                .foregroundColor(.blue)
-                                .clipShape(Capsule())
-                            
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            HStack(spacing: 4) {
-                                Circle().fill(Color.green).frame(width: 6, height: 6)
-                                Text("Fattibilità trasbordo")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.secondary)
+
+                        if let onOpenCommuteSettings {
+                            Button {
+                                Haptics.play(.medium)
+                                onOpenCommuteSettings()
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text("Raggiungi le impostazioni qui per configurarle")
+                                        .font(.caption.weight(.semibold))
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.caption2.bold())
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 9)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                             }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color(.tertiarySystemGroupedBackground))
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(14)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.blue.opacity(0.24), lineWidth: 1)
+                    )
+
+                    // Card: Gesti rapidi uniformati ovunque
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .top, spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.purple.opacity(0.12))
+                                    .frame(width: 38, height: 38)
+                                Image(systemName: "hand.draw.fill")
+                                    .font(.system(size: 17, weight: .bold))
+                                    .foregroundColor(.purple)
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Swipe rapidi ovunque")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(.primary)
+                                Text("Scorri a sinistra per aggiungere o togliere dai preferiti. Sui treni, scorri a destra per l'Isola Dinamica (si chiude da sola all'arrivo!).")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineSpacing(2)
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.left")
+                                    .font(.system(size: 10, weight: .bold))
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 10, weight: .bold))
+                                Text("Preferiti")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(Color.orange.opacity(0.14))
+                            .foregroundColor(.orange)
+                            .clipShape(Capsule())
+
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 10, weight: .bold))
+                                Image(systemName: "platter.filled.top.iphone")
+                                    .font(.system(size: 10, weight: .bold))
+                                Text("Isola Dinamica")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(Color.purple.opacity(0.14))
+                            .foregroundColor(.purple)
                             .clipShape(Capsule())
                         }
                         .padding(.leading, 52)
-                        .padding(.top, 2)
                     }
                     .padding(14)
                     .background(Color(.secondarySystemGroupedBackground))
@@ -1072,59 +1657,303 @@ struct OnboardingFeaturesView: View {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
                     )
-                    
-                    // Feature 3: Scioperi con IA
-                    featureCard(
-                        icon: "megaphone.fill",
-                        color: .red,
-                        title: "Scioperi & Notizie con IA",
-                        desc: "Sintesi chiare e automatiche sugli avvisi di circolazione e agitazioni sindacali."
+
+                    OnboardingHighlightCard(
+                        icon: "magnifyingglass.circle.fill",
+                        color: .indigo,
+                        title: "Ricerca veloce & Assistente IA",
+                        desc: "Tocca la barra in alto nella Home per cercare treni, stazioni o fare domande in linguaggio naturale, anche con la voce."
                     )
-                    
-                    // Feature 4: Widget Schermata Home
-                    featureCard(
+
+                    OnboardingHighlightCard(
+                        icon: "arrow.left.arrow.right",
+                        color: .teal,
+                        title: "Viaggi e Tratte sempre pronti",
+                        desc: "Cambia data e ora in un tap, inverti partenza e arrivo e scorri verso sinistra su una tratta per salvarla nei segnalibri."
+                    )
+
+                    OnboardingHighlightCard(
                         icon: "square.grid.2x2.fill",
                         color: .green,
-                        title: "Widget Schermata Home",
-                        desc: "Visualizza i tuoi treni e stazioni preferite a colpo d'occhio senza nemmeno aprire l'app."
+                        title: "Coincidenze Metro & Widget iOS",
+                        desc: "Tieni premuta una fermata del treno per vedere le coincidenze metro, o aggiungi i Widget Treni e Stazioni personalizzabili alla Home."
                     )
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 4)
             }
-            
+
             Spacer(minLength: 0)
         }
     }
-    
-    private func featureCard(icon: String, color: Color, title: String, desc: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.12))
-                    .frame(width: 38, height: 38)
-                Image(systemName: icon)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(color)
+}
+
+// MARK: - Scheda Condizionale: Permessi Mancanti (Notifiche e Posizione)
+struct OnboardingPermissionsView: View {
+    let snapshot: OnboardingPermissionSnapshot
+    let initiallyNeededNotifications: Bool
+    let initiallyNeededLocation: Bool
+    let isRequesting: Bool
+    let onRequestNotifications: () -> Void
+    let onRequestLocation: () -> Void
+
+    private let freeLimit = TrainManager.freeScheduledNotificationLimit
+
+    private var headerConfig: (icon: String, color: Color, title: String, subtitle: String) {
+        if initiallyNeededNotifications && initiallyNeededLocation {
+            return (
+                "bell.and.waves.left.and.right.fill",
+                .orange,
+                "Migliora la tua esperienza",
+                "Ciao! Avrei bisogno dell'accesso alle notifiche e alla posizione per migliorare la tua esperienza su In Orario."
+            )
+        } else if initiallyNeededNotifications {
+            return (
+                "bell.badge.fill",
+                .orange,
+                "Attiva le notifiche",
+                "Ciao! Avrei bisogno dell'accesso alle notifiche per migliorare la tua esperienza: senza notifiche ti perdi ciò per cui è nata l'app."
+            )
+        } else {
+            return (
+                "location.fill",
+                .blue,
+                "Attiva la posizione",
+                "Ciao! Avrei bisogno dell'accesso alla posizione per migliorare la tua esperienza e mostrarti subito le stazioni attorno a te."
+            )
+        }
+    }
+
+    var body: some View {
+        let cfg = headerConfig
+        VStack(spacing: 16) {
+            OnboardingHeaderView(
+                icon: cfg.icon,
+                color: cfg.color,
+                title: cfg.title,
+                subtitle: cfg.subtitle
+            )
+            .padding(.top, 8)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 14) {
+                    if initiallyNeededNotifications || snapshot.needsNotifications {
+                        notificationsCard
+                    } else {
+                        alreadyActivePill(
+                            icon: "bell.badge.fill",
+                            text: "Notifiche già attive"
+                        )
+                    }
+
+                    if initiallyNeededLocation || snapshot.needsLocation {
+                        locationCard
+                    } else {
+                        alreadyActivePill(
+                            icon: "location.fill",
+                            text: "Posizione già attiva"
+                        )
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 4)
             }
-            
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.primary)
-                Text(desc)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineSpacing(2)
-            }
+
             Spacer(minLength: 0)
         }
-        .padding(14)
+    }
+
+    private var notificationsCard: some View {
+        let isActive = snapshot.isNotificationsReady
+        let statusLabel: String = {
+            switch snapshot.notifications {
+            case .authorizedActive: return "Attive"
+            case .authorizedAppToggleOff: return "Disattivate nell'app"
+            case .notDetermined: return "Non attive"
+            case .denied: return "Bloccate"
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill((isActive ? Color.green : Color.orange).opacity(0.14))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: isActive ? "bell.badge.fill" : "bell.slash.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(isActive ? .green : .orange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Notifiche push")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(.primary)
+                    Text(statusLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(isActive ? .green : .orange)
+                }
+
+                Spacer()
+
+                if isActive {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.green)
+                }
+            }
+
+            Text("Senza le notifiche ti perdi moltissimo: sono il motivo principale per cui esiste In Orario. Ricevi gratis l'avviso all'orario che scegli fino a \(freeLimit) treni, più scioperi, ritardi e cambi binario.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineSpacing(2)
+
+            if !isActive {
+                Button(action: onRequestNotifications) {
+                    HStack(spacing: 6) {
+                        Image(systemName: snapshot.notifications == .denied ? "gear" : "bell.badge.fill")
+                            .font(.caption.bold())
+                        Text(notificationActionTitle)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.orange.opacity(0.14))
+                    .foregroundColor(.orange)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .disabled(isRequesting)
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                    Text("Notifiche attive — sei coperto!")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .padding(16)
         .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke((isActive ? Color.green : Color.orange).opacity(0.28), lineWidth: 1)
+        )
+    }
+
+    private var notificationActionTitle: String {
+        switch snapshot.notifications {
+        case .notDetermined:
+            return "Attiva notifiche"
+        case .authorizedAppToggleOff:
+            return "Riattiva notifiche nell'app"
+        case .denied:
+            return "Apri Impostazioni Notifiche"
+        case .authorizedActive:
+            return "Attive"
+        }
+    }
+
+    private var locationCard: some View {
+        let isActive = snapshot.isLocationReady
+        let statusLabel: String = {
+            switch snapshot.location {
+            case .authorized: return "Attiva"
+            case .notDetermined: return "Non attiva"
+            case .deniedOrRestricted: return "Negata"
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill((isActive ? Color.green : Color.blue).opacity(0.14))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: isActive ? "location.fill" : "location.slash.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(isActive ? .green : .blue)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Posizione (solo mentre usi l'app)")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(.primary)
+                    Text(statusLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(isActive ? .green : .blue)
+                }
+
+                Spacer()
+
+                if isActive {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.green)
+                }
+            }
+
+            Text("Serve solo quando apri In Orario per mostrarti subito la stazione più vicina, le partenze attorno a te e impostare automaticamente la tua regione.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineSpacing(2)
+
+            if !isActive {
+                Button(action: onRequestLocation) {
+                    HStack(spacing: 6) {
+                        Image(systemName: snapshot.location == .deniedOrRestricted ? "gear" : "location.fill")
+                            .font(.caption.bold())
+                        Text(snapshot.location == .deniedOrRestricted ? "Apri Impostazioni Posizione" : "Attiva posizione")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.blue.opacity(0.14))
+                    .foregroundColor(.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .disabled(isRequesting)
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                    Text("Posizione attiva!")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke((isActive ? Color.green : Color.blue).opacity(0.28), lineWidth: 1)
+        )
+    }
+
+    private func alreadyActivePill(icon: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.subheadline.bold())
+                .foregroundColor(.green)
+            Text(text)
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(.primary)
+            Spacer()
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color.green.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.green.opacity(0.22), lineWidth: 0.8)
         )
     }
 }

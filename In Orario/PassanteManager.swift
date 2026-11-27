@@ -37,6 +37,7 @@ import SwiftUI
     private var tunnelDetailFetchTask: Task<Bool, Never>?
     private var activeTunnelDetailTaskID = UUID()
     private var lastPassanteFetchTimestamp: TimeInterval = 0
+    private var lastTunnelHealthFetchTimestamp: TimeInterval = 0
     private var pendingRefreshNeeds: (force: Bool, includePositions: Bool)?
     
     @Published var passanteTunnelWestHealthMessage: String = "Ovest: Regolare"
@@ -185,9 +186,9 @@ import SwiftUI
                 }
             }
             guard self.isTunnelDetailOpen, !Task.isCancelled else { return false }
-            async let healthTask = self.fetchTunnelHealth(manager: manager, includePositions: true)
-            async let localTask = self.fetchAllPassanteTrains(manager: manager, force: force)
-            let (healthSuccess, localSuccess) = await (healthTask, localTask)
+            let healthSuccess = await self.fetchTunnelHealth(manager: manager, includePositions: true)
+            guard self.isTunnelDetailOpen, !Task.isCancelled else { return healthSuccess }
+            let localSuccess = await self.fetchAllPassanteTrains(manager: manager, force: force)
             
             guard self.isTunnelDetailOpen, !Task.isCancelled else { return false }
             if !healthSuccess && localSuccess && self.isServerHealthOffline {
@@ -243,8 +244,14 @@ import SwiftUI
         self.lastLocalUpdateTimestamp = now
         self.lastLocalAverageDelay = avgDelay
         
-        // We fetch live statuses for the 5 sample trains displayed in the detail sheet
-        let trainsToFetch = Array(allTrains.prefix(5))
+        // Evitiamo chiamate ridondanti a ViaggiaTreno quando il backend ha già fornito
+        // le posizioni live aggiornate per questi treni (salvo refresh esplicito o server offline).
+        let trainsToFetch = Array(allTrains.prefix(5)).filter { train in
+            if force || self.isServerHealthOffline { return true }
+            guard let existing = self.passanteLiveStatuses[train.number] else { return true }
+            let cleanLast = existing.lastStation.trimmingCharacters(in: .whitespacesAndNewlines)
+            return cleanLast.isEmpty || cleanLast == "--"
+        }
         
         var statuses: [String: TrainStatus] = [:]
         await withTaskGroup(of: (String, TrainStatus)?.self) { group in
@@ -380,6 +387,19 @@ import SwiftUI
         return (allTrains, avgDelay)
     }
     
+    @discardableResult
+    func refreshTunnelHealthIfNeeded(manager: TrainManager, minInterval: TimeInterval = 240, force: Bool = false) async -> Bool {
+        let now = Date().timeIntervalSince1970
+        if !force && (now - lastTunnelHealthFetchTimestamp < minInterval) {
+            return true
+        }
+        let ok = await fetchTunnelHealth(manager: manager, includePositions: false)
+        if ok {
+            lastTunnelHealthFetchTimestamp = Date().timeIntervalSince1970
+        }
+        return ok
+    }
+
     @discardableResult
     func fetchTunnelHealth(manager: TrainManager, includePositions: Bool = false) async -> Bool {
         let linesParam = selectedSuburbanLines.joined(separator: ",")

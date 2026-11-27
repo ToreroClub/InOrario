@@ -378,7 +378,8 @@ struct TrainStopsView: View {
                                 showReplaceLiveActivityAlert = true
                             } else {
                                 startLiveActivity(train: train)
-                                if !manager.hasSupport() {
+                                if !manager.hasSupport() && !UserDefaults.standard.bool(forKey: "hasShownFreeLiveActivityInfoAlert_v1") {
+                                    UserDefaults.standard.set(true, forKey: "hasShownFreeLiveActivityInfoAlert_v1")
                                     showFreeLiveActivityAlert = true
                                 }
                             }
@@ -389,7 +390,13 @@ struct TrainStopsView: View {
                     }
                     
                     let favTrain = manager.favoriteTrains.first(where: { $0.number == train.number })
-                    let hasNotifications = favTrain?.notifyDelay == true || favTrain?.notifyDeparture == true || favTrain?.notifyStationPass == true || favTrain?.notifyPlatformChange == true || favTrain?.notifyScheduledTime == true
+                    let hasContinuousNotif = manager.hasSupport() && (
+                        favTrain?.notifyDelay == true ||
+                        favTrain?.notifyDeparture == true ||
+                        favTrain?.notifyStationPass == true ||
+                        favTrain?.notifyPlatformChange == true
+                    )
+                    let hasNotifications = hasContinuousNotif || favTrain?.notifyScheduledTime == true
                     
                     Button {
                         if isItalo {
@@ -397,20 +404,38 @@ struct TrainStopsView: View {
                             showItaloUnsupportedAlert = true
                         } else {
                             Haptics.play(.medium)
-                            if let existing = favTrain {
-                                selectedTrainForConfig = existing
-                            } else {
-                                let origin = manager.selectedTrainStops.first?.stationName ?? ""
-                                let dest = manager.selectedTrainStops.last?.stationName ?? train.destination
-                                let desc = origin.isEmpty ? dest : "\(origin) - \(dest)"
-                                
-                                if !manager.isFavorite(trainNumber: train.number) {
-                                    manager.toggleFavorite(trainNumber: train.number, description: desc, departureTime: train.time)
+                            let origin = manager.selectedTrainStops.first?.stationName ?? ""
+                            let dest = manager.selectedTrainStops.last?.stationName ?? train.destination
+                            let desc = origin.isEmpty ? dest : "\(origin) - \(dest)"
+                            let depTime = manager.selectedTrainStops.first?.time ?? train.time
+                            let arrTime = manager.selectedTrainStops.last?.time
+
+                            if !manager.isFavorite(trainNumber: train.number) {
+                                manager.toggleFavorite(trainNumber: train.number, description: desc, departureTime: depTime)
+                            }
+
+                            if let idx = manager.favoriteTrains.firstIndex(where: { $0.number == train.number }) {
+                                if (manager.favoriteTrains[idx].arrivalTime ?? "").isEmpty, let arrTime = arrTime, !arrTime.isEmpty {
+                                    manager.favoriteTrains[idx].arrivalTime = arrTime
                                 }
-                                
-                                if let newlyAdded = manager.favoriteTrains.first(where: { $0.number == train.number }) {
-                                    selectedTrainForConfig = newlyAdded
+                                if manager.hasSupport() && !hasNotifications {
+                                    let limit = manager.getLimit()
+                                    let otherActiveCount = manager.favoriteTrains.enumerated().filter { offset, other in
+                                        offset != idx && (
+                                            other.notifyScheduledTime == true ||
+                                            other.notifyDelay == true ||
+                                            other.notifyDeparture == true ||
+                                            other.notifyStationPass == true ||
+                                            other.notifyPlatformChange == true
+                                        )
+                                    }.count
+                                    if otherActiveCount < limit {
+                                        manager.favoriteTrains[idx].notifyDelay = true
+                                        manager.saveFavorites()
+                                        manager.syncRemoteNotifications()
+                                    }
                                 }
+                                selectedTrainForConfig = manager.favoriteTrains[idx]
                             }
                         }
                     } label: {
@@ -438,6 +463,12 @@ struct TrainStopsView: View {
         .onAppear {
             manager.addToViewedRecentTrains(number: train.number, description: train.destination, departureTime: train.time, category: train.category)
             usageTracker.recordTrainCheck(number: train.number, category: train.category, destination: train.destination, location: locationManager.userLocation?.coordinate)
+            UserInterestTelemetryManager.shared.recordTrainView(
+                number: train.number,
+                category: train.category,
+                destination: train.destination,
+                departureTime: train.time
+            )
             loadLocalReports()
         }
         .sheet(item: $selectedTrainForConfig) { trainItem in
@@ -456,7 +487,7 @@ struct TrainStopsView: View {
             }
             Button("Ho capito", role: .cancel) { }
         } message: {
-            Text("Puoi aggiornare lo stato del treno in qualsiasi momento toccando il pulsante 🔄 sulla schermata di blocco o riaprendo l'app.\n\nPreferisci gli aggiornamenti automatici ad alta frequenza (ogni 30–60 secondi) anche a telefono bloccato? Attiva In Orario Pro per sbloccarli!")
+            Text("Con il piano gratuito la Live Activity si aggiorna automaticamente ogni 2 minuti e ti avvisa con un suono in caso di variazioni importanti del treno (puoi anche aggiornarla manualmente con 🔄).\n\nVuoi aggiornamenti istantanei ogni minuto, notifiche continue e fino a 20 treni monitorati? Passa a In Orario Pro!")
         }
         .alert("Attenzione", isPresented: $showReplaceLiveActivityAlert) {
             Button("OK") {
@@ -466,7 +497,8 @@ struct TrainStopsView: View {
                     }
                     manager.syncLiveActivities()
                     startLiveActivity(train: train)
-                    if !manager.hasSupport() {
+                    if !manager.hasSupport() && !UserDefaults.standard.bool(forKey: "hasShownFreeLiveActivityInfoAlert_v1") {
+                        UserDefaults.standard.set(true, forKey: "hasShownFreeLiveActivityInfoAlert_v1")
                         showFreeLiveActivityAlert = true
                     }
                 }
@@ -576,56 +608,59 @@ struct TrainStopsView: View {
             }
         }
         
-        let originStation = manager.selectedTrainStops.first?.stationName ?? "Partenza"
+        let stops = manager.selectedTrainStops
+        let rawOrigin = stops.first?.stationName ?? train.origin ?? ""
+        let rawDest = stops.last?.stationName ?? train.destination
+        let originStation = rawOrigin.isEmpty ? "Partenza" : rawOrigin
+        let destinationStation = rawDest.isEmpty ? train.destination : rawDest
+        let rawCat = manager.currentTrainStatus.detectedCategory ?? train.category
+        let resolvedCategory = train.isItalo ? "Italo" : resolveTrainCategory(
+            number: train.number,
+            rawCategory: rawCat,
+            description: "\(originStation) - \(destinationStation)"
+        )
         
         let attributes = TrainLiveActivityAttributes(
             trainNumber: train.number,
-            destination: train.destination,
-            category: train.category,
+            destination: destinationStation,
+            category: resolvedCategory,
             origin: originStation
         )
         
-        let stops = manager.selectedTrainStops
         let lastStation = manager.currentTrainStatus.lastStation
-        let isArrived = manager.currentTrainStatus.isArrived
-        
-        var progressVal: Double = 0.0
-        if isArrived {
-            progressVal = 1.0
-        } else if !stops.isEmpty {
-            if stops.count == 1 {
-                progressVal = 1.0
-            } else {
-                let lastClean = lastStation.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                if let idx = stops.firstIndex(where: { 
-                    $0.stationName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == lastClean 
-                }) {
-                    progressVal = Double(idx) / Double(stops.count - 1)
-                }
-            }
-        }
+        let progressVal = TrainManager.computeLiveActivityProgress(stops: stops, status: manager.currentTrainStatus)
+        let delayStr = TrainManager.formatLiveActivityDelay(
+            stops: stops,
+            status: manager.currentTrainStatus,
+            fallbackDelay: train.delay
+        )
+        let nextInfo = TrainManager.computeLiveActivityNextStop(
+            stops: stops,
+            status: manager.currentTrainStatus,
+            fallbackDelay: train.delay
+        )
         
         let contentState = TrainLiveActivityAttributes.ContentState(
-            delay: train.delay,
+            delay: delayStr,
             statusMessage: manager.currentTrainStatus.statusMessage,
             lastStation: lastStation,
             progress: progressVal,
-            lastDetectionTime: manager.currentTrainStatus.lastTime
+            lastDetectionTime: manager.currentTrainStatus.lastTime,
+            nextStation: nextInfo.station,
+            nextStationEstimatedTime: nextInfo.estimatedTime
         )
         
         do {
             let activity = try Activity.request(
                 attributes: attributes,
                 content: .init(state: contentState, staleDate: nil),
-                pushType: manager.hasSupport() ? .token : nil
+                pushType: .token
             )
-            if manager.hasSupport() {
-                Task {
-                    for await tokenData in activity.pushTokenUpdates {
-                        let dt = manager.getEffectiveDeviceToken()
-                        manager.registerLiveActivityToken(pushToken: tokenData, trainNumber: train.number, deviceToken: dt)
-                        break
-                    }
+            Task {
+                for await tokenData in activity.pushTokenUpdates {
+                    let dt = manager.getEffectiveDeviceToken()
+                    manager.registerLiveActivityToken(pushToken: tokenData, trainNumber: train.number, deviceToken: dt)
+                    break
                 }
             }
             manager.syncLiveActivities()

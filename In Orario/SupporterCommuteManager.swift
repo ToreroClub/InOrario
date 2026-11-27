@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 import StoreKit
+import ActivityKit
 
 // MARK: - Models
 
@@ -250,6 +251,29 @@ struct CommuteScheduleDTO: Codable, Identifiable, Equatable {
     var weekdays: [Int] // 1=Mon .. 7=Sun
 }
 
+nonisolated func planBStationMatch(_ s1: String, _ s2: String) -> Bool {
+    if s1.localizedCaseInsensitiveCompare(s2) == .orderedSame { return true }
+    let l1 = s1.lowercased()
+    let l2 = s2.lowercased()
+    if l1.contains("garibaldi") && l2.contains("garibaldi") &&
+       !l1.contains("pavia") && !l2.contains("pavia") &&
+       !l1.contains("casalecchio") && !l2.contains("casalecchio") &&
+       !l1.contains("napoli") && !l2.contains("napoli") {
+        return true
+    }
+    if s1.localizedCaseInsensitiveContains(s2) || s2.localizedCaseInsensitiveContains(s1) { return true }
+    func clean(_ s: String) -> String {
+        var str = s.uppercased()
+        for w in ["MILANO ", "ROMA ", "NAPOLI ", "TORINO ", "BOLOGNA ", "FIRENZE ", "PASSANTE", "SUPERFICIE", "SOTTERRANEA", "SOTTERRANEO", "SOTT.", "FS", "F.S.", "POLITECNICO", "PORTA ", "P.TA ", "P. ", "P "] {
+            str = str.replacingOccurrences(of: w, with: "")
+        }
+        return str.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    let c1 = clean(s1)
+    let c2 = clean(s2)
+    return !c1.isEmpty && !c2.isEmpty && c1 == c2
+}
+
 struct PlanBLegItem: Codable, Identifiable, Equatable {
     var id: String { "\(train_number)_\(departure_time)_\(origin)_\(destination)" }
     let train_number: String
@@ -264,6 +288,120 @@ struct PlanBLegItem: Codable, Identifiable, Equatable {
     var is_station_walk: Bool?
     var travel_minutes: Int?
     var urban_headsign: String?
+
+    var isRailTrain: Bool {
+        let isWalk = is_station_walk == true || category.contains("piedi") || train_number.contains("piedi")
+        return !isWalk && !is_urban
+    }
+}
+
+struct FollowedTrip: Codable, Equatable, Identifiable {
+    var id: String { "\(alternative.id)_\(dayKey)" }
+    let alternative: PlanBAlternativeItem
+    let legs: [PlanBLegItem]
+    let dayKey: String
+    let createdAt: Date
+
+    var railLegs: [PlanBLegItem] { legs.filter { $0.isRailTrain } }
+    var isSingleTrain: Bool { railLegs.count == 1 }
+    var isExpired: Bool { dayKey != DateFormatter.todayString() }
+
+    static func from(solution: TravelSolution) -> FollowedTrip {
+        let mappedLegs: [PlanBLegItem]
+        if solution.segments.isEmpty {
+            mappedLegs = [
+                PlanBLegItem(
+                    train_number: solution.trainNumber,
+                    category: solution.category,
+                    origin: solution.origin,
+                    destination: solution.destination,
+                    departure_time: solution.departureTime,
+                    arrival_time: solution.arrivalTime,
+                    delay: 0,
+                    platform: "",
+                    is_urban: solution.category == "Trasporto Urbano" || solution.category.contains("Metro"),
+                    is_station_walk: solution.category == "Interscambio a piedi",
+                    travel_minutes: nil,
+                    urban_headsign: nil
+                )
+            ]
+        } else {
+            mappedLegs = solution.segments.map { seg in
+                let isWalk = seg.isStationWalk || seg.trainCategory == "Interscambio a piedi"
+                let isUrban = seg.trainCategory == "Trasporto Urbano" || seg.trainCategory.contains("Metro")
+                return PlanBLegItem(
+                    train_number: seg.trainNumber,
+                    category: seg.trainCategory,
+                    origin: seg.origin,
+                    destination: seg.destination,
+                    departure_time: seg.departureTime,
+                    arrival_time: seg.arrivalTime,
+                    delay: 0,
+                    platform: "",
+                    is_urban: isUrban,
+                    is_station_walk: isWalk,
+                    travel_minutes: seg.travelMinutes,
+                    urban_headsign: seg.urbanHeadsign
+                )
+            }
+        }
+
+        let firstTrainLeg = mappedLegs.first(where: { $0.isRailTrain }) ?? mappedLegs.first
+        let alt = PlanBAlternativeItem(
+            train_number: firstTrainLeg?.train_number ?? solution.trainNumber,
+            category: firstTrainLeg?.category ?? solution.category,
+            destination: solution.destination,
+            station: solution.origin,
+            departure_time: solution.departureTime,
+            arrival_time: solution.arrivalTime,
+            duration: solution.duration,
+            delay: 0,
+            platform: "",
+            transfer_info: mappedLegs.count > 1 ? "\(mappedLegs.count - 1) cambi" : "Diretto",
+            legs: mappedLegs
+        )
+
+        return FollowedTrip(
+            alternative: alt,
+            legs: mappedLegs,
+            dayKey: DateFormatter.todayString(),
+            createdAt: Date()
+        )
+    }
+
+    func toTravelSolution() -> TravelSolution {
+        let segs: [TravelSegment] = legs.map { leg in
+            let isWalk = leg.is_station_walk == true || leg.category.contains("piedi") || leg.train_number.contains("piedi")
+            return TravelSegment(
+                origin: leg.origin,
+                destination: leg.destination,
+                departureTime: leg.departure_time,
+                arrivalTime: leg.arrival_time,
+                trainNumber: leg.train_number,
+                trainCategory: leg.category,
+                travelMinutes: leg.travel_minutes,
+                urbanHeadsign: leg.urban_headsign,
+                isStationWalk: isWalk
+            )
+        }
+        let firstLeg = legs.first
+        let lastLeg = legs.last
+        let origin = firstLeg?.origin ?? alternative.station
+        let destination = lastLeg?.destination ?? alternative.destination
+        let depTime = firstLeg?.departure_time ?? alternative.departure_time
+        let arrTime = lastLeg?.arrival_time ?? alternative.arrival_time ?? "--:--"
+        let duration = alternative.duration ?? TrainManager.calculateDurationBetween(dep: depTime, arr: arrTime) ?? "--"
+        return TravelSolution(
+            trainNumber: alternative.train_number,
+            category: alternative.category,
+            departureTime: depTime,
+            arrivalTime: arrTime,
+            origin: origin,
+            destination: destination,
+            duration: duration,
+            segments: segs
+        )
+    }
 }
 
 struct PlanBAlternativeItem: Codable, Identifiable, Equatable {
@@ -279,6 +417,84 @@ struct PlanBAlternativeItem: Codable, Identifiable, Equatable {
     let platform: String
     let transfer_info: String
     var legs: [PlanBLegItem]?
+
+    var resolvedLegs: [PlanBLegItem] {
+        if let l = legs, !l.isEmpty {
+            let cleaned = l.filter { !planBStationMatch($0.origin, $0.destination) }
+            if !cleaned.isEmpty { return cleaned }
+        }
+        return [
+            PlanBLegItem(
+                train_number: train_number,
+                category: category,
+                origin: station,
+                destination: destination,
+                departure_time: departure_time,
+                arrival_time: arrival_time ?? "--:--",
+                delay: delay,
+                platform: platform,
+                is_urban: train_number.contains("M1") || category.contains("Metro"),
+                is_station_walk: false,
+                travel_minutes: nil,
+                urban_headsign: nil
+            )
+        ]
+    }
+
+    var compactTrainsSummary: String {
+        let nonWalkLegs = resolvedLegs.filter { !($0.is_station_walk == true || $0.category.lowercased().contains("piedi")) }
+        let formatted = nonWalkLegs.compactMap { leg -> String? in
+            if leg.is_urban {
+                let c = leg.category.trimmingCharacters(in: .whitespacesAndNewlines)
+                return c.isEmpty ? "Metro" : c
+            }
+            let cleanCat = cleanTrainCategory(leg.category)
+            let num = leg.train_number.trimmingCharacters(in: .whitespacesAndNewlines)
+            if cleanCat.isEmpty && num.isEmpty { return nil }
+            return cleanCat.isEmpty ? num : "\(cleanCat) \(num)"
+        }
+        if !formatted.isEmpty {
+            return formatted.joined(separator: " + ")
+        }
+        let cleanCat = cleanTrainCategory(category)
+        return cleanCat.isEmpty ? train_number : "\(cleanCat) \(train_number)"
+    }
+
+    func toTravelSolution() -> TravelSolution {
+        let legs = resolvedLegs
+        let segs: [TravelSegment] = legs.map { leg in
+            let isWalk = leg.is_station_walk == true || leg.category.lowercased().contains("piedi") || leg.train_number.lowercased().contains("piedi")
+            return TravelSegment(
+                origin: leg.origin,
+                destination: leg.destination,
+                departureTime: leg.departure_time,
+                arrivalTime: leg.arrival_time,
+                trainNumber: leg.train_number,
+                trainCategory: leg.category,
+                travelMinutes: leg.travel_minutes,
+                urbanHeadsign: leg.urban_headsign,
+                isStationWalk: isWalk
+            )
+        }
+        let firstLeg = legs.first
+        let lastLeg = legs.last
+        let orig = firstLeg?.origin ?? station
+        let dest = lastLeg?.destination ?? destination
+        let dep = firstLeg?.departure_time ?? departure_time
+        let arr = lastLeg?.arrival_time ?? arrival_time ?? "--:--"
+        let dur = duration ?? TrainManager.calculateDurationBetween(dep: dep, arr: arr) ?? "--"
+        let cleanCat = cleanTrainCategory(firstLeg?.category ?? category)
+        return TravelSolution(
+            trainNumber: firstLeg?.train_number ?? train_number,
+            category: cleanCat.isEmpty ? (firstLeg?.category ?? category) : cleanCat,
+            departureTime: dep,
+            arrivalTime: arr,
+            origin: orig,
+            destination: dest,
+            duration: dur,
+            segments: segs
+        )
+    }
 }
 
 struct ActiveHabitCommuteSlot: Equatable {
@@ -302,9 +518,16 @@ struct PlanBReportDTO: Codable, Identifiable, Equatable {
     let timestamp: String
 }
 
+struct CachedProactiveHabitPlan: Codable, Equatable {
+    let slotKey: String
+    let dayKey: String
+    let fetchedAt: Date
+    let plan: PlanBReportDTO
+}
+
 // MARK: - City/Station Formatter
 
-func formatCityOrStationSummary(_ stations: [String]) -> String {
+nonisolated func formatCityOrStationSummary(_ stations: [String]) -> String {
     guard !stations.isEmpty else { return "" }
 
     func cleanStationDisplay(_ s: String) -> String {
@@ -365,6 +588,12 @@ func formatCityOrStationSummary(_ stations: [String]) -> String {
 class SupporterCommuteManager: ObservableObject {
     static let shared = SupporterCommuteManager()
     
+    static let maxStationsPerSide = 3
+
+    nonisolated static func canAddStation(currentCount: Int, isPro: Bool) -> Bool {
+        isPro || currentCount < maxStationsPerSide
+    }
+
     static let timeBands: [String] = [
         "05:00 - 06:00",
         "06:00 - 07:00",
@@ -405,6 +634,9 @@ class SupporterCommuteManager: ObservableObject {
     @AppStorage("commute_prompt_permanently_dismissed_v1") var promptPermanentlyDismissed: Bool = false
     @AppStorage("pinned_plan_b_json_v1") private var pinnedPlanBJSON: String = ""
     @AppStorage("commute_chosen_alternative_id_v1") private var chosenAlternativeIdRaw: String = ""
+    @AppStorage("commute_followed_trip_json_v1") private var followedTripJSON: String = ""
+    @AppStorage("commute_proactive_habit_cache_v1") private var proactiveHabitCacheJSON: String = ""
+    @AppStorage("commute_manual_dir_override_v1") private var manualDirectionOverrideRaw: String = ""
     
     @Published var origins: [String] = [] {
         didSet { saveOrigins() }
@@ -429,14 +661,36 @@ class SupporterCommuteManager: ObservableObject {
     @Published var chosenAlternativeId: String? = nil {
         didSet { chosenAlternativeIdRaw = chosenAlternativeId ?? "" }
     }
+    @Published var followedTrip: FollowedTrip? = nil {
+        didSet {
+            if let trip = followedTrip,
+               let data = try? JSONEncoder().encode(trip),
+               let str = String(data: data, encoding: .utf8) {
+                followedTripJSON = str
+            } else {
+                followedTripJSON = ""
+            }
+        }
+    }
     @Published var isCalculatingPlanB: Bool = false
+    @Published var isCalculatingCommuteSolutions: Bool = false
     @Published var lastSyncError: String? = nil
+
+    var hasConfiguredCommute: Bool {
+        !origins.isEmpty && !destinations.isEmpty
+    }
+    @Published var cachedProactiveHabitPlan: PlanBReportDTO? = nil
+    @Published var cachedProactiveHabitSlotKey: String = ""
+    @Published var cachedProactiveHabitDayKey: String = ""
+    @Published var cachedProactiveHabitFetchedAt: Date? = nil
+    private var lastFollowedTripRefreshAt: Date? = nil
     private var lastObservedSupport: Bool = false
 
     /// Plan B to display in the Home screen "Nelle vicinanze" strip.
     /// Regular commute summaries (`summary_ok`) and test simulations (`simulation`) are hidden
     /// unless the user explicitly tapped "Segui" on one of the train options.
     var homeBannerPlanB: PlanBReportDTO? {
+        guard followedTrip == nil else { return nil }
         guard hasSupport() else { return nil }
         guard let plan = pinnedPlanB ?? activePlanB else { return nil }
         if let chosenId = chosenAlternativeId, !chosenId.isEmpty,
@@ -475,7 +729,7 @@ class SupporterCommuteManager: ObservableObject {
                 pendingOpenPlanBSheet = false
             }
             if changed && !origins.isEmpty && !destinations.isEmpty {
-                await syncRoutineWithServer()
+                await syncRoutineWithServer(allowRevocationWhenUnsupported: true)
             }
         } else if changed && !origins.isEmpty && !destinations.isEmpty {
             await syncRoutineWithServer()
@@ -517,6 +771,30 @@ class SupporterCommuteManager: ObservableObject {
         
         if !chosenAlternativeIdRaw.isEmpty {
             chosenAlternativeId = chosenAlternativeIdRaw
+        }
+        
+        if !followedTripJSON.isEmpty,
+           let data = followedTripJSON.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode(FollowedTrip.self, from: data),
+           !decoded.isExpired {
+            followedTrip = decoded
+        } else {
+            followedTrip = nil
+        }
+
+        if !proactiveHabitCacheJSON.isEmpty,
+           let data = proactiveHabitCacheJSON.data(using: .utf8),
+           let cached = try? JSONDecoder().decode(CachedProactiveHabitPlan.self, from: data),
+           Self.hasValidUpcomingCachedSolutions(plan: cached.plan, dayKey: cached.dayKey) {
+            cachedProactiveHabitPlan = cached.plan
+            cachedProactiveHabitSlotKey = cached.slotKey
+            cachedProactiveHabitDayKey = cached.dayKey
+            cachedProactiveHabitFetchedAt = cached.fetchedAt
+        } else {
+            cachedProactiveHabitPlan = nil
+            cachedProactiveHabitSlotKey = ""
+            cachedProactiveHabitDayKey = ""
+            cachedProactiveHabitFetchedAt = nil
         }
     }
     
@@ -575,6 +853,105 @@ class SupporterCommuteManager: ObservableObject {
         } else {
             chosenAlternativeId = id
         }
+    }
+    
+    func followAlternative(_ alt: PlanBAlternativeItem, legs: [PlanBLegItem]) {
+        followedTrip = FollowedTrip(
+            alternative: alt,
+            legs: legs,
+            dayKey: DateFormatter.todayString(),
+            createdAt: Date()
+        )
+        chosenAlternativeId = nil
+    }
+    
+    func followSolution(_ solution: TravelSolution) {
+        followedTrip = FollowedTrip.from(solution: solution)
+        chosenAlternativeId = nil
+    }
+    
+    func isSolutionFollowed(_ solution: TravelSolution) -> Bool {
+        guard let current = followedTrip else { return false }
+        let candidate = FollowedTrip.from(solution: solution)
+        return current.alternative.id == candidate.alternative.id && !current.isExpired
+    }
+    
+    func clearPlanBAfterFollow() {
+        chosenAlternativeId = nil
+        pendingOpenPlanBSheet = false
+        if let incType = activePlanB?.incident_type,
+           incType == "summary_ok" || incType == "simulation" {
+            activePlanB = nil
+        }
+    }
+    
+    private func clearCompletedPlanB() {
+        unpinPlanB()
+        activePlanB = nil
+        chosenAlternativeId = nil
+        pendingOpenPlanBSheet = false
+    }
+    
+    func stopFollowing(manager: TrainManager, immediate: Bool = true) {
+        if let trip = followedTrip, trip.isSingleTrain, let railLeg = trip.railLegs.first {
+            let targetNum = railLeg.train_number.trimmingCharacters(in: .whitespacesAndNewlines)
+            let policy: ActivityUIDismissalPolicy = immediate ? .immediate : .default
+            let matching = Activity<TrainLiveActivityAttributes>.activities.filter {
+                $0.attributes.trainNumber == targetNum
+            }
+            if !matching.isEmpty {
+                Task { @MainActor in
+                    for activity in matching {
+                        await activity.end(nil, dismissalPolicy: policy)
+                    }
+                    manager.syncLiveActivities()
+                }
+            }
+        }
+        followedTrip = nil
+    }
+    
+    func refreshFollowedTripStatus(manager: TrainManager, force: Bool = false, minInterval: TimeInterval = 120) async {
+        guard let trip = followedTrip else { return }
+        if trip.isExpired {
+            stopFollowing(manager: manager, immediate: false)
+            clearCompletedPlanB()
+            return
+        }
+        if !force, let last = lastFollowedTripRefreshAt, Date().timeIntervalSince(last) < minInterval {
+            return
+        }
+        lastFollowedTripRefreshAt = Date()
+        guard let lastLeg = trip.railLegs.last else { return }
+        let res = await manager.fetchLiveStops(
+            for: lastLeg.train_number,
+            category: lastLeg.category,
+            destination: lastLeg.destination,
+            origin: lastLeg.origin,
+            scheduledTime: lastLeg.departure_time,
+            force: force
+        )
+        if res.errorMessage == nil && res.status.isArrived {
+            stopFollowing(manager: manager, immediate: false)
+            clearCompletedPlanB()
+        }
+    }
+    
+    func handleFollowedTripResults(_ results: [String: StopsResult], manager: TrainManager) {
+        guard let trip = followedTrip else { return }
+        if trip.isExpired {
+            stopFollowing(manager: manager, immediate: false)
+            clearCompletedPlanB()
+            return
+        }
+        guard let lastLeg = trip.railLegs.last,
+              let res = results[lastLeg.train_number],
+              res.errorMessage == nil,
+              res.status.isArrived else {
+            return
+        }
+        stopFollowing(manager: manager, immediate: false)
+        clearCompletedPlanB()
     }
     
     func hasSupport() -> Bool {
@@ -865,7 +1242,8 @@ class SupporterCommuteManager: ObservableObject {
         ]
     }
 
-    func syncRoutineWithServer() async {
+    func syncRoutineWithServer(allowRevocationWhenUnsupported: Bool = false) async {
+        guard hasSupport() || allowRevocationWhenUnsupported else { return }
         guard let payload = buildCommuteSyncPayload() else { return }
 
         do {
@@ -876,6 +1254,119 @@ class SupporterCommuteManager: ObservableObject {
             print("[-] Errore sincronizzazione abitudini di viaggio: \(error.localizedDescription)")
             self.lastSyncError = error.localizedDescription
         }
+    }
+
+    // MARK: - Unified Casa <-> Lavoro Direction & Solutions Dispatcher (Free On-Device + Pro)
+
+    nonisolated static func preferredIsReturn(
+        at now: Date,
+        outboundBand: String,
+        returnBand: String
+    ) -> Bool {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let comps = cal.dateComponents([.hour, .minute], from: now)
+        let nowMinutes = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+
+        let outBand = CommuteTimeBand.parse(outboundBand, fallbackStart: 7 * 60, fallbackEnd: 8 * 60)
+        let retBand = CommuteTimeBand.parse(returnBand, fallbackStart: 17 * 60, fallbackEnd: 18 * 60)
+        let outEnd = (outBand.startMinutes + outBand.durationMinutes) % 1440
+        let retStart = retBand.startMinutes
+
+        if retStart > outEnd {
+            let midpoint = (outEnd + retStart) / 2
+            let cutoff = max(min(midpoint, retStart - 30), outEnd)
+            return !(nowMinutes >= 180 && nowMinutes < cutoff)
+        } else {
+            let retLeadStart = max(0, retStart - 90)
+            let outLeadStart = max(0, outBand.startMinutes - 90)
+            return nowMinutes >= retLeadStart && nowMinutes < outLeadStart
+        }
+    }
+
+    private func resolveManualDirectionOverride(dayKey: String, autoIsReturn: Bool) -> Bool? {
+        let parts = manualDirectionOverrideRaw.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+        guard parts.count == 3,
+              parts[0] == dayKey,
+              parts[1] == (autoIsReturn ? "R" : "O") else {
+            return nil
+        }
+        return parts[2] == "1"
+    }
+
+    func currentCommuteRouteSlot(at now: Date = Date()) -> ActiveHabitCommuteSlot? {
+        guard hasConfiguredCommute else { return nil }
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let weekday = ((cal.component(.weekday, from: now) + 5) % 7) + 1
+        let bands = commuteBandsForDay(weekday)
+        let autoReturn = Self.preferredIsReturn(at: now, outboundBand: bands.outbound, returnBand: bands.returnBand)
+        let todayKey = Self.romeDayKey(for: now)
+        let effectiveIsReturn = resolveManualDirectionOverride(dayKey: todayKey, autoIsReturn: autoReturn) ?? autoReturn
+
+        let st = effectiveStations(for: weekday, isReturn: effectiveIsReturn)
+        guard !st.origins.isEmpty && !st.destinations.isEmpty else { return nil }
+
+        return ActiveHabitCommuteSlot(
+            isReturn: effectiveIsReturn,
+            origins: st.origins,
+            destinations: st.destinations,
+            timeBand: effectiveIsReturn ? bands.returnBand : bands.outbound
+        )
+    }
+
+    func toggleCommuteRouteDirection(at now: Date = Date()) {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let weekday = ((cal.component(.weekday, from: now) + 5) % 7) + 1
+        let bands = commuteBandsForDay(weekday)
+        let autoReturn = Self.preferredIsReturn(at: now, outboundBand: bands.outbound, returnBand: bands.returnBand)
+        let currentIsReturn = currentCommuteRouteSlot(at: now)?.isReturn ?? autoReturn
+        let newIsReturn = !currentIsReturn
+        manualDirectionOverrideRaw = "\(Self.romeDayKey(for: now))|\(autoReturn ? "R" : "O")|\(newIsReturn ? "1" : "0")"
+        objectWillChange.send()
+    }
+
+    func fetchCommuteSolutionsReport(
+        origins startStations: [String],
+        destinations endStations: [String],
+        departureDate: Date = Date(),
+        isReturn: Bool,
+        userLat: Double? = nil,
+        userLon: Double? = nil,
+        forceRefresh: Bool = false
+    ) async -> PlanBReportDTO {
+        isCalculatingCommuteSolutions = true
+        defer { isCalculatingCommuteSolutions = false }
+
+        let isNearNow = abs(departureDate.timeIntervalSinceNow) < 15 * 60
+        if hasSupport() && isNearNow {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+            let bands = commuteBandsForDay(((cal.component(.weekday, from: departureDate) + 5) % 7) + 1)
+            let timeBand = isReturn ? bands.returnBand : bands.outbound
+            if let serverReport = try? await fetchPlanBReport(
+                origins: startStations,
+                destinations: endStations,
+                timeBand: timeBand,
+                isReturn: isReturn,
+                userLat: userLat,
+                userLon: userLon
+            ), !serverReport.alternatives.isEmpty {
+                return serverReport
+            }
+        }
+
+        return await CommuteTrainDiscoveryService.shared.calculateLocalCommutePlan(
+            origins: startStations,
+            destinations: endStations,
+            departureDate: departureDate,
+            isReturn: isReturn,
+            userLat: userLat,
+            userLon: userLon,
+            forceRefresh: forceRefresh
+        )
     }
     
     // MARK: - Active Habit Commute Slot (Home "Per te")
@@ -902,7 +1393,7 @@ class SupporterCommuteManager: ObservableObject {
                (nowMinutes + 1440 >= low && nowMinutes + 1440 <= high)
     }
 
-    func activeHabitCommuteSlot(at now: Date = Date()) -> ActiveHabitCommuteSlot? {
+    func activeHabitCommuteSlot(at now: Date = Date(), leadMinutes: Int = 45, trailMinutes: Int = 30) -> ActiveHabitCommuteSlot? {
         guard hasSupport(), !origins.isEmpty, !destinations.isEmpty else { return nil }
 
         var cal = Calendar(identifier: .gregorian)
@@ -914,7 +1405,7 @@ class SupporterCommuteManager: ObservableObject {
         let nowMinutes = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
         let bands = commuteBandsForDay(weekday)
 
-        if Self.isMinute(nowMinutes, withinBand: bands.outbound) {
+        if Self.isMinute(nowMinutes, withinBand: bands.outbound, leadMinutes: leadMinutes, trailMinutes: trailMinutes) {
             let st = effectiveStations(for: weekday, isReturn: false)
             if !st.origins.isEmpty && !st.destinations.isEmpty {
                 return ActiveHabitCommuteSlot(
@@ -926,7 +1417,7 @@ class SupporterCommuteManager: ObservableObject {
             }
         }
 
-        if Self.isMinute(nowMinutes, withinBand: bands.returnBand) {
+        if Self.isMinute(nowMinutes, withinBand: bands.returnBand, leadMinutes: leadMinutes, trailMinutes: trailMinutes) {
             let st = effectiveStations(for: weekday, isReturn: true)
             if !st.origins.isEmpty && !st.destinations.isEmpty {
                 return ActiveHabitCommuteSlot(
@@ -941,31 +1432,190 @@ class SupporterCommuteManager: ObservableObject {
         return nil
     }
 
+    private func fetchPlanBReport(
+        origins startStations: [String],
+        destinations endStations: [String],
+        timeBand: String,
+        isReturn: Bool,
+        userLat: Double?,
+        userLon: Double?
+    ) async throws -> PlanBReportDTO {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let weekday = ((cal.component(.weekday, from: Date()) + 5) % 7) + 1
+
+        var payload: [String: Any] = [
+            "origins": startStations,
+            "destinations": endStations,
+            "time": timeBand,
+            "incident_type": "simulation"
+        ]
+        let preferred = Self.cleanPreferredTrainNumbers(from: effectiveTrains(for: weekday, isReturn: isReturn))
+        if !preferred.isEmpty {
+            payload["preferred_trains"] = preferred
+        }
+        if let lat = userLat, let lon = userLon {
+            payload["user_lat"] = lat
+            payload["user_lon"] = lon
+        }
+
+        let data = try await NetworkService.shared.postData(endpoint: "/supporter/plan_b", payload: payload)
+        return try JSONDecoder().decode(PlanBReportDTO.self, from: data)
+    }
+
+    // MARK: - Persistent Solution-Window Cache Helpers
+
+    nonisolated static func romeDayKey(for date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+
+    nonisolated static func effectiveDepartureMinutes(for alt: PlanBAlternativeItem) -> Int? {
+        let rawTime = alt.resolvedLegs.first?.departure_time ?? alt.departure_time
+        guard let base = CommuteTimeBand.parseHHmm(rawTime) else { return nil }
+        return base + max(0, alt.delay)
+    }
+
+    /// Filtra localmente le soluzioni già ricevute dal server tenendo solo quelle non ancora partite
+    /// (con margine di grazia di 2 min e supporto allo scavalco di mezzanotte).
+    nonisolated static func upcomingAlternatives(
+        in plan: PlanBReportDTO,
+        at now: Date = Date(),
+        graceMinutes: Int = 2
+    ) -> [PlanBAlternativeItem] {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let comps = cal.dateComponents([.hour, .minute], from: now)
+        let nowMinutes = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+
+        return plan.alternatives.filter { alt in
+            guard var dep = effectiveDepartureMinutes(for: alt) else { return true }
+            if dep < 180 && nowMinutes > 1200 {
+                dep += 1440
+            }
+            return dep >= (nowMinutes - graceMinutes)
+        }
+    }
+
+    /// Restituisce `true` finché la cache è della giornata odierna e contiene ancora almeno una soluzione
+    /// futura (fino all'orario dell'ultima partenza già scaricata dal server).
+    nonisolated static func hasValidUpcomingCachedSolutions(
+        plan: PlanBReportDTO,
+        dayKey: String,
+        at now: Date = Date(),
+        graceMinutes: Int = 2
+    ) -> Bool {
+        guard dayKey == romeDayKey(for: now) else { return false }
+        return !upcomingAlternatives(in: plan, at: now, graceMinutes: graceMinutes).isEmpty
+    }
+
+    func hasValidCachedProactiveHabitPlan(for slotKey: String, at now: Date = Date()) -> Bool {
+        guard cachedProactiveHabitSlotKey == slotKey,
+              let cached = cachedProactiveHabitPlan else {
+            return false
+        }
+        return Self.hasValidUpcomingCachedSolutions(plan: cached, dayKey: cachedProactiveHabitDayKey, at: now)
+    }
+
+    private func persistProactiveHabitCache(plan: PlanBReportDTO, slotKey: String, dayKey: String, fetchedAt: Date) {
+        let entry = CachedProactiveHabitPlan(
+            slotKey: slotKey,
+            dayKey: dayKey,
+            fetchedAt: fetchedAt,
+            plan: plan
+        )
+        if let data = try? JSONEncoder().encode(entry),
+           let json = String(data: data, encoding: .utf8) {
+            proactiveHabitCacheJSON = json
+        }
+    }
+
+    /// Carica in modo proattivo le soluzioni per la fascia oraria abituale e le salva in cache persistente:
+    /// finché esistono soluzioni non ancora partite fino all'ultima partenza ricevuta, l'app mostra localmente
+    /// le soluzioni successive senza richiamare il server (salvo pull-to-refresh manuale `force: true`).
+    func loadProactiveHabitPlanIfNeeded(
+        for slot: ActiveHabitCommuteSlot,
+        slotKey: String,
+        userLat: Double? = nil,
+        userLon: Double? = nil,
+        force: Bool = false
+    ) async -> PlanBReportDTO? {
+        let now = Date()
+        if !force && hasValidCachedProactiveHabitPlan(for: slotKey, at: now) {
+            return cachedProactiveHabitPlan
+        }
+        if cachedProactiveHabitSlotKey != slotKey {
+            cachedProactiveHabitPlan = nil
+            cachedProactiveHabitSlotKey = slotKey
+            cachedProactiveHabitDayKey = ""
+            cachedProactiveHabitFetchedAt = nil
+        }
+        guard let report = await fetchProactiveHabitPlan(for: slot, userLat: userLat, userLon: userLon) else {
+            return cachedProactiveHabitPlan
+        }
+        let todayKey = Self.romeDayKey(for: now)
+        cachedProactiveHabitPlan = report
+        cachedProactiveHabitSlotKey = slotKey
+        cachedProactiveHabitDayKey = todayKey
+        cachedProactiveHabitFetchedAt = now
+        persistProactiveHabitCache(plan: report, slotKey: slotKey, dayKey: todayKey, fetchedAt: now)
+        return report
+    }
+
+    /// Carica in modo proattivo le soluzioni per la fascia oraria abituale senza alterare `activePlanB` globale.
+    func fetchProactiveHabitPlan(
+        for slot: ActiveHabitCommuteSlot,
+        userLat: Double? = nil,
+        userLon: Double? = nil
+    ) async -> PlanBReportDTO? {
+        guard hasSupport(), !slot.origins.isEmpty, !slot.destinations.isEmpty else { return nil }
+        do {
+            let report = try await fetchPlanBReport(
+                origins: slot.origins,
+                destinations: slot.destinations,
+                timeBand: slot.timeBand,
+                isReturn: slot.isReturn,
+                userLat: userLat,
+                userLon: userLon
+            )
+            self.lastSyncError = nil
+            return report
+        } catch {
+            print("[-] Errore fetch proattivo viaggio abituale: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     func requestHabitTripPlan(for slot: ActiveHabitCommuteSlot, userLat: Double? = nil, userLon: Double? = nil) async {
         await requestManualPlanB(
             origins: slot.origins,
             destinations: slot.destinations,
-            for: false,
+            for: slot.isReturn,
             timeBandOverride: slot.timeBand,
+            overrideAreStationsFinal: true,
             userLat: userLat,
             userLon: userLon
         )
     }
 
-    func requestManualPlanB(origins customOrigins: [String]? = nil, destinations customDestinations: [String]? = nil, for returnTrip: Bool = false, timeBandOverride: String? = nil, userLat: Double? = nil, userLon: Double? = nil) async {
+    func requestManualPlanB(origins customOrigins: [String]? = nil, destinations customDestinations: [String]? = nil, for returnTrip: Bool = false, timeBandOverride: String? = nil, overrideAreStationsFinal: Bool = false, userLat: Double? = nil, userLon: Double? = nil) async {
         guard hasSupport() else { return }
         isCalculatingPlanB = true
         chosenAlternativeId = nil
         defer { isCalculatingPlanB = false }
         
-        let cal = Calendar(identifier: .gregorian)
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
         let weekday = ((cal.component(.weekday, from: Date()) + 5) % 7) + 1
         
         let startStations: [String]
         let endStations: [String]
         if let cOrig = customOrigins, let cDest = customDestinations {
-            startStations = returnTrip ? cDest : cOrig
-            endStations = returnTrip ? cOrig : cDest
+            startStations = (returnTrip && !overrideAreStationsFinal) ? cDest : cOrig
+            endStations = (returnTrip && !overrideAreStationsFinal) ? cOrig : cDest
         } else {
             let resolved = effectiveStations(for: weekday, isReturn: returnTrip)
             startStations = resolved.origins
@@ -984,24 +1634,15 @@ class SupporterCommuteManager: ObservableObject {
         
         guard !startStations.isEmpty && !endStations.isEmpty else { return }
         
-        var payload: [String: Any] = [
-            "origins": startStations,
-            "destinations": endStations,
-            "time": targetBand,
-            "incident_type": "simulation"
-        ]
-        let preferred = Self.cleanPreferredTrainNumbers(from: effectiveTrains(for: weekday, isReturn: returnTrip))
-        if !preferred.isEmpty {
-            payload["preferred_trains"] = preferred
-        }
-        if let lat = userLat, let lon = userLon {
-            payload["user_lat"] = lat
-            payload["user_lon"] = lon
-        }
-        
         do {
-            let data = try await NetworkService.shared.postData(endpoint: "/supporter/plan_b", payload: payload)
-            let report = try JSONDecoder().decode(PlanBReportDTO.self, from: data)
+            let report = try await fetchPlanBReport(
+                origins: startStations,
+                destinations: endStations,
+                timeBand: targetBand,
+                isReturn: returnTrip,
+                userLat: userLat,
+                userLon: userLon
+            )
             self.activePlanB = report
             self.lastSyncError = nil
         } catch {

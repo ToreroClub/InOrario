@@ -20,10 +20,10 @@ struct SavedTripsView: View {
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.orange.opacity(0.12))
+                                    .fill(Color.green.opacity(0.12))
                                     .frame(width: 36, height: 36)
-                                Image(systemName: "star")
-                                    .foregroundColor(.orange)
+                                Image(systemName: "arrow.left.arrow.right")
+                                    .foregroundColor(.green)
                                     .font(.system(size: 15))
                             }
                             VStack(alignment: .leading, spacing: 2) {
@@ -48,15 +48,15 @@ struct SavedTripsView: View {
                             HStack(spacing: 12) {
                                 ZStack {
                                     Circle()
-                                        .fill(Color.orange.opacity(0.12))
+                                        .fill(Color.green.opacity(0.12))
                                         .frame(width: 38, height: 38)
-                                    Image(systemName: "arrow.triangle.swap")
-                                        .foregroundColor(.orange)
+                                    Image(systemName: "arrow.left.arrow.right")
+                                        .foregroundColor(.green)
                                         .font(.system(size: 15, weight: .semibold))
                                 }
                                 
                                 HStack(spacing: 6) {
-                                    Text(route.originName.formattedStationName)
+                                    Text(route.effectiveOriginName.formattedStationName)
                                         .font(.body)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
@@ -64,7 +64,7 @@ struct SavedTripsView: View {
                                     Image(systemName: "arrow.right")
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
-                                    Text(route.destinationName.formattedStationName)
+                                    Text(route.effectiveDestinationName.formattedStationName)
                                         .font(.body)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
@@ -78,7 +78,7 @@ struct SavedTripsView: View {
                                 Haptics.play(.medium)
                                 manager.toggleFavoriteRoute(originName: route.originName, originID: route.originID, destName: route.destinationName, destID: route.destinationID)
                             } label: {
-                                Label("Elimina", systemImage: "trash.fill")
+                                Label("Rimuovi dai preferiti", systemImage: "star.slash.fill")
                             }
                         }
                     }
@@ -100,10 +100,10 @@ struct SavedTripsView: View {
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.blue.opacity(0.12))
+                                    .fill(Color.green.opacity(0.12))
                                     .frame(width: 36, height: 36)
-                                Image(systemName: "bookmark")
-                                    .foregroundColor(.blue)
+                                Image(systemName: "bookmark.fill")
+                                    .foregroundColor(.green)
                                     .font(.system(size: 15))
                             }
                             VStack(alignment: .leading, spacing: 2) {
@@ -129,10 +129,10 @@ struct SavedTripsView: View {
                             HStack(spacing: 12) {
                                 ZStack {
                                     Circle()
-                                        .fill(Color.blue.opacity(0.12))
+                                        .fill(Color.green.opacity(0.12))
                                         .frame(width: 38, height: 38)
-                                    Image(systemName: "tram.fill")
-                                        .foregroundColor(.blue)
+                                    Image(systemName: "bookmark.fill")
+                                        .foregroundColor(.green)
                                         .font(.system(size: 15))
                                 }
                                 
@@ -187,7 +187,7 @@ struct SavedTripsView: View {
                                 Haptics.play(.medium)
                                 manager.toggleSavedTrip(solution: sol)
                             } label: {
-                                Label("Elimina", systemImage: "trash.fill")
+                                Label("Rimuovi dai preferiti", systemImage: "star.slash.fill")
                             }
                         }
                     }
@@ -233,8 +233,15 @@ struct FavoriteRouteSolutionView: View {
     @EnvironmentObject var locationManager: LocationManager
     let route: FavoriteRoute
     
-    @State private var isReversed = false
+    @State private var isReversed: Bool
+    @State private var selectedDate: Date = Date()
     @State private var hasSearched = false
+    @State private var dateReloadTask: Task<Void, Never>? = nil
+
+    init(route: FavoriteRoute, initialReversed: Bool? = nil) {
+        self.route = route
+        _isReversed = State(initialValue: initialReversed ?? route.effectiveIsReversed)
+    }
     
     private var currentOriginID: String { isReversed ? route.destinationID : route.originID }
     private var currentOriginName: String { isReversed ? route.destinationName : route.originName }
@@ -242,114 +249,184 @@ struct FavoriteRouteSolutionView: View {
     private var currentDestName: String { isReversed ? route.originName : route.destinationName }
     
     var body: some View {
-        VStack(spacing: 0) {
-            if manager.isSearchingSolutions {
-                Spacer()
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                    Text("Ricerca soluzioni live in corso...")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            } else {
-                List {
-                    Section {
-                        if manager.travelSolutions.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "train.side.front.car")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.gray)
-                                Text("Nessun treno trovato al momento")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                Text("Riprova a caricare tra qualche minuto o controlla lo stato della linea.")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-                            }
-                            .padding(.vertical, 40)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .listRowBackground(Color.clear)
-                        } else {
-                            ForEach(manager.travelSolutions) { solution in
-                                NavigationLink(destination: TravelSolutionDetailsView(solution: solution)) {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Text("\(solution.category) \(solution.trainNumber)")
-                                                .font(.headline)
-                                            Spacer()
-                                            Text(solution.duration)
-                                                .font(.subheadline)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        HStack {
-                                            Text(solution.departureTime)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.blue)
-                                            Image(systemName: "arrow.right")
-                                                .foregroundColor(.secondary)
-                                                .font(.caption)
-                                            Text(solution.arrivalTime)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.blue)
-                                        }
-                                    }
-                                    .padding(.vertical, 6)
-                                }
-                                .contextMenu {
-                                    let validSegments = solution.segments.filter { $0.trainCategory != "Trasporto Urbano" && !$0.trainNumber.isEmpty }
-                                    if !validSegments.isEmpty {
-                                        ForEach(validSegments) { segment in
-                                            Button(action: {
-                                                let desc = "\(segment.origin) - \(segment.destination)"
-                                                manager.toggleFavorite(trainNumber: segment.trainNumber, description: desc, departureTime: segment.departureTime)
-                                                Haptics.play(.medium)
-                                            }) {
-                                                let isFav = manager.favoriteTrains.contains(where: { $0.number == segment.trainNumber })
-                                                Label(
-                                                    isFav ? "Rimuovi \(segment.trainCategory) \(segment.trainNumber) dai Preferiti" : "Aggiungi \(segment.trainCategory) \(segment.trainNumber) ai Preferiti",
-                                                    systemImage: isFav ? "star.slash.fill" : "star.fill"
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+        List {
+            // Controlli in alto: Data, Ora (24h italiano) e Inverti tratta
+            Section {
+                HStack(spacing: 10) {
+                    HStack(spacing: 6) {
+                        DatePicker("", selection: $selectedDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .environment(\.locale, SharedFormatters.italian24HourLocale)
+                            .environment(\.timeZone, TimeZone(identifier: "Europe/Rome") ?? .current)
+                        Italian24HourTimePicker(selection: $selectedDate)
+                    }
+                    .transaction { $0.animation = nil }
+
+                    Spacer(minLength: 4)
+
+                    Button {
+                        Haptics.play(.medium)
+                        isReversed.toggle()
+                        manager.setFavoriteRouteReversed(routeID: route.id, isReversed: isReversed)
+                        Task {
+                            await loadSolutions(forceRefresh: false)
                         }
-                    } header: {
-                        HStack {
-                            Text("Partenze disponibili")
-                            Spacer()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "arrow.left.arrow.right")
+                                .font(.caption.weight(.bold))
+                            Text("Inverti")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.green.opacity(0.12))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(manager.isSearchingSolutions)
+                }
+                .padding(.vertical, 2)
+            }
+
+            Section {
+                if manager.isSearchingSolutions {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.1)
+                            Text("Ricerca soluzioni live in corso...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 28)
+                    .listRowBackground(Color.clear)
+                } else if manager.travelSolutions.isEmpty {
+                    VStack(spacing: 14) {
+                        Image(systemName: "tram.fill")
+                            .font(.system(size: 36))
+                            .foregroundColor(.gray)
+                        Text("Nessun treno trovato al momento")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Prova a cambiare orario o aggiorna tra qualche minuto.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .padding(.vertical, 32)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .listRowBackground(Color.clear)
+                } else {
+                    ForEach(manager.travelSolutions) { solution in
+                        let isSaved = manager.isTripSaved(solution: solution)
+                        let transfers = max(0, solution.segments.count - 1)
+                        NavigationLink(destination: TravelSolutionDetailsView(solution: solution)) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 6) {
+                                    Text("\(solution.category) \(solution.trainNumber)")
+                                        .font(.headline)
+                                        .lineLimit(1)
+                                    if isSaved {
+                                        Image(systemName: "bookmark.fill")
+                                            .font(.caption2)
+                                            .foregroundColor(.green)
+                                    }
+                                    Spacer()
+                                    Text(transfers == 0 ? "Diretto" : "\(transfers) camb\(transfers == 1 ? "io" : "i")")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(transfers == 0 ? .green : .orange)
+                                }
+                                HStack(spacing: 6) {
+                                    HStack(spacing: 4) {
+                                        Text(solution.departureTime)
+                                        Image(systemName: "arrow.right")
+                                            .foregroundColor(.secondary)
+                                            .font(.caption2)
+                                        Text(solution.arrivalTime)
+                                    }
+                                    .font(.subheadline.weight(.bold).monospacedDigit())
+                                    .foregroundColor(.blue)
+                                    Spacer()
+                                    Text(solution.duration)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button {
                                 Haptics.play(.medium)
-                                isReversed.toggle()
-                                Task {
-                                    await loadSolutions()
+                                withAnimation {
+                                    manager.toggleSavedTrip(solution: solution)
                                 }
                             } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "arrow.left.arrow.right")
-                                    Text("Inverti")
+                                Label(
+                                    isSaved ? "Rimuovi dai salvati" : "Salva viaggio",
+                                    systemImage: isSaved ? "star.slash.fill" : "bookmark.fill"
+                                )
+                            }
+                            .tint(isSaved ? .red : .green)
+                        }
+                        .contextMenu {
+                            Button {
+                                Haptics.play(.medium)
+                                withAnimation {
+                                    manager.toggleSavedTrip(solution: solution)
                                 }
-                                .font(.caption)
-                                .foregroundColor(.blue)
+                            } label: {
+                                Label(
+                                    isSaved ? "Rimuovi viaggio salvato" : "Salva viaggio",
+                                    systemImage: isSaved ? "star.slash.fill" : "bookmark.fill"
+                                )
+                            }
+
+                            let validSegments = solution.segments.filter { $0.trainCategory != "Trasporto Urbano" && !$0.trainNumber.isEmpty }
+                            if !validSegments.isEmpty {
+                                ForEach(validSegments) { segment in
+                                    Button(action: {
+                                        let desc = "\(segment.origin) - \(segment.destination)"
+                                        manager.toggleFavorite(trainNumber: segment.trainNumber, description: desc, departureTime: segment.departureTime)
+                                        Haptics.play(.medium)
+                                    }) {
+                                        let isFav = manager.favoriteTrains.contains(where: { $0.number == segment.trainNumber })
+                                        Label(
+                                            isFav ? "Rimuovi \(segment.trainCategory) \(segment.trainNumber) dai Preferiti" : "Aggiungi \(segment.trainCategory) \(segment.trainNumber) ai Preferiti",
+                                            systemImage: isFav ? "star.slash.fill" : "star.fill"
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            } header: {
+                HStack {
+                    Text("Partenze disponibili")
+                    Spacer()
+                    if let updated = manager.lastTravelSolutionsFetchedAt, !manager.isSearchingSolutions, !manager.travelSolutions.isEmpty {
+                        Text("Agg. \(SharedFormatters.time.string(from: updated))")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
-        .navigationTitle("\(currentOriginName.replacingOccurrences(of: "Milano ", with: "")) ➔ \(currentDestName.replacingOccurrences(of: "Milano ", with: ""))")
+        .listStyle(.insetGrouped)
+        .navigationTitle("\(currentOriginName.compactStationName) → \(currentDestName.compactStationName)")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: {
                     Haptics.play(.medium)
                     Task {
-                        await loadSolutions()
+                        await loadSolutions(forceRefresh: true)
                     }
                 }) {
                     Image(systemName: "arrow.clockwise")
@@ -357,21 +434,44 @@ struct FavoriteRouteSolutionView: View {
                 .disabled(manager.isSearchingSolutions)
             }
         }
+        .refreshable {
+            await loadSolutions(forceRefresh: true)
+        }
+        .onChange(of: selectedDate) { _, _ in
+            guard hasSearched else { return }
+            dateReloadTask?.cancel()
+            dateReloadTask = Task {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                guard !Task.isCancelled else { return }
+                await loadSolutions(forceRefresh: false)
+            }
+        }
+        .onDisappear {
+            dateReloadTask?.cancel()
+            dateReloadTask = nil
+        }
         .task {
-            await loadSolutions()
+            await loadSolutions(forceRefresh: false)
             hasSearched = true
         }
     }
     
-    private func loadSolutions() async {
+    private func loadSolutions(forceRefresh: Bool) async {
         await manager.searchTravelSolutions(
             originID: currentOriginID,
             destID: currentDestID,
-            date: Date(),
+            date: selectedDate,
             originName: currentOriginName,
             destName: currentDestName,
-            source: .favoriteRoute
+            source: .favoriteRoute,
+            forceRefresh: forceRefresh
         )
         usageTracker.recordRouteSearch(originID: currentOriginID, originName: currentOriginName, destID: currentDestID, destName: currentDestName, location: locationManager.userLocation?.coordinate)
+        UserInterestTelemetryManager.shared.recordRouteUsage(
+            originName: currentOriginName,
+            originID: currentOriginID,
+            destinationName: currentDestName,
+            destinationID: currentDestID
+        )
     }
 }

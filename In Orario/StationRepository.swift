@@ -19,8 +19,11 @@ actor StationRepository {
     }
     
     private var cache: [String: CacheEntry] = [:]
+    private var healthCache: [String: CacheEntry] = [:]
     private var inFlightTasks: [String: Task<StationBoardResult, Never>] = [:]
+    private var healthInFlightTasks: [String: Task<StationBoardResult, Never>] = [:]
     private let ttl: TimeInterval = 45.0 // 45 seconds TTL
+    private let healthTTL: TimeInterval = 120.0
     
     init() {}
     
@@ -58,6 +61,43 @@ actor StationRepository {
         
         return result
     }
+
+    /// Versione leggera usata dalla Home e dalla lista Stazioni per valutare solo lo stato
+    /// della circolazione (regolare, rallentamenti, soppressioni) con una singola chiamata JSON a ViaggiaTreno,
+    /// evitando lo scraping HTML di iechub.rfi.it finché l'utente non apre davvero la stazione.
+    func getStationHealthBoard(station: Station, force: Bool = false) async -> StationBoardResult {
+        let fullKey = cacheKey(for: station, isDepartures: true)
+
+        if !force {
+            if let fullCached = cache[fullKey], Date().timeIntervalSince(fullCached.timestamp) < healthTTL {
+                AppLogger.cache("StationRepository: full cache reused for health \(fullKey)")
+                return fullCached.result
+            }
+            if let cached = healthCache[fullKey], Date().timeIntervalSince(cached.timestamp) < healthTTL {
+                AppLogger.cache("StationRepository: health cache hit for \(fullKey)")
+                return cached.result
+            }
+        }
+
+        if let ongoing = healthInFlightTasks[fullKey] {
+            AppLogger.duplicateAvoided(key: "StationHealth:\(fullKey)")
+            return await ongoing.value
+        }
+
+        let task = Task<StationBoardResult, Never> { [weak self] in
+            guard let self else { return StationBoardResult(trains: []) }
+            return await self.fetchLightweightStationHealth(station: station)
+        }
+
+        healthInFlightTasks[fullKey] = task
+        let result = await task.value
+        healthInFlightTasks.removeValue(forKey: fullKey)
+
+        if !result.trains.isEmpty {
+            healthCache[fullKey] = CacheEntry(timestamp: Date(), result: result)
+        }
+        return result
+    }
     
     func getTrainsForStation(station: Station) async -> [Train] {
         let result = await getStationBoard(station: station, isDepartures: true, force: false)
@@ -70,6 +110,7 @@ actor StationRepository {
     
     func clearCache() {
         cache.removeAll()
+        healthCache.removeAll()
     }
     
     func cacheCount() -> Int {
@@ -118,6 +159,27 @@ actor StationRepository {
         } else {
             return StationBoardResult(trains: [], alerts: nil)
         }
+    }
+
+    private func fetchLightweightStationHealth(station: Station) async -> StationBoardResult {
+        let vtID = (station.vtID ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let rfiID = (station.rfiID ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !vtID.isEmpty {
+            let vtTrains = await performVTFetch(for: vtID, isDepartures: true, dateStr: makeVTDateString())
+            guard !Task.isCancelled else { return StationBoardResult(trains: []) }
+            if !vtTrains.isEmpty {
+                return StationBoardResult(trains: vtTrains, alerts: nil)
+            }
+        }
+
+        if !rfiID.isEmpty {
+            let rfiRes = await performRfiScraping(for: rfiID, isDepartures: true)
+            guard !Task.isCancelled else { return StationBoardResult(trains: []) }
+            return StationBoardResult(trains: rfiRes.trains, alerts: rfiRes.alerts)
+        }
+
+        return StationBoardResult(trains: [], alerts: nil)
     }
     
     // MARK: - ViaggiaTreno Fetching & Parsing
@@ -312,7 +374,16 @@ actor StationRepository {
                         }
                     }
                     if !num.isEmpty && time.contains(":") {
-                        scrapedTrains.append(Train(category: cat, number: num, destination: dest.capitalized, time: time, delay: delayRaw.isEmpty ? "In orario" : "+\(delayRaw)'", platform: plat.isEmpty ? "--" : plat))
+                        scrapedTrains.append(
+                            Train(
+                                category: cat,
+                                number: num,
+                                destination: dest.capitalized,
+                                time: time,
+                                delay: Self.formatScrapedRFIDelay(delayRaw),
+                                platform: plat.isEmpty ? "--" : plat
+                            )
+                        )
                     }
                 }
             }
@@ -320,6 +391,34 @@ actor StationRepository {
         } catch {
             return ([], nil)
         }
+    }
+
+    nonisolated static func formatScrapedRFIDelay(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == "-" || trimmed == "--" {
+            return "In orario"
+        }
+        let lower = trimmed.lowercased()
+        if lower.contains("cancellat") {
+            return "Cancellato"
+        }
+        if lower.contains("soppress") {
+            return "Soppresso"
+        }
+        if lower.contains("orario") {
+            return "In orario"
+        }
+        let numericCandidate = trimmed
+            .replacingOccurrences(of: "+", with: "")
+            .replacingOccurrences(of: "'", with: "")
+            .replacingOccurrences(of: "min", with: "", options: .caseInsensitive)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let minutes = Int(numericCandidate) {
+            if minutes > 0 { return "+\(minutes)'" }
+            if minutes < 0 { return "\(minutes)'" }
+            return "In orario"
+        }
+        return trimmed
     }
     
     // MARK: - Delay Merging & Helpers

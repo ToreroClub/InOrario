@@ -2389,19 +2389,9 @@ final class SmartQueryParser {
 @MainActor
 final class SmartQueryExecutor {
     static let shared = SmartQueryExecutor()
-    private static var cachedBundleStations: [RFIStation]?
 
     static func bundledRFIStations() -> [RFIStation] {
-        if let cached = cachedBundleStations {
-            return cached
-        }
-        guard let url = Bundle.main.url(forResource: "rfi_stations", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode([RFIStation].self, from: data) else {
-            return []
-        }
-        cachedBundleStations = decoded
-        return decoded
+        RFIStationCatalog.shared.rfiStations
     }
 
     func execute(

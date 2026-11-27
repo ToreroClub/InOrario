@@ -20,12 +20,167 @@ struct Haptics {
     }
 }
 
+struct TrainLiveSnapshot: Sendable {
+    let trainNumber: String
+    let category: String
+    let origin: String?
+    let destination: String?
+    let stops: [Stop]
+    let status: TrainStatus
+    let delayMinutes: Int
+    let isCancelled: Bool
+    let isArrived: Bool
+    let isDeparted: Bool
+    let lastStation: String?
+    let lastTime: String?
+    let nextStation: String?
+    let nextEstimatedTime: String?
+    let progress: Double
+    let fetchedAt: Date
 
+    nonisolated var delaySummaryText: String {
+        if isCancelled { return "Soppresso" }
+        if delayMinutes > 0 { return "+\(delayMinutes) min" }
+        if delayMinutes < 0 { return "-\(abs(delayMinutes)) min" }
+        return "In orario"
+    }
+}
+
+enum QuickLiveActivityResult: Equatable, Sendable {
+    case started
+    case stopped
+    case italoUnsupported
+    case failed(String)
+}
+
+enum StationCirculationState: String, Equatable, Sendable {
+    case regular = "Circolazione regolare"
+    case warning = "Possibili rallentamenti"
+    case disrupted = "Criticità in stazione"
+    case noData = "In attesa di dati"
+}
+
+enum HomeAlertSeverity: Equatable, Sendable {
+    case none
+    case warning   // Triangolo arancio (ritardo > 15 min / rallentamenti)
+    case critical  // Triangolo rosso (cancellato / interruzioni)
+}
+
+struct HomeTrainsSelection: Equatable, Sendable {
+    let trains: [SavedTrain]
+    let refreshCandidates: [SavedTrain]
+    let alertSeverity: HomeAlertSeverity
+    let hasActiveWindowTrains: Bool
+}
+
+struct StationBoardSnapshot: Sendable {
+    let stationKey: String
+    let stationName: String
+    let circulationState: StationCirculationState
+    let healthMessage: String
+    let averageDelayMinutes: Int
+    let delayedCount: Int
+    let cancelledCount: Int
+    let trains: [Train]
+    let previewTrains: [Train]
+    let alerts: String?
+    let fetchedAt: Date
+}
+
+struct CachedTravelSegmentDTO: Codable, Sendable {
+    let origin: String
+    let destination: String
+    let departureTime: String
+    let arrivalTime: String
+    let trainNumber: String
+    let trainCategory: String
+    let travelMinutes: Int?
+    let urbanHeadsign: String?
+    let isStationWalk: Bool
+
+    nonisolated init(from seg: TravelSegment) {
+        self.origin = seg.origin
+        self.destination = seg.destination
+        self.departureTime = seg.departureTime
+        self.arrivalTime = seg.arrivalTime
+        self.trainNumber = seg.trainNumber
+        self.trainCategory = seg.trainCategory
+        self.travelMinutes = seg.travelMinutes
+        self.urbanHeadsign = seg.urbanHeadsign
+        self.isStationWalk = seg.isStationWalk
+    }
+
+    nonisolated var asTravelSegment: TravelSegment {
+        TravelSegment(
+            origin: origin,
+            destination: destination,
+            departureTime: departureTime,
+            arrivalTime: arrivalTime,
+            trainNumber: trainNumber,
+            trainCategory: trainCategory,
+            travelMinutes: travelMinutes,
+            urbanHeadsign: urbanHeadsign,
+            isStationWalk: isStationWalk
+        )
+    }
+}
+
+struct CachedTravelSolutionDTO: Codable, Sendable {
+    let trainNumber: String
+    let category: String
+    let departureTime: String
+    let arrivalTime: String
+    let origin: String
+    let destination: String
+    let duration: String
+    let segments: [CachedTravelSegmentDTO]
+
+    nonisolated init(from sol: TravelSolution) {
+        self.trainNumber = sol.trainNumber
+        self.category = sol.category
+        self.departureTime = sol.departureTime
+        self.arrivalTime = sol.arrivalTime
+        self.origin = sol.origin
+        self.destination = sol.destination
+        self.duration = sol.duration
+        self.segments = sol.segments.map(CachedTravelSegmentDTO.init(from:))
+    }
+
+    nonisolated var asTravelSolution: TravelSolution {
+        TravelSolution(
+            trainNumber: trainNumber,
+            category: category,
+            departureTime: departureTime,
+            arrivalTime: arrivalTime,
+            origin: origin,
+            destination: destination,
+            duration: duration,
+            segments: segments.map(\.asTravelSegment)
+        )
+    }
+}
+
+struct CachedTravelSolutionsEntry: Codable, Sendable {
+    let originID: String
+    let destID: String
+    let resolvedOriginID: String
+    let resolvedDestID: String
+    let requestedDate: Date
+    let fetchedAt: Date
+    let solutions: [CachedTravelSolutionDTO]
+}
 
 @MainActor class TrainManager: ObservableObject {
     var isInitializing = true
     
     @Published var remoteNotificationsEnabled: Bool = false
+    @Published var trainNotificationsEnabled: Bool = true {
+        didSet {
+            guard !isInitializing else { return }
+            saveFavorites()
+            syncRemoteNotifications()
+        }
+    }
     @Published var notifyOnStationPass: Bool = false
     @Published var strikeRegion: String = "Tutte" {
         didSet {
@@ -54,9 +209,14 @@ struct Haptics {
         }
     }
     @Published var notificationLimitError: String? = nil
+    @Published var freeMigrationNoticeMessage: String? = nil
     @Published var showPaywallSheet: Bool = false
+
+    static let freeScheduledNotificationLimit = 10
+    static let proNotificationLimit = 20
     
     private let remoteNotificationsEnabledKey = "remoteNotificationsEnabled_v1"
+    private let trainNotificationsEnabledKey = "trainNotificationsEnabled_v1"
     private let notifyOnStationPassKey = "notifyOnStationPass_v1"
     private let strikeRegionKey = "strikeRegion_v1"
     private let strikeNotificationsEnabledKey = "strikeNotificationsEnabled_v1"
@@ -83,6 +243,11 @@ struct Haptics {
     @Published var allRFIStations: [RFIStation] = []
     @Published var sectionOrder: [AppSection] = AppSection.allCases
     @Published var hiddenSections: Set<AppSection> = []
+    @Published var homeSectionMaxItems: [AppSection: Int] = [:]
+    @Published var liveTrainSnapshots: [String: TrainLiveSnapshot] = [:]
+    @Published var isRefreshingTrainSnapshots: Bool = false
+    @Published var stationBoardSnapshots: [String: StationBoardSnapshot] = [:]
+    @Published var isRefreshingStationSnapshots: Bool = false
     @Published var isSearching: Bool = false
     @Published var isLoading = false
     @Published var isStopsLoading = false
@@ -91,6 +256,9 @@ struct Haptics {
     @Published var deepLinkStation: Station? = nil
     @Published var pendingOpenRegionSettings: Bool = false
     @Published var lastFetchedStationKey: String = ""
+
+    private var trainSnapshotRefreshTask: Task<Void, Never>? = nil
+    private var stationSnapshotRefreshTask: Task<Void, Never>? = nil
     
     @Published var stationAlerts: String? = nil
     @Published var activeLiveActivities: Set<String> = []
@@ -99,6 +267,10 @@ struct Haptics {
     
     @Published var travelSolutions: [TravelSolution] = []
     @Published var travelSolutionsSource: TravelSolutionsSource = .none
+    @Published var lastTravelSolutionsFetchedAt: Date? = nil
+    private var travelSolutionsCache: [String: CachedTravelSolutionsEntry] = [:]
+    private let travelSolutionsCacheKey = "travelSolutionsRouteCache_v1"
+    nonisolated static let travelSolutionsCacheTTL: TimeInterval = 30 * 60
     @Published var lastSearchSolutionsOriginID: String = ""
     @Published var lastSearchSolutionsDestID: String = ""
     @Published var lastSearchSolutionsDate: Date? = nil
@@ -133,6 +305,7 @@ struct Haptics {
     private let myStationsKey = "savedMyStations_v3"
     private let sectionOrderKey = "savedSectionOrder_v3"
     private let hiddenSectionsKey = "hiddenDashboardSections_v1"
+    private let homeSectionMaxItemsKey = "homeSectionMaxItems_v1"
     private let favoriteRoutesKey = "savedFavoriteRoutes_v1"
     private let savedTripsKey = "savedTrips_v1"
     private let smartRoutesKey = "savedSmartRoutes_v1"
@@ -161,84 +334,94 @@ struct Haptics {
     ]
     
     var lineHealth: (message: String, color: Color) {
+        let computed = Self.computeLineHealth(for: trains)
+        return (computed.message, computed.color)
+    }
+
+    static func computeLineHealth(for trains: [Train]) -> (message: String, color: Color, state: StationCirculationState) {
         let totalTrains = trains.count
-        if totalTrains == 0 { return ("Dati non disponibili", .gray) }
+        if totalTrains == 0 { return ("Dati non disponibili", .gray, .noData) }
         
         let isAVOrLongDistance: (Train) -> Bool = { train in
             let cat = train.category.uppercased()
             let dest = train.destination.uppercased()
             return cat.contains("FR") || cat.contains("FA") || cat.contains("FB") ||
                    cat.contains("AV") || cat.contains("EC") || cat.contains("IC") ||
-                   cat.contains("ITALO") || cat.contains("FRECCIA") ||
+                   cat.contains("EN") || cat.contains("ITALO") || cat.contains("FRECCIA") ||
                    cat == "NTV" || cat == "EXP" || cat == "ES" ||
                    dest.contains("ITALO") || dest.contains("FRECCIAROSSA")
         }
-        
+
+        let isCancelled: (Train) -> Bool = { train in
+            let d = train.delay.lowercased()
+            return d.contains("soppresso") || d.contains("cancellat")
+        }
+
+        let delayOf: (Train) -> Int = { train in
+            Self.parseDelayMinutes(from: train.delay) ?? 0
+        }
+
+        // Priorità ai treni regionali, suburbani e aeroportuali (l'utenza pendolare non deve vedere
+        // falsi allarmi o "Forti ritardi Alta Velocità" generati da un singolo treno AV in ritardo).
         let regTrains = trains.filter { !isAVOrLongDistance($0) }
-        
-        let regCritical = regTrains.filter { train in
-            let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato")
-            if isCancelled { return true }
-            let delayStr = train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")
-            let delayMin = Int(delayStr) ?? 0
-            return delayMin >= 20
+        let sample = regTrains.isEmpty ? trains : regTrains
+        let isPureLongDistanceStation = regTrains.isEmpty
+
+        let cancelled = sample.filter { isCancelled($0) }
+        let severeDelayed = sample.filter { !isCancelled($0) && delayOf($0) >= 20 }
+        let moderateDelayed = sample.filter { !isCancelled($0) && delayOf($0) >= 10 && delayOf($0) < 20 }
+
+        // Stazioni esclusivamente lunga percorrenza/AV: soglie prudenti e mai dicitura "Alta Velocità"
+        if isPureLongDistanceStation {
+            if cancelled.count >= 2 {
+                let dirs = getUniqueDirections(for: cancelled)
+                return (dirs.isEmpty ? "Soppressioni in corso" : "Soppressioni dir. \(dirs)", .red, .disrupted)
+            }
+            let veryLate = severeDelayed.filter { delayOf($0) >= 25 }
+            if veryLate.count >= 2 {
+                let dirs = getUniqueDirections(for: veryLate)
+                return (dirs.isEmpty ? "Rallentamenti in stazione" : "Rallentamenti dir. \(dirs)", .orange, .warning)
+            }
+            return ("Circolazione regolare", .green, .regular)
         }
-        
-        let regDelayed = regTrains.filter { train in
-            let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato")
-            if isCancelled { return false }
-            let delayStr = train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")
-            let delayMin = Int(delayStr) ?? 0
-            return delayMin >= 10 && delayMin < 20
-        }
-        
-        let avTrains = trains.filter { isAVOrLongDistance($0) }
-        
-        let avCritical = avTrains.filter { train in
-            let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato")
-            if isCancelled { return true }
-            let delayStr = train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")
-            let delayMin = Int(delayStr) ?? 0
-            return delayMin >= 30
-        }
-        
-        let avDelayed = avTrains.filter { train in
-            let isCancelled = train.delay.lowercased().contains("soppresso") || train.delay.lowercased().contains("cancellato")
-            if isCancelled { return false }
-            let delayStr = train.delay.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")
-            let delayMin = Int(delayStr) ?? 0
-            return delayMin >= 15 && delayMin < 30
-        }
-        
-        
-        if !regCritical.isEmpty {
-            let directions = getUniqueDirections(for: regCritical)
-            let hasCancellations = regCritical.contains { $0.delay.lowercased().contains("soppresso") || $0.delay.lowercased().contains("cancellato") }
-            if hasCancellations {
-                return (directions.isEmpty ? "Soppressioni in corso" : "Soppressioni dir. \(directions)", .red)
+
+        // 1. Soppressioni sui regionali/suburbani
+        if !cancelled.isEmpty {
+            let dirs = getUniqueDirections(for: cancelled)
+            let isWidespread = cancelled.count >= 2 || sample.count <= 4 || !severeDelayed.isEmpty
+            if isWidespread {
+                return (dirs.isEmpty ? "Soppressioni in corso" : "Soppressioni dir. \(dirs)", .red, .disrupted)
             } else {
-                return (directions.isEmpty ? "Forti ritardi" : "Forti ritardi dir. \(directions)", .red)
+                return (dirs.isEmpty ? "1 treno soppresso" : "1 soppressione dir. \(dirs)", .orange, .warning)
             }
         }
-        
-        if !avCritical.isEmpty {
-            let hasCancellations = avCritical.contains { $0.delay.lowercased().contains("soppresso") || $0.delay.lowercased().contains("cancellato") }
-            return (hasCancellations ? "Soppressioni Alta Velocità" : "Forti Ritardi Alta Velocità", .red)
+
+        // 2. Ritardi importanti (>= 20 min) sui regionali/suburbani
+        if !severeDelayed.isEmpty {
+            let dirs = getUniqueDirections(for: severeDelayed)
+            let maxDelay = severeDelayed.map(delayOf).max() ?? 20
+            let isCritical = severeDelayed.count >= 2 || maxDelay >= 30 || sample.count <= 3
+            if isCritical {
+                return (dirs.isEmpty ? "Forti ritardi" : "Forti ritardi dir. \(dirs)", .red, .disrupted)
+            } else {
+                return (dirs.isEmpty ? "Ritardi fino a +\(maxDelay)'" : "Ritardi dir. \(dirs)", .orange, .warning)
+            }
         }
-        
-        if !regDelayed.isEmpty {
-            let directions = getUniqueDirections(for: regDelayed)
-            return (directions.isEmpty ? "Rallentamenti" : "Rallentamenti dir. \(directions)", .orange)
+
+        // 3. Rallentamenti moderati (10-19 min) sui regionali/suburbani
+        if !moderateDelayed.isEmpty {
+            let maxModDelay = moderateDelayed.map(delayOf).max() ?? 10
+            let isSignificant = moderateDelayed.count >= 2 || maxModDelay >= 15 || sample.count <= 4
+            if isSignificant {
+                let dirs = getUniqueDirections(for: moderateDelayed)
+                return (dirs.isEmpty ? "Rallentamenti" : "Rallentamenti dir. \(dirs)", .orange, .warning)
+            }
         }
-        
-        if !avDelayed.isEmpty {
-            return ("Ritardi Alta Velocità", .orange)
-        }
-        
-        return ("Circolazione Regolare", .green)
+
+        return ("Circolazione regolare", .green, .regular)
     }
     
-    private func getUniqueDirections(for trainsList: [Train]) -> String {
+    private static func getUniqueDirections(for trainsList: [Train]) -> String {
         let getCleanDirection: (Train) -> String = { train in
             let dest = train.destination.trimmingCharacters(in: .whitespacesAndNewlines)
             if dest.isEmpty { return "" }
@@ -291,6 +474,7 @@ struct Haptics {
                 UserDefaults(suiteName: "group.carlo.InOrario")?.set(support, forKey: "tip.colazionee")
                 AIFeatureManager.shared.reconcileDefaultAIMode(hasSupport: support)
                 self.objectWillChange.send()
+                self.migrateFreeContinuousNotificationsIfNeeded()
                 self.syncRemoteNotifications()
                 self.syncLiveActivities()
                 WidgetCenter.shared.reloadAllTimelines()
@@ -313,47 +497,44 @@ struct Haptics {
         loadRecentRoutes()
         loadRecentViewedTrips()
         checkAndCleanOneShotNotifications()
+        migrateFreeContinuousNotificationsIfNeeded()
     }
     
     private func loadRFIStations() {
-        if let url = Bundle.main.url(forResource: "rfi_stations", withExtension: "json"),
-           let data = try? Data(contentsOf: url),
-           let decoded = try? JSONDecoder().decode([RFIStation].self, from: data) {
-            self.allRFIStations = decoded
-            
-            var dict: [String: String] = [:]
-            var normDict: [String: String] = [:]
-            var vtDict: [String: String] = [:]
-            var vtNormDict: [String: String] = [:]
-            for station in decoded {
-                let lower = station.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                let norm = normalizeStationName(station.name)
-                if let rfiID = station.rfiID, !rfiID.isEmpty {
-                    dict[lower] = rfiID
-                    normDict[norm] = rfiID
-                }
-                if let vtID = station.vtID, !vtID.isEmpty {
-                    vtDict[lower] = vtID
-                    vtNormDict[norm] = vtID
-                }
+        let decoded = RFIStationCatalog.shared.rfiStations
+        guard !decoded.isEmpty else { return }
+        self.allRFIStations = decoded
+        
+        var dict: [String: String] = [:]
+        var normDict: [String: String] = [:]
+        var vtDict: [String: String] = [:]
+        var vtNormDict: [String: String] = [:]
+        for station in decoded {
+            let lower = station.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            let norm = normalizeStationName(station.name)
+            if let rfiID = station.rfiID, !rfiID.isEmpty {
+                dict[lower] = rfiID
+                normDict[norm] = rfiID
             }
-            self.rfiStationDictionary = dict
-            self.rfiStationNormalizedDict = normDict
-            self.vtStationDictionary = vtDict
-            self.vtStationNormalizedDict = vtNormDict
-            self.sanitizeRecentStations()
+            if let vtID = station.vtID, !vtID.isEmpty {
+                vtDict[lower] = vtID
+                vtNormDict[norm] = vtID
+            }
         }
+        self.rfiStationDictionary = dict
+        self.rfiStationNormalizedDict = normDict
+        self.vtStationDictionary = vtDict
+        self.vtStationNormalizedDict = vtNormDict
+        self.sanitizeRecentStations()
     }
     
-    /// Versione async di loadRFIStations: carica il JSON su un thread in background
-    /// e poi aggiorna le proprietà pubblicate sul MainActor, evitando freeze all'avvio.
+    /// Versione async di loadRFIStations: usa il catalogo condiviso e costruisce i dizionari
+    /// su thread in background evitando freeze e decodifiche duplicate all'avvio.
     func loadRFIStationsAsync() async {
-        guard let url = Bundle.main.url(forResource: "rfi_stations", withExtension: "json") else { return }
-        
-        // Lettura e parsing su thread in background (nonisolated context di Task.detached)
+        // Lettura e indicizzazione su thread in background (nonisolated context di Task.detached)
         let result = await Task.detached(priority: .utility) { () -> ([RFIStation], [String: String], [String: String], [String: String], [String: String])? in
-            guard let data = try? Data(contentsOf: url),
-                  let decoded = try? JSONDecoder().decode([RFIStation].self, from: data) else { return nil }
+            let decoded = RFIStationCatalog.shared.rfiStations
+            guard !decoded.isEmpty else { return nil }
             var dict: [String: String] = [:]
             var normDict: [String: String] = [:]
             var vtDict: [String: String] = [:]
@@ -726,6 +907,56 @@ struct Haptics {
         }) {
             return buildStation(from: prefixMatch)
         }
+
+        // 4d. Nomi bilingui Alto Adige (es. "Bolzano/Bozen", "Ora/Auer") e alias locali
+        if lower.contains("/"), !lower.contains("/av") {
+            let italianPart = lower.split(separator: "/", maxSplits: 1).first.map(String.init)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !italianPart.isEmpty {
+                let italianNorm = normalizeStationName(italianPart)
+                if let bilingualMatch = allRFIStations.first(where: {
+                    $0.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == italianPart
+                    || normalizeStationName($0.name) == italianNorm
+                }) {
+                    return buildStation(from: bilingualMatch)
+                }
+            }
+        }
+        let knownCatalogAliases: [String: String] = [
+            "albate-camerlata": "como camerlata",
+            "assemini santa lucia": "assemini s.lucia",
+            "bari marconi": "marconi",
+            "bojano": "boiano",
+            "bovisio masciago-mombello": "bovisio masciago",
+            "cagliari santa gilla": "cagliari s.gilla",
+            "calalzo-pieve di cadore-cortina": "calalzo pieve cadore cortina",
+            "caselle": "caselle torinese",
+            "cavaria-oggiona-jerago": "cavaria oggiona ierago",
+            "firenze s.marco vecchio": "s.marco vecchio",
+            "palermo fiera": "fiera",
+            "palermo giachery": "giachery",
+            "palermo imperatore federico": "federico",
+            "palermo lolli": "lolli",
+            "palermo palazzo reale-orleans": "palazzo reale-orleans",
+            "palermo politeama": "palermo politeama pes",
+            "pellaro": "reggio di calabria pellaro",
+            "pisa s.rossore": "pisa/binari pisa s.rossore",
+            "ponte adige/sigmundskron": "ponte d'adige",
+            "punta raisi": "palermo aeroporto",
+            "reggio di calabria aeroporto": "reggio calabria aeroporto",
+            "rivarolo canavese": "rivarolo",
+            "san candido/innichen": "s.candido",
+            "santa margherita ligure-portofino": "s.margherita ligure portofino",
+            "settimo torinese": "settimo",
+            "spondigna/spondinig": "spondigna-prato venosta",
+            "torino aeroporto": "torino aeroporto di caselle",
+            "venaria reale": "venaria reale reggia",
+            "villabassa-braies/niederdorf-prags": "villabassa-braies-val di braies",
+            "zola predosa": "zola centro"
+        ]
+        if let mappedName = knownCatalogAliases[lower],
+           let aliasMatch = allRFIStations.first(where: { $0.name.lowercased() == mappedName }) {
+            return buildStation(from: aliasMatch)
+        }
         
         let rfi = getRfiID(for: name) ?? getRfiID(for: cleanedName) ?? validFallbackRfi
         let vt = getVtID(for: name) ?? getVtID(for: cleanedName) ?? validFallbackVt
@@ -830,16 +1061,16 @@ struct Haptics {
             if updated { saveFavorites() }
         }
         
-        if let data = UserDefaults.standard.data(forKey: sectionOrderKey), let decoded = try? JSONDecoder().decode([AppSection].self, from: data) {
-            var loaded = decoded
+        if let data = UserDefaults.standard.data(forKey: sectionOrderKey), let rawOrder = try? JSONDecoder().decode([String].self, from: data) {
+            var loaded = rawOrder.compactMap { AppSection(rawValue: $0) }
             for section in AppSection.allCases {
                 if !loaded.contains(section) { loaded.append(section) }
             }
             self.sectionOrder = loaded
         }
         
-        if let data = UserDefaults.standard.data(forKey: hiddenSectionsKey), let decoded = try? JSONDecoder().decode([AppSection].self, from: data) {
-            self.hiddenSections = Set(decoded)
+        if let data = UserDefaults.standard.data(forKey: hiddenSectionsKey), let rawHidden = try? JSONDecoder().decode([String].self, from: data) {
+            self.hiddenSections = Set(rawHidden.compactMap { AppSection(rawValue: $0) })
         }
         
         if let data = UserDefaults.standard.data(forKey: favoriteRoutesKey), let decoded = try? JSONDecoder().decode([FavoriteRoute].self, from: data) {
@@ -860,6 +1091,14 @@ struct Haptics {
             if self.remoteNotificationsEnabled != val {
                 self.remoteNotificationsEnabled = val
             }
+        }
+        if UserDefaults.standard.object(forKey: trainNotificationsEnabledKey) != nil {
+            let val = UserDefaults.standard.bool(forKey: trainNotificationsEnabledKey)
+            if self.trainNotificationsEnabled != val {
+                self.trainNotificationsEnabled = val
+            }
+        } else if !self.trainNotificationsEnabled {
+            self.trainNotificationsEnabled = true
         }
         if UserDefaults.standard.object(forKey: notifyOnStationPassKey) != nil {
             let val = UserDefaults.standard.bool(forKey: notifyOnStationPassKey)
@@ -889,6 +1128,72 @@ struct Haptics {
         if let token = UserDefaults.standard.string(forKey: apnsTokenKey), self.apnsToken != token {
             self.apnsToken = token
         }
+        if let maxData = UserDefaults.standard.data(forKey: homeSectionMaxItemsKey),
+           let rawDict = try? JSONDecoder().decode([String: Int].self, from: maxData) {
+            var parsed: [AppSection: Int] = [:]
+            for (k, v) in rawDict {
+                if let sec = AppSection(rawValue: k) {
+                    parsed[sec] = min(max(v, 1), 10)
+                }
+            }
+            self.homeSectionMaxItems = parsed
+        }
+    }
+
+    static let defaultHomeSectionMaxItems = 3
+    static let defaultHomeStationsMaxItems = 4
+    static let homeSectionMaxItemsRange = 1...10
+
+    nonisolated static func defaultHomeMaxItems(for section: AppSection) -> Int {
+        section == .myStations ? defaultHomeStationsMaxItems : defaultHomeSectionMaxItems
+    }
+
+    func homeMaxItems(for section: AppSection) -> Int {
+        let value = homeSectionMaxItems[section] ?? Self.defaultHomeMaxItems(for: section)
+        return min(max(value, Self.homeSectionMaxItemsRange.lowerBound), Self.homeSectionMaxItemsRange.upperBound)
+    }
+
+    nonisolated static func homeHiddenStationsSummary(
+        hiddenStations: [Station],
+        snapshots: [String: StationBoardSnapshot]
+    ) -> (text: String, alertCount: Int, hasCritical: Bool)? {
+        guard !hiddenStations.isEmpty else { return nil }
+        var alertCount = 0
+        var hasCritical = false
+        for station in hiddenStations {
+            let key = canonicalStationKey(for: station)
+            guard let snap = snapshots[key] else { continue }
+            if snap.circulationState == .disrupted {
+                alertCount += 1
+                hasCritical = true
+            } else if snap.circulationState == .warning {
+                alertCount += 1
+            }
+        }
+        let base = hiddenStations.count == 1 ? "+1 stazione" : "+\(hiddenStations.count) stazioni"
+        let text = alertCount > 0 ? "\(base) · \(alertCount) con avvisi" : base
+        return (text, alertCount, hasCritical)
+    }
+
+    func setHomeMaxItems(_ count: Int, for section: AppSection) {
+        let clamped = min(max(count, Self.homeSectionMaxItemsRange.lowerBound), Self.homeSectionMaxItemsRange.upperBound)
+        homeSectionMaxItems[section] = clamped
+        let raw = Dictionary(uniqueKeysWithValues: homeSectionMaxItems.map { ($0.key.rawValue, $0.value) })
+        if let encoded = try? JSONEncoder().encode(raw) {
+            UserDefaults.standard.set(encoded, forKey: homeSectionMaxItemsKey)
+        }
+    }
+
+    nonisolated static func widgetStationExclusionKey(name: String, vtID: String?, rfiID: String?) -> String {
+        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !cleanName.isEmpty { return cleanName }
+        if let vt = vtID?.trimmingCharacters(in: .whitespacesAndNewlines), !vt.isEmpty { return vt.lowercased() }
+        if let rfi = rfiID?.trimmingCharacters(in: .whitespacesAndNewlines), !rfi.isEmpty { return rfi.lowercased() }
+        return ""
+    }
+
+    nonisolated static func widgetStationExclusionKey(for station: Station) -> String {
+        widgetStationExclusionKey(name: station.name, vtID: station.vtID, rfiID: station.rfiID)
     }
     
     func isSectionVisible(_ section: AppSection) -> Bool {
@@ -958,6 +1263,7 @@ struct Haptics {
         UserDefaults.standard.set(iCloudSyncEnabled, forKey: iCloudSyncEnabledKey)
         
         UserDefaults.standard.set(remoteNotificationsEnabled, forKey: remoteNotificationsEnabledKey)
+        UserDefaults.standard.set(trainNotificationsEnabled, forKey: trainNotificationsEnabledKey)
         UserDefaults.standard.set(notifyOnStationPass, forKey: notifyOnStationPassKey)
         UserDefaults.standard.set(strikeRegion, forKey: strikeRegionKey)
         UserDefaults.standard.set(strikeNotificationsEnabled, forKey: strikeNotificationsEnabledKey)
@@ -1045,6 +1351,7 @@ struct Haptics {
             recentTrains.removeLast(recentTrains.count - maxHistoryItems)
         }
         saveFavorites()
+        UserInterestTelemetryManager.shared.recordSearch(type: "train", query: train.number)
     }
     
     func addToRecentStations(_ station: VTSearchStation) {
@@ -1057,6 +1364,7 @@ struct Haptics {
             recentStations.removeLast(recentStations.count - maxHistoryItems)
         }
         saveFavorites()
+        UserInterestTelemetryManager.shared.recordSearch(type: "station", query: cleanStation.nomeLungo)
     }
     
     func clearRecentTrains() {
@@ -1151,6 +1459,7 @@ struct Haptics {
             recentAssistantQueries.removeLast(recentAssistantQueries.count - 6)
         }
         saveRecentAssistantQueries()
+        UserInterestTelemetryManager.shared.recordSearch(type: "assistant", query: trimmed)
     }
 
     func removeRecentAssistantQuery(_ query: String) {
@@ -1196,6 +1505,12 @@ struct Haptics {
             recentRoutes.removeLast(recentRoutes.count - maxHistoryItems)
         }
         saveRecentRoutes()
+        UserInterestTelemetryManager.shared.recordRouteUsage(
+            originName: cleanOrigin,
+            originID: originID,
+            destinationName: cleanDest,
+            destinationID: destID
+        )
     }
 
     func removeRecentRoute(_ route: FavoriteRoute) {
@@ -1233,6 +1548,7 @@ struct Haptics {
             recentViewedTrips.removeLast(recentViewedTrips.count - maxHistoryItems)
         }
         saveRecentViewedTrips()
+        UserInterestTelemetryManager.shared.recordViewedTrip(trip)
     }
 
     func removeRecentViewedTrip(id: String) {
@@ -1487,12 +1803,14 @@ struct Haptics {
         saveFavorites()
     }
     
+    @discardableResult
     private func applyEnrichedStopsToSavedTrains(
         trainNumber: String,
         stops: [Stop],
-        detectedCategory: String?
-    ) {
-        guard let firstStop = stops.first, let lastStop = stops.last else { return }
+        detectedCategory: String?,
+        deferSave: Bool = false
+    ) -> (viewedChanged: Bool, favoritesChanged: Bool) {
+        guard let firstStop = stops.first, let lastStop = stops.last else { return (false, false) }
         let origin = firstStop.stationName.trimmingCharacters(in: .whitespacesAndNewlines)
         let destination = lastStop.stationName.trimmingCharacters(in: .whitespacesAndNewlines)
         let fullDesc = (!origin.isEmpty && !destination.isEmpty) ? "\(origin) - \(destination)" : destination
@@ -1525,7 +1843,7 @@ struct Haptics {
         for idx in viewedRecentTrains.indices where viewedRecentTrains[idx].number == trainNumber {
             if apply(to: &viewedRecentTrains[idx]) { viewedChanged = true }
         }
-        if viewedChanged { saveViewedRecentTrains() }
+        if viewedChanged && !deferSave { saveViewedRecentTrains() }
 
         var favOrRecentChanged = false
         for idx in recentTrains.indices where recentTrains[idx].number == trainNumber {
@@ -1534,14 +1852,17 @@ struct Haptics {
         for idx in favoriteTrains.indices where favoriteTrains[idx].number == trainNumber {
             if apply(to: &favoriteTrains[idx]) { favOrRecentChanged = true }
         }
-        if favOrRecentChanged { saveFavorites() }
+        if favOrRecentChanged && !deferSave { saveFavorites() }
+
+        return (viewedChanged, favOrRecentChanged)
     }
 
     /// Fetches live stops for a favorited train and updates departureTime (origin), arrivalTime (destination).
     func enrichFavoriteTrainData(trainNumber: String) async {
         let result = await fetchLiveStops(for: trainNumber)
-        guard !result.stops.isEmpty else { return }
+        guard !result.stops.isEmpty || result.status.cancellationNote != nil || result.status.statusMessage != "In attesa di dati..." else { return }
         await MainActor.run {
+            recordLiveTrainSnapshot(trainNumber: trainNumber, stops: result.stops, status: result.status, fallbackCategory: nil)
             applyEnrichedStopsToSavedTrains(
                 trainNumber: trainNumber,
                 stops: result.stops,
@@ -1550,8 +1871,8 @@ struct Haptics {
             if let index = favoriteTrains.firstIndex(where: { $0.number == trainNumber }) {
                 var changed = false
                 // Update cached delay for Widget fallback
-                let isCancelled = result.status.statusMessage.contains("Soppresso")
-                let stopDelay = result.stops.last?.delay ?? 0
+                let isCancelled = result.status.statusMessage.contains("Soppresso") || result.status.cancellationNote != nil
+                let stopDelay = Self.resolveSnapshotDelay(stops: result.stops)
                 let delayStr: String
                 let colorStr: String
                 if isCancelled {
@@ -1580,7 +1901,800 @@ struct Haptics {
             }
         }
     }
+
+    // MARK: - Live Snapshots & Canonical Keys
+
+    nonisolated static func canonicalStationKey(for station: Station) -> String {
+        canonicalStationKey(name: station.name, vtID: station.vtID, rfiID: station.rfiID)
+    }
+
+    nonisolated static func canonicalStationKey(name: String, vtID: String?, rfiID: String?) -> String {
+        if let vt = vtID?.trimmingCharacters(in: .whitespacesAndNewlines), !vt.isEmpty {
+            return "vt:\(vt.uppercased())"
+        }
+        if let rfi = rfiID?.trimmingCharacters(in: .whitespacesAndNewlines), !rfi.isEmpty {
+            return "rfi:\(rfi.uppercased())"
+        }
+        let cleaned = name
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "  ", with: " ")
+        return "name:\(cleaned)"
+    }
+
+    nonisolated static func parseDelayMinutes(from delayText: String) -> Int? {
+        let lower = delayText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lower.contains("soppresso") || lower.contains("cancellat") {
+            return nil
+        }
+        if lower.isEmpty || lower == "--" || lower.contains("in orario") {
+            return 0
+        }
+        let cleaned = lower
+            .replacingOccurrences(of: "+", with: "")
+            .replacingOccurrences(of: "'", with: "")
+            .replacingOccurrences(of: "min", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Int(cleaned)
+    }
+
+    nonisolated static func resolveSnapshotDelay(stops: [Stop]) -> Int {
+        if let activeStop = stops.last(where: { $0.actualTime != nil && $0.actualTime != "--" }) {
+            return activeStop.delay
+        }
+        return stops.last?.delay ?? 0
+    }
+
+    static func evaluateStationBoardSnapshot(
+        station: Station,
+        result: StationBoardResult,
+        now: Date = Date()
+    ) -> StationBoardSnapshot {
+        let key = canonicalStationKey(for: station)
+        let trains = result.trains
+        let cancelledCount = trains.filter {
+            $0.delay.localizedCaseInsensitiveContains("soppresso")
+            || $0.delay.localizedCaseInsensitiveContains("cancellat")
+        }.count
+
+        let delays: [Int] = trains.compactMap { parseDelayMinutes(from: $0.delay) }
+        let positiveDelays = delays.filter { $0 > 0 }
+        let delayedCount = delays.filter { $0 >= 10 }.count
+        let averageDelay = positiveDelays.isEmpty ? 0 : (positiveDelays.reduce(0, +) / max(1, trains.count - cancelledCount))
+        let health = computeLineHealth(for: trains)
+
+        let preview = Array(trains.prefix(4))
+        return StationBoardSnapshot(
+            stationKey: key,
+            stationName: station.formattedName,
+            circulationState: health.state,
+            healthMessage: health.message,
+            averageDelayMinutes: averageDelay,
+            delayedCount: delayedCount,
+            cancelledCount: cancelledCount,
+            trains: trains,
+            previewTrains: preview,
+            alerts: result.alerts,
+            fetchedAt: now
+        )
+    }
+
+    func buildLiveTrainSnapshot(
+        trainNumber: String,
+        stops: [Stop],
+        status: TrainStatus,
+        fallbackCategory: String?
+    ) -> TrainLiveSnapshot {
+        let savedMatch = favoriteTrains.first(where: { $0.number == trainNumber })
+            ?? unifiedRecentTrains.first(where: { $0.number == trainNumber })
+        let origin = stops.first?.stationName.formattedStationName ?? savedMatch?.parsedEndpoints.origin
+        let destination = stops.last?.stationName.formattedStationName ?? savedMatch?.parsedEndpoints.destination
+        let resolvedCategory = resolveTrainCategory(
+            number: trainNumber,
+            rawCategory: status.detectedCategory ?? fallbackCategory ?? savedMatch?.category,
+            description: savedMatch?.description ?? ""
+        )
+        let delayVal = Self.resolveSnapshotDelay(stops: stops)
+        let isCancelled = status.statusMessage.localizedCaseInsensitiveContains("Soppresso")
+            || status.cancellationNote != nil
+            || (!stops.isEmpty && stops.allSatisfy { $0.isSuppressed })
+        let nextInfo = Self.computeLiveActivityNextStop(
+            stops: stops,
+            status: status,
+            fallbackDelay: delayVal > 0 ? "+\(delayVal)'" : ""
+        )
+        let progress = Self.computeLiveActivityProgress(stops: stops, status: status)
+        let cleanLastStation = (status.lastStation == "--" || status.lastStation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            ? nil
+            : status.lastStation.formattedStationName
+        let cleanLastTime = (status.lastTime == "--" || status.lastTime.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            ? nil
+            : status.lastTime
+
+        return TrainLiveSnapshot(
+            trainNumber: trainNumber,
+            category: resolvedCategory,
+            origin: origin,
+            destination: destination,
+            stops: stops,
+            status: status,
+            delayMinutes: delayVal,
+            isCancelled: isCancelled,
+            isArrived: status.isArrived,
+            isDeparted: status.isDeparted,
+            lastStation: cleanLastStation,
+            lastTime: cleanLastTime,
+            nextStation: nextInfo.station?.formattedStationName,
+            nextEstimatedTime: nextInfo.estimatedTime,
+            progress: progress,
+            fetchedAt: Date()
+        )
+    }
+
+    func recordLiveTrainSnapshot(
+        trainNumber: String,
+        stops: [Stop],
+        status: TrainStatus,
+        fallbackCategory: String?
+    ) {
+        liveTrainSnapshots[trainNumber] = buildLiveTrainSnapshot(
+            trainNumber: trainNumber,
+            stops: stops,
+            status: status,
+            fallbackCategory: fallbackCategory
+        )
+    }
+
+    // MARK: - Home Contextual Selection & Consistent Chronological Ordering
+
+    nonisolated private static func parseTimeMinutes24(_ raw: String?) -> Int? {
+        guard let raw else { return nil }
+        let normalized = SharedFormatters.format24HourTimeString(raw)
+        return CommuteTimeBand.parseHHmm(normalized)
+    }
+
+    nonisolated static func departureMinutes(for saved: SavedTrain, snapshot: TrainLiveSnapshot?) -> Int? {
+        if let firstTime = snapshot?.stops.first?.time,
+           let parsed = parseTimeMinutes24(firstTime) {
+            return parsed
+        }
+        return parseTimeMinutes24(saved.departureTime)
+    }
+
+    nonisolated static func arrivalMinutes(for saved: SavedTrain, snapshot: TrainLiveSnapshot?) -> Int? {
+        if let lastTime = snapshot?.stops.last?.time,
+           let parsed = parseTimeMinutes24(lastTime) {
+            return parsed
+        }
+        return parseTimeMinutes24(saved.arrivalTime)
+    }
+
+    /// Ordina i treni in ordine cronologico di partenza (08:15 → 08:45 → 09:15), mai rimescolati per ritardo.
+    /// I treni senza orario noto restano in coda mantenendo il loro ordine relativo.
+    nonisolated static func sortedTrainsByDeparture(
+        _ trains: [SavedTrain],
+        snapshots: [String: TrainLiveSnapshot]
+    ) -> [SavedTrain] {
+        trains.enumerated().sorted { lhs, rhs in
+            let lDep = departureMinutes(for: lhs.element, snapshot: snapshots[lhs.element.number])
+            let rDep = departureMinutes(for: rhs.element, snapshot: snapshots[rhs.element.number])
+            switch (lDep, rDep) {
+            case let (l?, r?):
+                if l != r { return l < r }
+                return lhs.offset < rhs.offset
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+    }
+
+    /// Ordina i viaggi singoli salvati in ordine cronologico di partenza.
+    nonisolated static func sortedSavedTripsByDeparture(_ trips: [SavedTrip]) -> [SavedTrip] {
+        trips.enumerated().sorted { lhs, rhs in
+            let lDep = parseTimeMinutes24(lhs.element.departureTime)
+            let rDep = parseTimeMinutes24(rhs.element.departureTime)
+            switch (lDep, rDep) {
+            case let (l?, r?):
+                if l != r { return l < r }
+                return lhs.offset < rhs.offset
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.offset < rhs.offset
+            }
+        }.map(\.element)
+    }
+
+    /// Seleziona i treni più utili da mostrare nella Home:
+    /// - Esclude immediatamente i treni già arrivati a destinazione (non restano mai dopo l'arrivo).
+    /// - Nella finestra attiva entrano: (a) treni attualmente in viaggio (partiti e non arrivati),
+    ///   (b) treni in partenza entro le prossime 2 ore (con margine di 15 min + eventuale ritardo attorno alla partenza),
+    ///   (c) treni cancellati attorno alla partenza ([-15 min, +2h]).
+    /// - I treni con problemi (cancellati o ritardo > 15 min) hanno priorità garantita nella selezione.
+    /// - Fuori finestra attiva: mostra i prossimi 2 treni in partenza da adesso in poi.
+    /// - I treni scelti sono sempre mostrati in ordine cronologico stabile di partenza.
+    nonisolated static func selectHomeTrains(
+        favoriteTrains: [SavedTrain],
+        snapshots: [String: TrainLiveSnapshot],
+        now: Date = Date(),
+        maxActiveCount: Int = 3,
+        fallbackCount: Int = 2
+    ) -> HomeTrainsSelection {
+        guard !favoriteTrains.isEmpty else {
+            return HomeTrainsSelection(trains: [], refreshCandidates: [], alertSeverity: .none, hasActiveWindowTrains: false)
+        }
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        let comps = cal.dateComponents([.hour, .minute, .weekday], from: now)
+        let nowMinutes = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+        let isoWeekday = (((comps.weekday ?? 2) + 5) % 7) + 1 // 1 = Lun ... 7 = Dom
+
+        func isActiveOnWeekday(_ saved: SavedTrain, weekday: Int) -> Bool {
+            guard let days = saved.activeDays, !days.isEmpty else { return true }
+            return days.contains(weekday)
+        }
+
+        // Differenza firmata in minuti `target - now` normalizzata in [-720, +720]
+        func signedDelta(_ target: Int, from current: Int) -> Int {
+            var d = target - current
+            if d > 720 { d -= 1440 }
+            if d < -720 { d += 1440 }
+            return d
+        }
+
+        // Distanza ciclica in avanti [0, 1439]
+        func forwardDelta(_ target: Int, from current: Int) -> Int {
+            ((target - current) % 1440 + 1440) % 1440
+        }
+
+        struct ActiveCandidate {
+            let saved: SavedTrain
+            let index: Int
+            let isCancelled: Bool
+            let isSevereDelay: Bool
+            let isInTransit: Bool
+            let sortProximity: Int
+        }
+
+        var activeCandidates: [ActiveCandidate] = []
+        var alertSeverity: HomeAlertSeverity = .none
+
+        for (idx, saved) in favoriteTrains.enumerated() {
+            let snap = snapshots[saved.number]
+            let depMin = departureMinutes(for: saved, snapshot: snap)
+            let arrMin = arrivalMinutes(for: saved, snapshot: snap)
+
+            if let snap {
+                // Appena arrivato a destinazione: esce subito dalla Home!
+                if snap.isArrived {
+                    continue
+                }
+
+                if snap.isCancelled {
+                    // Mostra un cancellato solo se vicino alla partenza prevista ([-15m, +120m]), non ore dopo
+                    if let dep = depMin {
+                        let delta = signedDelta(dep, from: nowMinutes)
+                        guard delta >= -15 && delta <= 120 else { continue }
+                        activeCandidates.append(ActiveCandidate(
+                            saved: saved,
+                            index: idx,
+                            isCancelled: true,
+                            isSevereDelay: false,
+                            isInTransit: false,
+                            sortProximity: abs(delta)
+                        ))
+                        alertSeverity = .critical
+                    }
+                    continue
+                }
+
+                if snap.isDeparted {
+                    // Attualmente in viaggio (non ancora arrivato)
+                    let severe = snap.delayMinutes > 15
+                    activeCandidates.append(ActiveCandidate(
+                        saved: saved,
+                        index: idx,
+                        isCancelled: false,
+                        isSevereDelay: severe,
+                        isInTransit: true,
+                        sortProximity: 0
+                    ))
+                    if severe && alertSeverity != .critical {
+                        alertSeverity = .warning
+                    }
+                    continue
+                }
+
+                // Non ancora partito: entra se parte entro le prossime 2 ore (con margine per eventuale ritardo in partenza)
+                if let dep = depMin {
+                    let delta = signedDelta(dep, from: nowMinutes)
+                    let delayBuffer = max(0, snap.delayMinutes)
+                    if delta >= -(15 + delayBuffer) && delta <= 120 {
+                        let severe = snap.delayMinutes > 15
+                        activeCandidates.append(ActiveCandidate(
+                            saved: saved,
+                            index: idx,
+                            isCancelled: false,
+                            isSevereDelay: severe,
+                            isInTransit: false,
+                            sortProximity: max(0, delta)
+                        ))
+                        if severe && alertSeverity != .critical {
+                            alertSeverity = .warning
+                        }
+                    }
+                }
+            } else {
+                // Senza snapshot live: stima su orari schedulati (escludendo i già arrivati!)
+                guard isActiveOnWeekday(saved, weekday: isoWeekday), let dep = depMin else { continue }
+                let depDelta = signedDelta(dep, from: nowMinutes)
+
+                if let arr = arrMin {
+                    let arrDelta = signedDelta(arr, from: nowMinutes)
+                    // Già arrivato da oltre 5 minuti -> escluso
+                    if arrDelta < -5 && depDelta < 0 {
+                        continue
+                    }
+                    // Probabilmente in viaggio adesso (partito ma non ancora arrivato)
+                    if depDelta <= 0 && arrDelta >= -5 {
+                        activeCandidates.append(ActiveCandidate(
+                            saved: saved,
+                            index: idx,
+                            isCancelled: false,
+                            isSevereDelay: false,
+                            isInTransit: true,
+                            sortProximity: 0
+                        ))
+                        continue
+                    }
+                }
+
+                // In partenza nelle prossime 2 ore (con breve margine -15m)
+                if depDelta >= -15 && depDelta <= 120 {
+                    activeCandidates.append(ActiveCandidate(
+                        saved: saved,
+                        index: idx,
+                        isCancelled: false,
+                        isSevereDelay: false,
+                        isInTransit: false,
+                        sortProximity: max(0, depDelta)
+                    ))
+                }
+            }
+        }
+
+        if !activeCandidates.isEmpty {
+            // Fase 1 (Selezione): priorità a cancellati > ritardo >15' > in viaggio > più vicini alla partenza
+            let prioritized = activeCandidates.sorted { a, b in
+                if a.isCancelled != b.isCancelled { return a.isCancelled }
+                if a.isSevereDelay != b.isSevereDelay { return a.isSevereDelay }
+                if a.isInTransit != b.isInTransit { return a.isInTransit }
+                if a.sortProximity != b.sortProximity { return a.sortProximity < b.sortProximity }
+                return a.index < b.index
+            }
+            let picked = Array(prioritized.prefix(maxActiveCount)).map(\.saved)
+            // Fase 2 (Ordine stabile): sempre cronologico per orario di partenza
+            let ordered = sortedTrainsByDeparture(picked, snapshots: snapshots)
+            let candidates = sortedTrainsByDeparture(prioritized.map(\.saved), snapshots: snapshots)
+            return HomeTrainsSelection(
+                trains: ordered,
+                refreshCandidates: candidates,
+                alertSeverity: alertSeverity,
+                hasActiveWindowTrains: true
+            )
+        }
+
+        // Fallback fuori finestra oraria: prossimi 2 treni in partenza da adesso in poi (ciclico sulle 24h)
+        let tomorrowWeekday = (isoWeekday % 7) + 1
+        let fallbackRanked = favoriteTrains.enumerated().sorted { lhs, rhs in
+            let lDep = departureMinutes(for: lhs.element, snapshot: snapshots[lhs.element.number])
+            let rDep = departureMinutes(for: rhs.element, snapshot: snapshots[rhs.element.number])
+            switch (lDep, rDep) {
+            case let (l?, r?):
+                let lFwd = forwardDelta(l, from: nowMinutes)
+                let rFwd = forwardDelta(r, from: nowMinutes)
+                let lDayMatch = isActiveOnWeekday(lhs.element, weekday: l >= nowMinutes ? isoWeekday : tomorrowWeekday)
+                let rDayMatch = isActiveOnWeekday(rhs.element, weekday: r >= nowMinutes ? isoWeekday : tomorrowWeekday)
+                let lScore = lFwd + (lDayMatch ? 0 : 1440)
+                let rScore = rFwd + (rDayMatch ? 0 : 1440)
+                if lScore != rScore { return lScore < rScore }
+                return lhs.offset < rhs.offset
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.offset < rhs.offset
+            }
+        }
+
+        let fallbackPicked = Array(fallbackRanked.prefix(fallbackCount)).map(\.element)
+        let fallbackOrdered = sortedTrainsByDeparture(fallbackPicked, snapshots: snapshots)
+        return HomeTrainsSelection(
+            trains: fallbackOrdered,
+            refreshCandidates: fallbackOrdered,
+            alertSeverity: .none,
+            hasActiveWindowTrains: false
+        )
+    }
+
+    /// Seleziona fino a `maxCount` stazioni per la Home nell'ordine scelto dall'utente,
+    /// saltando l'eventuale doppione già mostrato nella sezione GPS "Per te" (a meno che non sia l'unica stazione salvata).
+    nonisolated static func selectHomeStations(
+        myStations: [Station],
+        excludingNearby nearby: Station?,
+        maxCount: Int = 3
+    ) -> [Station] {
+        guard !myStations.isEmpty else { return [] }
+        guard let nearby else {
+            return Array(myStations.prefix(maxCount))
+        }
+        let nearbyKey = canonicalStationKey(for: nearby)
+        let filtered = myStations.filter { canonicalStationKey(for: $0) != nearbyKey }
+        if filtered.isEmpty {
+            return Array(myStations.prefix(maxCount))
+        }
+        return Array(filtered.prefix(maxCount))
+    }
+
+    nonisolated static func stationsAlertSeverity(
+        stations: [Station],
+        snapshots: [String: StationBoardSnapshot]
+    ) -> HomeAlertSeverity {
+        var severity: HomeAlertSeverity = .none
+        for st in stations {
+            guard let snap = snapshots[canonicalStationKey(for: st)] else { continue }
+            switch snap.circulationState {
+            case .disrupted:
+                return .critical
+            case .warning:
+                severity = .warning
+            case .regular, .noData:
+                break
+            }
+        }
+        return severity
+    }
+
+    func refreshFavoriteTrainSnapshotsIfNeeded(
+        trains subset: [SavedTrain]? = nil,
+        force: Bool = false,
+        ttl: TimeInterval = 120
+    ) async {
+        if let existing = trainSnapshotRefreshTask {
+            await existing.value
+            if !force { return }
+        }
+        let sourceList = subset ?? favoriteTrains
+        let targets = sourceList.filter { saved in
+            if force { return true }
+            guard let snap = liveTrainSnapshots[saved.number] else { return true }
+            return Date().timeIntervalSince(snap.fetchedAt) >= ttl
+        }
+        guard !targets.isEmpty else { return }
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.isRefreshingTrainSnapshots = true
+            defer {
+                self.isRefreshingTrainSnapshots = false
+                self.trainSnapshotRefreshTask = nil
+            }
+            var pendingViewedSave = false
+            var pendingFavSave = false
+            var allSnapshots: [String: TrainLiveSnapshot] = [:]
+            for batchStart in stride(from: 0, to: targets.count, by: 4) {
+                let batch = Array(targets[batchStart..<min(batchStart + 4, targets.count)])
+                await withTaskGroup(of: (String, StopsResult).self) { group in
+                    for saved in batch {
+                        let endpoints = saved.parsedEndpoints
+                        let dep = saved.departureTime
+                        let cat = saved.category
+                        let num = saved.number
+                        group.addTask {
+                            let res = await TrainRepository.shared.getLiveStops(
+                                for: num,
+                                category: cat,
+                                destination: endpoints.destination,
+                                origin: endpoints.origin,
+                                scheduledTime: dep,
+                                force: force
+                            )
+                            return (num, res)
+                        }
+                    }
+                    for await (num, res) in group {
+                        guard res.errorMessage == nil || !res.stops.isEmpty else { continue }
+                        allSnapshots[num] = self.buildLiveTrainSnapshot(
+                            trainNumber: num,
+                            stops: res.stops,
+                            status: res.status,
+                            fallbackCategory: nil
+                        )
+                        if !res.stops.isEmpty {
+                            let changed = self.applyEnrichedStopsToSavedTrains(
+                                trainNumber: num,
+                                stops: res.stops,
+                                detectedCategory: res.status.detectedCategory,
+                                deferSave: true
+                            )
+                            if changed.viewedChanged { pendingViewedSave = true }
+                            if changed.favoritesChanged { pendingFavSave = true }
+                        }
+                    }
+                }
+            }
+            if !allSnapshots.isEmpty {
+                self.liveTrainSnapshots.merge(allSnapshots) { _, new in new }
+            }
+            if pendingViewedSave { self.saveViewedRecentTrains() }
+            if pendingFavSave { self.saveFavorites() }
+            await self.pruneArrivedLiveActivities()
+        }
+        trainSnapshotRefreshTask = task
+        await task.value
+    }
+
+    func enrichRecentTrainTimesIfNeeded() async {
+        let favNumbers = Set(favoriteTrains.map(\.number))
+        let candidates = unifiedRecentTrains
+            .filter { !favNumbers.contains($0.number) && $0.formattedTimeRange == nil }
+            .prefix(3)
+        guard !candidates.isEmpty else { return }
+
+        var batchSnapshots: [String: TrainLiveSnapshot] = [:]
+        var viewedChanged = false
+        var favChanged = false
+
+        await withTaskGroup(of: (String, StopsResult).self) { group in
+            for saved in candidates {
+                let num = saved.number
+                let endpoints = saved.parsedEndpoints
+                let cat = saved.category
+                group.addTask {
+                    let res = await TrainRepository.shared.getLiveStops(
+                        for: num,
+                        category: cat,
+                        destination: endpoints.destination,
+                        origin: endpoints.origin,
+                        scheduledTime: saved.departureTime,
+                        force: false
+                    )
+                    return (num, res)
+                }
+            }
+            for await (num, res) in group {
+                guard res.errorMessage == nil || !res.stops.isEmpty else { continue }
+                batchSnapshots[num] = self.buildLiveTrainSnapshot(
+                    trainNumber: num,
+                    stops: res.stops,
+                    status: res.status,
+                    fallbackCategory: nil
+                )
+                if !res.stops.isEmpty {
+                    let changed = self.applyEnrichedStopsToSavedTrains(
+                        trainNumber: num,
+                        stops: res.stops,
+                        detectedCategory: res.status.detectedCategory,
+                        deferSave: true
+                    )
+                    if changed.viewedChanged { viewedChanged = true }
+                    if changed.favoritesChanged { favChanged = true }
+                }
+            }
+        }
+
+        if !batchSnapshots.isEmpty {
+            self.liveTrainSnapshots.merge(batchSnapshots) { _, new in new }
+        }
+        if viewedChanged { saveViewedRecentTrains() }
+        if favChanged { saveFavorites() }
+    }
+
+    func toggleQuickLiveActivity(for saved: SavedTrain) async -> QuickLiveActivityResult {
+        if isItaloTrain(category: saved.category, number: saved.number) {
+            Haptics.notify(.warning)
+            return .italoUnsupported
+        }
+
+        if let existing = Activity<TrainLiveActivityAttributes>.activities.first(where: { $0.attributes.trainNumber == saved.number }) {
+            await existing.end(nil, dismissalPolicy: .immediate)
+            syncLiveActivities()
+            Haptics.notify(.warning)
+            return .stopped
+        }
+
+        for other in Activity<TrainLiveActivityAttributes>.activities {
+            await other.end(nil, dismissalPolicy: .immediate)
+        }
+
+        var stops: [Stop] = []
+        var status = TrainStatus()
+        if let snap = liveTrainSnapshots[saved.number], !snap.stops.isEmpty {
+            stops = snap.stops
+            status = snap.status
+        } else {
+            let endpoints = saved.parsedEndpoints
+            let result = await TrainRepository.shared.getLiveStops(
+                for: saved.number,
+                category: saved.category,
+                destination: endpoints.destination,
+                origin: endpoints.origin,
+                scheduledTime: saved.departureTime,
+                force: false
+            )
+            stops = result.stops
+            status = result.status
+            if result.errorMessage == nil || !stops.isEmpty {
+                recordLiveTrainSnapshot(trainNumber: saved.number, stops: stops, status: status, fallbackCategory: saved.category)
+            }
+        }
+
+        if Self.shouldAutoEndLiveActivity(stops: stops, status: status) {
+            Haptics.notify(.warning)
+            return .failed("Il treno \(saved.number) è già arrivato a destinazione.")
+        }
+
+        let endpoints = saved.parsedEndpoints
+        let rawOrigin = stops.first?.stationName ?? endpoints.origin ?? ""
+        let rawDest = stops.last?.stationName ?? endpoints.destination
+        let originStation = rawOrigin.isEmpty ? "Partenza" : rawOrigin
+        let destinationStation = rawDest.isEmpty ? saved.description : rawDest
+        let resolvedCategory = resolveTrainCategory(
+            number: saved.number,
+            rawCategory: status.detectedCategory ?? saved.category,
+            description: "\(originStation) - \(destinationStation)"
+        )
+
+        let attributes = TrainLiveActivityAttributes(
+            trainNumber: saved.number,
+            destination: destinationStation,
+            category: resolvedCategory,
+            origin: originStation
+        )
+
+        let delayInt = Self.resolveSnapshotDelay(stops: stops)
+        let fallbackDelay = delayInt > 0 ? "+\(delayInt)'" : (status.statusMessage.contains("Soppresso") ? "Soppresso" : "In orario")
+        let progressVal = Self.computeLiveActivityProgress(stops: stops, status: status)
+        let delayStr = Self.formatLiveActivityDelay(stops: stops, status: status, fallbackDelay: fallbackDelay)
+        let nextInfo = Self.computeLiveActivityNextStop(stops: stops, status: status, fallbackDelay: fallbackDelay)
+
+        let contentState = TrainLiveActivityAttributes.ContentState(
+            delay: delayStr,
+            statusMessage: status.statusMessage,
+            lastStation: status.lastStation,
+            progress: progressVal,
+            lastDetectionTime: status.lastTime,
+            nextStation: nextInfo.station,
+            nextStationEstimatedTime: nextInfo.estimatedTime
+        )
+
+        do {
+            let activity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: contentState, staleDate: nil),
+                pushType: .token
+            )
+            Task { [weak self] in
+                for await tokenData in activity.pushTokenUpdates {
+                    guard let self else { break }
+                    let dt = self.getEffectiveDeviceToken()
+                    self.registerLiveActivityToken(pushToken: tokenData, trainNumber: saved.number, deviceToken: dt)
+                    break
+                }
+            }
+            syncLiveActivities()
+            Haptics.notify(.success)
+            return .started
+        } catch {
+            Haptics.notify(.error)
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    func refreshStationSnapshotsIfNeeded(stations: [Station], force: Bool = false, ttl: TimeInterval = 300) async {
+        if let existing = stationSnapshotRefreshTask {
+            await existing.value
+            if !force { return }
+        }
+        var uniqueByKey: [String: Station] = [:]
+        var orderedTargets: [Station] = []
+        for st in stations {
+            let key = Self.canonicalStationKey(for: st)
+            if uniqueByKey[key] == nil {
+                uniqueByKey[key] = st
+                if force || (stationBoardSnapshots[key].map { Date().timeIntervalSince($0.fetchedAt) >= ttl } ?? true) {
+                    orderedTargets.append(st)
+                }
+            }
+        }
+        guard !orderedTargets.isEmpty else { return }
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.isRefreshingStationSnapshots = true
+            defer {
+                self.isRefreshingStationSnapshots = false
+                self.stationSnapshotRefreshTask = nil
+            }
+            var allSnapshots: [String: StationBoardSnapshot] = [:]
+            for batchStart in stride(from: 0, to: orderedTargets.count, by: 3) {
+                let batch = Array(orderedTargets[batchStart..<min(batchStart + 3, orderedTargets.count)])
+                await withTaskGroup(of: (String, Station, StationBoardResult).self) { group in
+                    for st in batch {
+                        let key = Self.canonicalStationKey(for: st)
+                        group.addTask {
+                            let result = await StationRepository.shared.getStationHealthBoard(
+                                station: st,
+                                force: force
+                            )
+                            return (key, st, result)
+                        }
+                    }
+                    for await (key, st, result) in group {
+                        allSnapshots[key] = Self.evaluateStationBoardSnapshot(
+                            station: st,
+                            result: result
+                        )
+                    }
+                }
+            }
+            if !allSnapshots.isEmpty {
+                self.stationBoardSnapshots.merge(allSnapshots) { _, new in new }
+            }
+        }
+        stationSnapshotRefreshTask = task
+        await task.value
+    }
     
+    nonisolated static func buildNotificationSyncTrainsPayload(
+        favoriteTrains: [SavedTrain],
+        hasSupport: Bool,
+        masterEnabled: Bool,
+        trainsEnabled: Bool
+    ) -> [[String: Any]] {
+        guard masterEnabled && trainsEnabled else { return [] }
+        var trainsPayload: [[String: Any]] = []
+        for train in favoriteTrains {
+            guard !train.isNotificationsPaused else { continue }
+            let notifyDelay = hasSupport ? (train.notifyDelay ?? false) : false
+            let notifyDeparture = hasSupport ? (train.notifyDeparture ?? false) : false
+            let notifyStationPass = hasSupport ? (train.notifyStationPass ?? false) : false
+            let notifyPlatformChange = hasSupport ? (train.notifyPlatformChange ?? false) : false
+            let notifyScheduledTime = train.notifyScheduledTime ?? false
+            let isEnabled = notifyDelay ||
+                            notifyDeparture ||
+                            notifyStationPass ||
+                            notifyPlatformChange ||
+                            notifyScheduledTime
+            if isEnabled {
+                let normalizedSchedTime = SharedFormatters.format24HourTimeString(train.scheduledNotificationTime ?? "")
+                trainsPayload.append([
+                    "train_number": train.number,
+                    "notify_delay": notifyDelay,
+                    "notify_station_pass": notifyStationPass,
+                    "station_pass_name": train.stationPassName ?? "",
+                    "notify_departure": notifyDeparture,
+                    "departure_time": train.departureTime ?? "",
+                    "arrival_time": train.arrivalTime ?? "",
+                    "active_days": train.activeDays ?? [],
+                    "notify_platform_change": notifyPlatformChange,
+                    "platform_change_station_name": train.platformChangeStationName ?? "",
+                    "notify_scheduled_time": notifyScheduledTime,
+                    "scheduled_notification_time": normalizedSchedTime
+                ])
+            }
+        }
+        return trainsPayload
+    }
+
     func syncRemoteNotifications() {
         guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return }
         
@@ -1594,49 +2708,38 @@ struct Haptics {
             return
         }
         
-        if !remoteNotificationsEnabled {
-            print("[syncRemoteNotifications] Notifiche stato treno disabilitate. Rimuovo solo le iscrizioni dei treni sul server (scioperi sempre attivi).")
+        let effectiveTrainsEnabled = remoteNotificationsEnabled && trainNotificationsEnabled
+        let strikeEnabled = remoteNotificationsEnabled && strikeNotificationsEnabled
+        
+        if !effectiveTrainsEnabled {
+            print("[syncRemoteNotifications] Notifiche treni disabilitate. Rimuovo le iscrizioni dei treni sul server.")
             Task {
                 for train in favoriteTrains {
                     unregisterTrainForPush(trainNumber: train.number, token: token)
                 }
             }
-            // Non faccio return, proseguo per sincronizzare sul server che le notifiche treno sono disabilitate
-        }
-        
-        let strikeEnabled = true
-        
-        var trainsPayload: [[String: Any]] = []
-        if remoteNotificationsEnabled {
-            for train in favoriteTrains {
-                let isEnabled = (train.notifyDelay == true) ||
-                                (train.notifyDeparture == true) ||
-                                (train.notifyStationPass == true) ||
-                                (train.notifyPlatformChange == true) ||
-                                (train.notifyScheduledTime == true)
-                if isEnabled {
-                    trainsPayload.append([
-                        "train_number": train.number,
-                        "notify_delay": train.notifyDelay ?? true,
-                        "notify_station_pass": train.notifyStationPass ?? false,
-                        "station_pass_name": train.stationPassName ?? "",
-                        "notify_departure": train.notifyDeparture ?? false,
-                        "departure_time": train.departureTime ?? "",
-                        "arrival_time": train.arrivalTime ?? "",
-                        "active_days": train.activeDays ?? [],
-                        "notify_platform_change": train.notifyPlatformChange ?? false,
-                        "platform_change_station_name": train.platformChangeStationName ?? "",
-                        "notify_scheduled_time": train.notifyScheduledTime ?? false,
-                        "scheduled_notification_time": train.scheduledNotificationTime ?? ""
-                    ])
+        } else {
+            let pausedTrains = favoriteTrains.filter { $0.isNotificationsPaused && $0.hasAnyConfiguredNotification }
+            if !pausedTrains.isEmpty {
+                Task {
+                    for train in pausedTrains {
+                        unregisterTrainForPush(trainNumber: train.number, token: token)
+                    }
                 }
             }
         }
         
         let support = hasSupport()
+        let trainsPayload = Self.buildNotificationSyncTrainsPayload(
+            favoriteTrains: favoriteTrains,
+            hasSupport: support,
+            masterEnabled: remoteNotificationsEnabled,
+            trainsEnabled: trainNotificationsEnabled
+        )
+        
         let aiEngine = currentAIEngineString()
         let deviceID = DeviceIdentityManager.shared.deviceID
-        let currentSignature = "\(deviceID)|\(token)|\(remoteNotificationsEnabled)|\(strikeRegion)|\(strikeEnabled)|\(support)|\(aiEngine)|\(trainsPayload.description)"
+        let currentSignature = "\(deviceID)|\(token)|\(remoteNotificationsEnabled)|\(trainNotificationsEnabled)|\(strikeRegion)|\(strikeEnabled)|\(support)|\(aiEngine)|\(trainsPayload.description)"
         
         if currentSignature == lastSyncedSignature || currentSignature == inFlightSyncSignature {
             return
@@ -1815,8 +2918,8 @@ struct Haptics {
     }
     
     func getLimit() -> Int {
-        if hasSupport() { return 10 }
-        return 1
+        if hasSupport() { return Self.proNotificationLimit }
+        return Self.freeScheduledNotificationLimit
     }
     
     func checkAndCleanOneShotNotifications() {
@@ -1860,40 +2963,31 @@ struct Haptics {
         }
     }
     
-    func disableTrainNotificationsForNonPremium() {
+    func migrateFreeContinuousNotificationsIfNeeded() {
         guard !hasSupport() else { return }
         var updated = false
         for i in 0..<favoriteTrains.count {
             let train = favoriteTrains[i]
-            if (train.notifyDelay == true || train.notifyDeparture == true || train.notifyStationPass == true || train.notifyPlatformChange == true || train.notifyScheduledTime == true) {
+            let hadContinuous = (train.notifyDelay == true) ||
+                                (train.notifyDeparture == true) ||
+                                (train.notifyStationPass == true) ||
+                                (train.notifyPlatformChange == true)
+            if hadContinuous {
                 favoriteTrains[i].notifyDelay = false
                 favoriteTrains[i].notifyDeparture = false
                 favoriteTrains[i].notifyStationPass = false
                 favoriteTrains[i].notifyPlatformChange = false
-                favoriteTrains[i].notifyScheduledTime = false
                 updated = true
-                
-                if let token = apnsToken {
-                    unregisterTrainForPush(trainNumber: train.number, token: token)
-                }
             }
         }
         if updated {
             saveFavorites()
-            notificationLimitError = "Nella versione gratuita puoi attivare un solo servizio alla volta tra Notifiche Push e Live Activity. Le notifiche treni sono state sospese per dare priorità alla Live Activity."
-        }
-    }
-    
-    func disableLiveActivitiesForNonPremium() {
-        guard !hasSupport() else { return }
-        if !activeLiveActivities.isEmpty {
-            for act in Activity<TrainLiveActivityAttributes>.activities {
-                Task {
-                    await act.end(nil, dismissalPolicy: .immediate)
-                }
+            syncRemoteNotifications()
+            let noticeKey = "hasShownFreeContinuousMigrationNotice_v1"
+            if !UserDefaults.standard.bool(forKey: noticeKey) {
+                UserDefaults.standard.set(true, forKey: noticeKey)
+                freeMigrationNoticeMessage = "Le notifiche continue di monitoraggio ritardi sono ora parte di In Orario Pro e sono state disattivate sui tuoi treni.\n\nCon il piano gratuito puoi invece attivare gratis fino a 10 notifiche a un orario specifico e usare la Live Activity automatica ogni 2 minuti con avvisi sonori!"
             }
-            activeLiveActivities.removeAll()
-            notificationLimitError = "Nella versione gratuita puoi attivare un solo servizio alla volta tra Notifiche Push e Live Activity. La Live Activity è stata disattivata per dare priorità alle Notifiche Treni."
         }
     }
     
@@ -1905,12 +2999,13 @@ struct Haptics {
         }
         guard let url = URL(string: "https://gestioneinorario.toreroclub.com/notifications/register") else { return }
         
+        let support = hasSupport()
         let trainPref = favoriteTrains.first(where: { $0.number == trainNumber })
-        let notifyDelay = trainPref?.notifyDelay ?? true
-        let notifyStationPass = trainPref?.notifyStationPass ?? false
+        let notifyDelay = support ? (trainPref?.notifyDelay ?? false) : false
+        let notifyStationPass = support ? (trainPref?.notifyStationPass ?? false) : false
         let stationPassName = trainPref?.stationPassName ?? ""
-        let notifyDeparture = trainPref?.notifyDeparture ?? false
-        let notifyPlatformChange = trainPref?.notifyPlatformChange ?? false
+        let notifyDeparture = support ? (trainPref?.notifyDeparture ?? false) : false
+        let notifyPlatformChange = support ? (trainPref?.notifyPlatformChange ?? false) : false
         let platformChangeStationName = trainPref?.platformChangeStationName ?? ""
         let notifyScheduledTime = trainPref?.notifyScheduledTime ?? false
         let scheduledNotificationTime = trainPref?.scheduledNotificationTime ?? ""
@@ -1920,7 +3015,6 @@ struct Haptics {
         let model = "\(UIDevice.current.model) (\(UIDevice.current.name))"
         let os = "iOS \(UIDevice.current.systemVersion)"
         let ai = currentAIEngineString()
-        let support = hasSupport()
         
         var payload: [String: Any] = [
             "token": token,
@@ -1961,7 +3055,7 @@ struct Haptics {
                             if self.hasSupport() {
                                 self.notificationLimitError = "Puoi monitorare al massimo \(limit) treni alla volta per il tuo livello."
                             } else {
-                                self.notificationLimitError = "Hai raggiunto il limite di monitoraggio per la versione gratuita. Passa a In Orario Pro per sbloccare fino a 10 treni simultanei, Live Activities ad alta frequenza e notifiche scioperi dedicate."
+                                self.notificationLimitError = "Hai raggiunto il limite di \(Self.freeScheduledNotificationLimit) notifiche a un orario specifico per la versione gratuita. Passa a In Orario Pro per sbloccare il monitoraggio continuo fino a \(Self.proNotificationLimit) treni, Live Activities ogni minuto e notifiche scioperi dedicate."
                             }
                         }
                     }
@@ -1994,11 +3088,11 @@ struct Haptics {
     }
 
     func registerLiveActivityToken(pushToken: Data, trainNumber: String, deviceToken: String) {
-        guard hasSupport() else { return }
+        let support = hasSupport()
         let tokenString = pushToken.map { String(format: "%02x", $0) }.joined()
-        let cacheKey = "\(deviceToken)|\(tokenString)"
+        let cacheKey = "\(deviceToken)|\(tokenString)|\(support)"
         
-        // Evita chiamate duplicate solo per la stessa coppia (deviceToken, pushToken) già confermata dal server
+        // Evita chiamate duplicate solo per la stessa coppia (deviceToken, pushToken, tier) già confermata dal server
         if registeredLiveActivityTokens[trainNumber] == cacheKey {
             return
         }
@@ -2009,8 +3103,8 @@ struct Haptics {
             "device_id": DeviceIdentityManager.shared.deviceID,
             "push_token": tokenString,
             "train_number": trainNumber,
-            "is_supporter": true,
-            "has_support": true
+            "is_supporter": support,
+            "has_support": support
         ]
         Task {
             do {
@@ -2055,7 +3149,7 @@ struct Haptics {
                         self.remoteNotificationsEnabled = true
                         changed = true
                     }
-                    if !self.strikeNotificationsEnabled {
+                    if UserDefaults.standard.object(forKey: self.strikeNotificationsEnabledKey) == nil && !self.strikeNotificationsEnabled {
                         print("[checkAndAutoEnableNotifications] Attivazione automatica notifiche scioperi.")
                         self.strikeNotificationsEnabled = true
                         changed = true
@@ -2076,7 +3170,9 @@ struct Haptics {
             DispatchQueue.main.async {
                 if granted {
                     self.remoteNotificationsEnabled = true
-                    self.strikeNotificationsEnabled = true
+                    if UserDefaults.standard.object(forKey: self.strikeNotificationsEnabledKey) == nil {
+                        self.strikeNotificationsEnabled = true
+                    }
                     UIApplication.shared.registerForRemoteNotifications()
                     self.saveFavorites()
                     self.syncRemoteNotifications()
@@ -2099,7 +3195,7 @@ struct Haptics {
     func isFavorite(trainNumber: String) -> Bool { favoriteTrains.contains { $0.number == trainNumber } }
     
     func toggleFavoriteRoute(originName: String, originID: String, destName: String, destID: String) {
-        if let index = favoriteRoutes.firstIndex(where: { $0.originID == originID && $0.destinationID == destID }) {
+        if let index = favoriteRoutes.firstIndex(where: { $0.matchesUndirected(originID: originID, destID: destID) }) {
             favoriteRoutes.remove(at: index)
             Haptics.notify(.warning)
         } else {
@@ -2110,7 +3206,15 @@ struct Haptics {
     }
     
     func isFavoriteRoute(originID: String, destID: String) -> Bool {
-        return favoriteRoutes.contains { $0.originID == originID && $0.destinationID == destID }
+        return favoriteRoutes.contains { $0.matchesUndirected(originID: originID, destID: destID) }
+    }
+
+    func setFavoriteRouteReversed(routeID: String, isReversed: Bool) {
+        guard let index = favoriteRoutes.firstIndex(where: { $0.id == routeID }) else { return }
+        if favoriteRoutes[index].effectiveIsReversed != isReversed {
+            favoriteRoutes[index].isReversed = isReversed
+            saveFavorites()
+        }
     }
     
     func toggleSavedTrip(solution: TravelSolution) {
@@ -2757,6 +3861,88 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         }
     }
 
+    nonisolated static func travelSolutionsRouteKey(originID: String, destID: String) -> String {
+        let o = originID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let d = destID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return "\(o)->\(d)"
+    }
+
+    nonisolated static func cachedSolutionsIfValid(
+        entry: CachedTravelSolutionsEntry,
+        requestedDate: Date,
+        now: Date = Date(),
+        ttl: TimeInterval = travelSolutionsCacheTTL
+    ) -> [TravelSolution]? {
+        guard !entry.solutions.isEmpty else { return nil }
+        let age = now.timeIntervalSince(entry.fetchedAt)
+        guard age >= 0, age <= ttl else { return nil }
+        let requestedDelta = abs(requestedDate.timeIntervalSince(entry.requestedDate))
+        guard requestedDelta <= ttl else { return nil }
+        return entry.solutions.map(\.asTravelSolution)
+    }
+
+    private func loadTravelSolutionsCacheIfNeeded() {
+        guard travelSolutionsCache.isEmpty,
+              let data = UserDefaults.standard.data(forKey: travelSolutionsCacheKey),
+              let decoded = try? JSONDecoder().decode([String: CachedTravelSolutionsEntry].self, from: data) else {
+            return
+        }
+        let now = Date()
+        travelSolutionsCache = decoded.filter { now.timeIntervalSince($0.value.fetchedAt) <= Self.travelSolutionsCacheTTL }
+    }
+
+    private func persistTravelSolutionsCache() {
+        let now = Date()
+        let validEntries = travelSolutionsCache
+            .filter { now.timeIntervalSince($0.value.fetchedAt) <= Self.travelSolutionsCacheTTL }
+            .sorted { $0.value.fetchedAt > $1.value.fetchedAt }
+            .prefix(20)
+        let trimmed = Dictionary(uniqueKeysWithValues: validEntries.map { ($0.key, $0.value) })
+        travelSolutionsCache = trimmed
+        if let encoded = try? JSONEncoder().encode(trimmed) {
+            UserDefaults.standard.set(encoded, forKey: travelSolutionsCacheKey)
+        }
+    }
+
+    func cachedTravelSolutionsEntry(originID: String, destID: String, requestedDate: Date, now: Date = Date()) -> (solutions: [TravelSolution], entry: CachedTravelSolutionsEntry)? {
+        loadTravelSolutionsCacheIfNeeded()
+        let key = Self.travelSolutionsRouteKey(originID: originID, destID: destID)
+        guard let entry = travelSolutionsCache[key],
+              let valid = Self.cachedSolutionsIfValid(entry: entry, requestedDate: requestedDate, now: now) else {
+            return nil
+        }
+        return (valid, entry)
+    }
+
+    func storeTravelSolutionsCache(
+        originID: String,
+        destID: String,
+        resolvedOriginID: String,
+        resolvedDestID: String,
+        requestedDate: Date,
+        solutions: [TravelSolution],
+        fetchedAt: Date = Date()
+    ) {
+        guard !solutions.isEmpty else { return }
+        loadTravelSolutionsCacheIfNeeded()
+        let entry = CachedTravelSolutionsEntry(
+            originID: originID,
+            destID: destID,
+            resolvedOriginID: resolvedOriginID,
+            resolvedDestID: resolvedDestID,
+            requestedDate: requestedDate,
+            fetchedAt: fetchedAt,
+            solutions: solutions.map(CachedTravelSolutionDTO.init(from:))
+        )
+        let rawKey = Self.travelSolutionsRouteKey(originID: originID, destID: destID)
+        let resolvedKey = Self.travelSolutionsRouteKey(originID: resolvedOriginID, destID: resolvedDestID)
+        travelSolutionsCache[rawKey] = entry
+        if resolvedKey != rawKey {
+            travelSolutionsCache[resolvedKey] = entry
+        }
+        persistTravelSolutionsCache()
+    }
+
     func searchTravelSolutions(
         originID: String,
         destID: String,
@@ -2764,8 +3950,25 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         originName: String? = nil,
         destName: String? = nil,
         source: TravelSolutionsSource = .favoriteRoute,
+        forceRefresh: Bool = false,
         onResolvedIDs: (@Sendable (String, String) -> Void)? = nil
     ) async {
+        if !forceRefresh, let cached = cachedTravelSolutionsEntry(originID: originID, destID: destID, requestedDate: date) {
+            if cached.entry.resolvedOriginID != originID || cached.entry.resolvedDestID != destID {
+                onResolvedIDs?(cached.entry.resolvedOriginID, cached.entry.resolvedDestID)
+            }
+            self.travelSolutions = cached.solutions
+            self.travelSolutionsSource = source
+            self.lastTravelSolutionsFetchedAt = cached.entry.fetchedAt
+            if source == .searchView {
+                self.lastSearchSolutionsOriginID = cached.entry.resolvedOriginID
+                self.lastSearchSolutionsDestID = cached.entry.resolvedDestID
+                self.lastSearchSolutionsDate = date
+            }
+            self.isSearchingSolutions = false
+            return
+        }
+
         self.isSearchingSolutions = true
         self.travelSolutions = []
         self.travelSolutionsSource = source
@@ -2788,6 +3991,19 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         }
         self.travelSolutions = result.solutions
         self.travelSolutionsSource = source
+        let now = Date()
+        self.lastTravelSolutionsFetchedAt = now
+        if !result.solutions.isEmpty {
+            storeTravelSolutionsCache(
+                originID: originID,
+                destID: destID,
+                resolvedOriginID: result.resolvedOriginID,
+                resolvedDestID: result.resolvedDestID,
+                requestedDate: date,
+                solutions: result.solutions,
+                fetchedAt: now
+            )
+        }
         if source == .searchView {
             self.lastSearchSolutionsOriginID = result.resolvedOriginID
             self.lastSearchSolutionsDestID = result.resolvedDestID
@@ -3000,6 +4216,12 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         
         self.trains = board.trains
         self.stationAlerts = board.alerts
+        if isDepartures {
+            self.stationBoardSnapshots[Self.canonicalStationKey(for: station)] = Self.evaluateStationBoardSnapshot(
+                station: station,
+                result: board
+            )
+        }
         self.isLoading = false
     }
     
@@ -3050,14 +4272,47 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     }
     
     func fetchStops(for train: Train, isRefresh: Bool = false) async {
-        if !isRefresh {
-            self.selectedTrainStops = []
-            self.currentTrainStatus = TrainStatus()
-            self.isStopsLoading = true
-            self.stopErrorMessage = nil
-        }
-        
         let cleanNumber = train.number.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !isRefresh {
+            if let snap = liveTrainSnapshots[cleanNumber], !snap.stops.isEmpty {
+                self.selectedTrainStops = snap.stops
+                self.currentTrainStatus = snap.status
+                self.stopErrorMessage = nil
+                self.isStopsLoading = false
+
+                if Date().timeIntervalSince(snap.fetchedAt) < 45 {
+                    self.fetchComfortReports(for: cleanNumber)
+                    if !Activity<TrainLiveActivityAttributes>.activities.filter({ $0.attributes.trainNumber == cleanNumber }).isEmpty {
+                        let delayStr = TrainManager.formatLiveActivityDelay(stops: snap.stops, status: snap.status)
+                        let progressVal = TrainManager.computeLiveActivityProgress(stops: snap.stops, status: snap.status)
+                        let nextInfo = TrainManager.computeLiveActivityNextStop(stops: snap.stops, status: snap.status)
+                        let updatedState = TrainLiveActivityAttributes.ContentState(
+                            delay: delayStr,
+                            statusMessage: snap.status.statusMessage,
+                            lastStation: snap.status.lastStation,
+                            progress: progressVal,
+                            lastDetectionTime: snap.status.lastTime,
+                            nextStation: nextInfo.station,
+                            nextStationEstimatedTime: nextInfo.estimatedTime
+                        )
+                        if Self.shouldAutoEndLiveActivity(stops: snap.stops, status: snap.status) {
+                            await endLiveActivity(trainNumber: cleanNumber)
+                        } else {
+                            for activity in Activity<TrainLiveActivityAttributes>.activities where activity.attributes.trainNumber == cleanNumber {
+                                await activity.update(ActivityContent(state: updatedState, staleDate: nil))
+                            }
+                        }
+                    }
+                    return
+                }
+            } else {
+                self.selectedTrainStops = []
+                self.currentTrainStatus = TrainStatus()
+                self.isStopsLoading = true
+                self.stopErrorMessage = nil
+            }
+        }
+
         let result = await fetchLiveStops(
             for: cleanNumber,
             category: train.category,
@@ -3078,6 +4333,12 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         }
 
         if result.errorMessage == nil && !result.stops.isEmpty {
+            recordLiveTrainSnapshot(
+                trainNumber: cleanNumber,
+                stops: result.stops,
+                status: result.status,
+                fallbackCategory: train.category
+            )
             applyEnrichedStopsToSavedTrains(
                 trainNumber: cleanNumber,
                 stops: result.stops,
@@ -3092,44 +4353,44 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         }
         
         if result.errorMessage == nil {
-            let globalDelay = result.status.statusMessage.contains("Soppresso") ? 0 : (result.stops.last?.delay ?? 0)
-            let delayStr = globalDelay > 0 ? "+\(globalDelay)'" : "In orario"
-            let stops = result.stops
+            let globalDelay = result.status.statusMessage.localizedCaseInsensitiveContains("Soppresso") ? 0 : (result.stops.last?.delay ?? 0)
+            let delayStr = TrainManager.formatLiveActivityDelay(stops: result.stops, status: result.status)
             let lastStation = result.status.lastStation
-            let isArrived = result.status.isArrived
-            
-            var progressVal: Double = 0.0
-            if isArrived {
-                progressVal = 1.0
-            } else if !stops.isEmpty {
-                if stops.count == 1 {
-                    progressVal = 1.0
-                } else {
-                    let lastClean = lastStation.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                    if let idx = stops.firstIndex(where: { 
-                        $0.stationName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == lastClean 
-                    }) {
-                        progressVal = Double(idx) / Double(stops.count - 1)
-                    }
-                }
-            }
+            let progressVal = TrainManager.computeLiveActivityProgress(stops: result.stops, status: result.status)
+            let nextInfo = TrainManager.computeLiveActivityNextStop(stops: result.stops, status: result.status)
             
             let updatedState = TrainLiveActivityAttributes.ContentState(
                 delay: delayStr,
                 statusMessage: result.status.statusMessage,
                 lastStation: lastStation,
                 progress: progressVal,
-                lastDetectionTime: result.status.lastTime
+                lastDetectionTime: result.status.lastTime,
+                nextStation: nextInfo.station,
+                nextStationEstimatedTime: nextInfo.estimatedTime
             )
             
-            for activity in Activity<TrainLiveActivityAttributes>.activities {
-                if activity.attributes.trainNumber == cleanNumber {
+            let hasArrived = Self.shouldAutoEndLiveActivity(stops: result.stops, status: result.status)
+            let matchingActivities = Activity<TrainLiveActivityAttributes>.activities.filter {
+                $0.attributes.trainNumber == cleanNumber
+            }
+            if hasArrived {
+                if !matchingActivities.isEmpty {
+                    let deviceToken = getEffectiveDeviceToken()
+                    for activity in matchingActivities {
+                        await activity.end(ActivityContent(state: updatedState, staleDate: nil), dismissalPolicy: .immediate)
+                    }
+                    unregisterLiveActivityToken(trainNumber: cleanNumber, deviceToken: deviceToken)
+                    activeLiveActivities.remove(cleanNumber)
+                    syncLiveActivities()
+                }
+            } else {
+                for activity in matchingActivities {
                     await activity.update(ActivityContent(state: updatedState, staleDate: nil))
                 }
             }
             
             if let favIdx = favoriteTrains.firstIndex(where: { $0.number == cleanNumber }) {
-                let isCanc = result.status.statusMessage.contains("Soppresso")
+                let isCanc = result.status.statusMessage.localizedCaseInsensitiveContains("Soppresso") || result.status.cancellationNote != nil
                 let dText = isCanc ? "Soppresso" : (globalDelay > 0 ? "Ritardo \(globalDelay) min" : "In orario")
                 let cText = isCanc ? "red" : (globalDelay > 0 ? "red" : "green")
                 if favoriteTrains[favIdx].lastDelayText != dText || favoriteTrains[favIdx].lastDelayColorName != cText {
@@ -3139,6 +4400,202 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
                 }
             }
         }
+    }
+
+    nonisolated private static func normalizeLiveActivityStationKey(_ name: String) -> String {
+        var s = name.folding(options: .diacriticInsensitive, locale: Locale(identifier: "it_IT"))
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.replacingOccurrences(of: "porta nuova", with: "pn")
+            .replacingOccurrences(of: "p.ta nuova", with: "pn")
+            .replacingOccurrences(of: "p.nuova", with: "pn")
+            .replacingOccurrences(of: "p.n.", with: "pn")
+            .replacingOccurrences(of: "porta garibaldi", with: "pg")
+            .replacingOccurrences(of: "p.ta garibaldi", with: "pg")
+            .replacingOccurrences(of: "p.garibaldi", with: "pg")
+            .replacingOccurrences(of: "p.g.", with: "pg")
+            .replacingOccurrences(of: "porta susa", with: "ps")
+            .replacingOccurrences(of: "p.ta susa", with: "ps")
+            .replacingOccurrences(of: "p.susa", with: "ps")
+            .replacingOccurrences(of: "p.s.", with: "ps")
+            .replacingOccurrences(of: "santa lucia", with: "sl")
+            .replacingOccurrences(of: "s. lucia", with: "sl")
+            .replacingOccurrences(of: "s.lucia", with: "sl")
+            .replacingOccurrences(of: "s.l.", with: "sl")
+            .replacingOccurrences(of: "centrale", with: "cle")
+            .replacingOccurrences(of: "c.le", with: "cle")
+        return s.filter { $0.isLetter || $0.isNumber }
+    }
+
+    nonisolated private static func matchLiveActivityStopIndex(lastStation: String, stopNames: [String]) -> Int? {
+        let key = normalizeLiveActivityStationKey(lastStation)
+        guard !key.isEmpty, key != "partenza" else { return nil }
+        if let exact = stopNames.firstIndex(where: { normalizeLiveActivityStationKey($0) == key }) {
+            return exact
+        }
+        guard key.count >= 4 else { return nil }
+        return stopNames.firstIndex { name in
+            let sk = normalizeLiveActivityStationKey(name)
+            return sk.count >= 4 && (sk.contains(key) || key.contains(sk))
+        }
+    }
+
+    nonisolated static func computeLiveActivityProgress(stops: [Stop], status: TrainStatus) -> Double {
+        if status.isArrived {
+            return 1.0
+        }
+        guard !stops.isEmpty else { return 0.0 }
+        if stops.count == 1 {
+            return status.isDeparted ? 1.0 : 0.0
+        }
+
+        let lastPassedIdx = stops.lastIndex(where: { $0.actualTime != nil })
+        let matchedIdx = matchLiveActivityStopIndex(
+            lastStation: status.lastStation,
+            stopNames: stops.map { $0.stationName }
+        )
+
+        let effectiveIdx: Int?
+        switch (lastPassedIdx, matchedIdx) {
+        case let (.some(a), .some(b)): effectiveIdx = max(a, b)
+        case let (.some(a), .none): effectiveIdx = a
+        case let (.none, .some(b)): effectiveIdx = b
+        case (.none, .none): effectiveIdx = nil
+        }
+
+        let totalSegments = Double(stops.count - 1)
+        if let idx = effectiveIdx {
+            var frac = Double(idx) / totalSegments
+            if idx < stops.count - 1 {
+                let trimmedLast = status.lastStation.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedLast.isEmpty && trimmedLast != "--" && matchedIdx == nil {
+                    frac += 0.5 / totalSegments
+                } else if idx == 0 && status.isDeparted {
+                    frac = max(frac, 0.06)
+                }
+            }
+            return min(1.0, max(0.0, frac))
+        }
+
+        if status.isDeparted,
+           let depStr = stops.first?.time,
+           let arrStr = stops.last?.time,
+           let depBase = SharedFormatters.time.date(from: depStr),
+           let arrBase = SharedFormatters.time.date(from: arrStr) {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+            let now = Date()
+            let nowParts = cal.dateComponents([.year, .month, .day], from: now)
+            let depParts = cal.dateComponents([.hour, .minute], from: depBase)
+            let arrParts = cal.dateComponents([.hour, .minute], from: arrBase)
+            var depComp = nowParts
+            depComp.hour = depParts.hour
+            depComp.minute = depParts.minute
+            var arrComp = nowParts
+            arrComp.hour = arrParts.hour
+            arrComp.minute = arrParts.minute
+            if let depDate = cal.date(from: depComp), var arrDate = cal.date(from: arrComp) {
+                if arrDate < depDate {
+                    arrDate = cal.date(byAdding: .day, value: 1, to: arrDate) ?? arrDate
+                }
+                let duration = arrDate.timeIntervalSince(depDate)
+                if duration > 60 {
+                    let delaySec = Double(max(0, stops.last?.delay ?? 0)) * 60.0
+                    let elapsed = now.timeIntervalSince(depDate) - delaySec
+                    return min(0.95, max(0.05, elapsed / duration))
+                }
+            }
+        }
+
+        return 0.0
+    }
+
+    nonisolated static func formatLiveActivityDelay(stops: [Stop], status: TrainStatus, fallbackDelay: String = "") -> String {
+        if status.statusMessage.localizedCaseInsensitiveContains("Soppresso") || status.cancellationNote != nil {
+            return "Soppresso"
+        }
+        if status.isArrived {
+            return "Arrivato"
+        }
+        let delayMin: Int
+        if let lastPassedDelay = stops.last(where: { $0.actualTime != nil })?.delay {
+            delayMin = lastPassedDelay
+        } else if let lastStopDelay = stops.last?.delay {
+            delayMin = lastStopDelay
+        } else if !fallbackDelay.isEmpty {
+            let trimmed = fallbackDelay.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.localizedCaseInsensitiveContains("Soppresso") {
+                return "Soppresso"
+            }
+            if let parsed = Int(trimmed.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")) {
+                delayMin = parsed
+            } else {
+                return trimmed
+            }
+        } else {
+            delayMin = 0
+        }
+        if delayMin > 0 {
+            return "+\(delayMin)'"
+        } else if delayMin < 0 {
+            return "\(delayMin)'"
+        }
+        return "In orario"
+    }
+
+    nonisolated static func computeLiveActivityNextStop(
+        stops: [Stop],
+        status: TrainStatus,
+        fallbackDelay: String = ""
+    ) -> (station: String?, estimatedTime: String?) {
+        if status.isArrived ||
+            status.statusMessage.localizedCaseInsensitiveContains("Soppresso") ||
+            status.cancellationNote != nil {
+            return (nil, nil)
+        }
+        guard !stops.isEmpty else { return (nil, nil) }
+
+        let lastPassedIdx = stops.lastIndex(where: { $0.actualTime != nil })
+        let matchedIdx = matchLiveActivityStopIndex(
+            lastStation: status.lastStation,
+            stopNames: stops.map { $0.stationName }
+        )
+        let effectiveIdx: Int?
+        switch (lastPassedIdx, matchedIdx) {
+        case let (.some(a), .some(b)): effectiveIdx = max(a, b)
+        case let (.some(a), .none): effectiveIdx = a
+        case let (.none, .some(b)): effectiveIdx = b
+        case (.none, .none): effectiveIdx = nil
+        }
+
+        let startSearch = (effectiveIdx != nil) ? (effectiveIdx! + 1) : 0
+        guard startSearch < stops.count,
+              let nextStop = stops[startSearch...].first(where: { !$0.isSuppressed }) else {
+            return (nil, nil)
+        }
+
+        let delayMin: Int
+        if let lastPassedDelay = stops.last(where: { $0.actualTime != nil })?.delay {
+            delayMin = lastPassedDelay
+        } else if let lastStopDelay = stops.last?.delay {
+            delayMin = lastStopDelay
+        } else if !fallbackDelay.isEmpty {
+            let trimmed = fallbackDelay.trimmingCharacters(in: .whitespacesAndNewlines)
+            delayMin = Int(trimmed.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "'", with: "")) ?? 0
+        } else {
+            delayMin = 0
+        }
+
+        var estimatedTime: String? = nextStop.estimatedTime ?? nextStop.time
+        if let baseDate = SharedFormatters.time.date(from: nextStop.time) {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+            if let shifted = cal.date(byAdding: .minute, value: delayMin, to: baseDate) {
+                estimatedTime = SharedFormatters.time.string(from: shifted)
+            }
+        }
+
+        return (nextStop.stationName, estimatedTime)
     }
     
     func fetchComfortReports(for trainNumber: String) {
@@ -3243,11 +4700,61 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         return DeviceIdentityManager.shared.deviceID
     }
 
+    nonisolated static func shouldAutoEndLiveActivity(stops: [Stop], status: TrainStatus) -> Bool {
+        if status.isArrived { return true }
+        let msg = status.statusMessage.lowercased()
+        if msg.contains("arrivato") || msg.contains("giunto a destinazione") || msg.contains("concluso") {
+            return true
+        }
+        if let lastStop = stops.last,
+           let actual = lastStop.actualTime?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !actual.isEmpty,
+           actual != "--",
+           actual != "--:--",
+           !lastStop.isSuppressed {
+            return true
+        }
+        return false
+    }
+
+    nonisolated static func shouldAutoEndLiveActivity(snapshot: TrainLiveSnapshot) -> Bool {
+        if snapshot.isArrived { return true }
+        return shouldAutoEndLiveActivity(stops: snapshot.stops, status: snapshot.status)
+    }
+
+    func endLiveActivity(trainNumber: String) async {
+        let cleanNum = trainNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        let matching = Activity<TrainLiveActivityAttributes>.activities.filter {
+            $0.attributes.trainNumber == cleanNum
+        }
+        let deviceToken = getEffectiveDeviceToken()
+        for activity in matching {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+        if !matching.isEmpty || activeLiveActivities.contains(cleanNum) {
+            unregisterLiveActivityToken(trainNumber: cleanNum, deviceToken: deviceToken)
+            activeLiveActivities.remove(cleanNum)
+            syncLiveActivities()
+        }
+    }
+
+    func pruneArrivedLiveActivities() async {
+        let activeNums = Set(Activity<TrainLiveActivityAttributes>.activities.map { $0.attributes.trainNumber })
+            .union(activeLiveActivities)
+        guard !activeNums.isEmpty else { return }
+        for num in activeNums {
+            if let snap = liveTrainSnapshots[num], Self.shouldAutoEndLiveActivity(snapshot: snap) {
+                await endLiveActivity(trainNumber: num)
+            }
+        }
+    }
+
     func syncLiveActivities() {
         let active = Activity<TrainLiveActivityAttributes>.activities.map { $0.attributes.trainNumber }
-        self.activeLiveActivities = Set(active)
-        
-        guard self.hasSupport() else { return }
+        self.activeLiveActivities = Set(active.filter { num in
+            guard let snap = liveTrainSnapshots[num] else { return true }
+            return !Self.shouldAutoEndLiveActivity(snapshot: snap)
+        })
         
         let deviceToken = getEffectiveDeviceToken()
         for activity in Activity<TrainLiveActivityAttributes>.activities {
@@ -3265,12 +4772,11 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     }
     
     func observeAllLiveActivityPushTokens() {
-        // Ascolta la creazione di NUOVE Live Activities (solo sostenitori)
+        // Ascolta la creazione di NUOVE Live Activities (tutti gli utenti)
         Task {
             for await activity in Activity<TrainLiveActivityAttributes>.activityUpdates {
                 Task {
                     for await tokenData in activity.pushTokenUpdates {
-                        guard self.hasSupport() else { continue }
                         let deviceToken = self.getEffectiveDeviceToken()
                         self.registerLiveActivityToken(pushToken: tokenData, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
                     }
@@ -3291,7 +4797,6 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         for activity in Activity<TrainLiveActivityAttributes>.activities {
             Task {
                 for await tokenData in activity.pushTokenUpdates {
-                    guard self.hasSupport() else { continue }
                     let deviceToken = self.getEffectiveDeviceToken()
                     self.registerLiveActivityToken(pushToken: tokenData, trainNumber: activity.attributes.trainNumber, deviceToken: deviceToken)
                 }
@@ -3361,14 +4866,21 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         
         if preferBackend {
             let regionParam = strikeRegion.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
-            async let backendTask = fetchFromBackend(regionParam: regionParam)
-            async let trenitaliaTask = LocalScrapingService.shared.scrapeTrenitalia(region: strikeRegion)
-            let backendItems = await backendTask
-            let localItems = await trenitaliaTask
-            if let backendItems = backendItems, !backendItems.isEmpty {
-                result = backendItems + localItems.filter { $0.category == "realtime" }
-                saveCache(items: result)
-                return Self.sortAndFilterNews(result)
+            if let backendResp = await fetchFromBackend(regionParam: regionParam) {
+                let backendItems = backendResp.items
+                if backendResp.realtimeHandledByServer {
+                    // Il server gestisce già Scioperi + RFI Info Lavori (notices) + RFI Info Mobilità (updates),
+                    // anche quando oggi la circolazione è regolare (0 eventi realtime).
+                    // Il vecchio scraping Trenitalia resta in pausa come solo fallback offline.
+                    result = backendItems
+                    saveCache(items: result)
+                    return Self.sortAndFilterNews(result)
+                } else if !backendItems.isEmpty {
+                    let localItems = await LocalScrapingService.shared.scrapeTrenitalia(region: strikeRegion)
+                    result = backendItems + localItems.filter { $0.category == "realtime" }
+                    saveCache(items: result)
+                    return Self.sortAndFilterNews(result)
+                }
             }
         }
         
@@ -3417,22 +4929,62 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
     }
     
     nonisolated static func sortAndFilterNews(_ items: [NewsItem]) -> [NewsItem] {
-        var sorted = items
-        sorted.sort { a, b in
+        let filtered = filterExpiredStrikes(items)
+        var scioperi: [NewsItem] = []
+        var lavori: [NewsItem] = []
+        var realtime: [NewsItem] = []
+        var others: [NewsItem] = []
+
+        for item in filtered {
+            switch item.category {
+            case "sciopero":
+                scioperi.append(item)
+            case "lavoro":
+                if !item.isExpiredNotice {
+                    lavori.append(item)
+                }
+            case "realtime":
+                realtime.append(item)
+            default:
+                others.append(item)
+            }
+        }
+
+        scioperi.sort { a, b in
             let dateA = a.sortableDate
             let dateB = b.sortableDate
-            if dateA != dateB {
-                return dateA < dateB
-            }
+            if dateA != dateB { return dateA < dateB }
             if a.isUrgent != b.isUrgent { return a.isUrgent }
-            let catA = a.category ?? ""
-            let catB = b.category ?? ""
-            if catA == "sciopero" && catB != "sciopero" { return true }
-            if catB == "sciopero" && catA != "sciopero" { return false }
-            
             return a.title < b.title
         }
-        return filterExpiredStrikes(sorted)
+
+        // Info Lavori: prima quelli IN CORSO ordinati per fine più vicina, poi PROSSIMI LAVORI per inizio più vicino
+        lavori.sort { a, b in
+            if a.noticeSortRank != b.noticeSortRank {
+                return a.noticeSortRank < b.noticeSortRank
+            }
+            if a.noticeSortPrimaryDate != b.noticeSortPrimaryDate {
+                return a.noticeSortPrimaryDate < b.noticeSortPrimaryDate
+            }
+            if a.noticeSortSecondaryDate != b.noticeSortSecondaryDate {
+                return a.noticeSortSecondaryDate < b.noticeSortSecondaryDate
+            }
+            return a.title < b.title
+        }
+
+        // Info Mobilità (updates RFI): prima eventi attivi (sospesa -> rallentata -> in corso),
+        // poi risolti; a parità di stato, i più recenti in alto.
+        realtime.sort { a, b in
+            if a.realtimeStatusRank != b.realtimeStatusRank {
+                return a.realtimeStatusRank < b.realtimeStatusRank
+            }
+            let dA = a.parsedLastUpdatedDate
+            let dB = b.parsedLastUpdatedDate
+            if dA != dB { return dA > dB }
+            return a.title < b.title
+        }
+
+        return scioperi + lavori + realtime + others
     }
     
     private func executeLocalScrapingAndAI(region: String) async -> [NewsItem] {
@@ -3456,14 +5008,38 @@ nonisolated func collapseUrbanSegments(_ rawSegments: [TravelSegment]) -> [Trave
         return await trenitalia + ministero
     }
     
-    private func fetchFromBackend(regionParam: String) async -> [NewsItem]? {
-        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)") else { return nil }
+    /// Scarica le news (Scioperi, Info Lavori RFI, Info Mobilità RFI) per una regione specifica
+    /// selezionata temporaneamente nel Centro News, senza alterare le preferenze salvate dell'utente.
+    func fetchNewsForRegion(_ region: String) async -> [NewsItem] {
+        let regionParam = region.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Tutte"
+        if let backendResp = await fetchFromBackend(regionParam: regionParam) {
+            let sorted = Self.sortAndFilterNews(backendResp.items)
+            if region == strikeRegion {
+                saveCache(items: sorted)
+            }
+            return sorted
+        }
+        return []
+    }
+
+    private func fetchFromBackend(regionParam: String) async -> (items: [NewsItem], realtimeHandledByServer: Bool)? {
+        guard let url = URL(string: "https://gestioneinorario.toreroclub.com/news?region=\(regionParam)&include_realtime=true") else { return nil }
         do {
             let (data, response) = try await NetworkService.shared.get(url: url)
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                return nil
+            var realtimeHandled = false
+            if let http = response as? HTTPURLResponse {
+                if !(200...299).contains(http.statusCode) {
+                    return nil
+                }
+                if http.value(forHTTPHeaderField: "X-RFI-Realtime")?.lowercased() == "active" {
+                    realtimeHandled = true
+                }
             }
-            return try JSONDecoder().decode([NewsItem].self, from: data)
+            let decoded = try JSONDecoder().decode([NewsItem].self, from: data)
+            if !realtimeHandled && decoded.contains(where: { $0.category == "realtime" && $0.isRFIStructured }) {
+                realtimeHandled = true
+            }
+            return (decoded, realtimeHandled)
         } catch {
             AppLogger.decodingError(context: "NewsBackend:\(regionParam)", error: error)
             AppLogger.refreshFailed(target: "NewsBackend:\(regionParam)", error: error)

@@ -5,6 +5,31 @@ import CoreLocation
 import ActivityKit
 
 
+struct BoardTrainLiveActivitySwipeButton: View {
+    @EnvironmentObject var manager: TrainManager
+    let train: Train
+    let stationDisplayName: String
+
+    var body: some View {
+        let isLive = manager.activeLiveActivities.contains(train.number)
+        Button {
+            var saved = SavedTrain(
+                number: train.number,
+                description: "\(stationDisplayName) - \(train.destination)",
+                departureTime: train.time
+            )
+            saved.category = train.category
+            Task { _ = await manager.toggleQuickLiveActivity(for: saved) }
+        } label: {
+            Label(
+                isLive ? "Ferma Dynamic Island" : "Dynamic Island",
+                systemImage: isLive ? "livephoto.slash" : "livephoto.play"
+            )
+        }
+        .tint(isLive ? .red : .indigo)
+    }
+}
+
 struct SmartBoardView: View {
     let station: Station
     @EnvironmentObject var manager: TrainManager
@@ -41,6 +66,13 @@ struct SmartBoardView: View {
             }
             let isNear = locationManager.nearbyStation?.name == currentStation.name
             usageTracker.recordStationVisit(name: currentStation.name, vtID: currentStation.vtID, rfiID: currentStation.rfiID, gpsNear: isNear, location: locationManager.userLocation?.coordinate)
+            UserInterestTelemetryManager.shared.recordStationView(
+                name: currentStation.name,
+                vtID: currentStation.vtID,
+                rfiID: currentStation.rfiID,
+                gpsNear: isNear,
+                location: locationManager.userLocation?.coordinate
+            )
             
             // Registra per l'indovino solo se l'utente si trova davvero in quella stazione
             if isNear {
@@ -234,6 +266,12 @@ struct StationBoardView: View {
                                 .onTapGesture {
                                     Haptics.play(.light)
                                     selectedTrain = train
+                                }
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    BoardTrainLiveActivitySwipeButton(
+                                        train: train,
+                                        stationDisplayName: station.formattedName
+                                    )
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button { manager.toggleFavorite(trainNumber: train.number, description: train.destination, departureTime: train.time) } label: {
@@ -500,6 +538,12 @@ struct VTStationBoardView: View {
                         .onTapGesture {
                             Haptics.play(.light)
                             selectedTrain = train
+                        }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            BoardTrainLiveActivitySwipeButton(
+                                train: train,
+                                stationDisplayName: stationName.formattedStationName
+                            )
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button { manager.toggleFavorite(trainNumber: train.number, description: train.destination, departureTime: train.time) } label: {

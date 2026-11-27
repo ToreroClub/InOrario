@@ -48,7 +48,7 @@ struct LiveTrainBand: View {
                         .font(.headline)
                         .foregroundColor(.primary)
                 } else {
-                    Image(systemName: "train.side.front.car")
+                    Image(systemName: "tram.fill")
                         .foregroundColor(.blue)
                     Text("\(segment.trainCategory) \(segment.trainNumber)")
                         .font(.headline)
@@ -163,7 +163,16 @@ struct LiveTrainBand: View {
                     showClassicStops = true
                     Haptics.play(.medium)
                 }) {
-                    Label("Segui Treno (Live Activity)", systemImage: "clock.badge.checkmark.fill")
+                    Label("Vista dettagli", systemImage: "tram.fill")
+                }
+                
+                Button(action: {
+                    withAnimation {
+                        isExpanded.toggle()
+                    }
+                    Haptics.play(.light)
+                }) {
+                    Label(isExpanded ? "Comprimi fermate" : "Espandi fermate", systemImage: isExpanded ? "chevron.up" : "chevron.down")
                 }
                 
                 Button(action: {
@@ -172,7 +181,7 @@ struct LiveTrainBand: View {
                     Haptics.play(.medium)
                 }) {
                     let isFav = manager.favoriteTrains.contains(where: { $0.number == segment.trainNumber })
-                    Label(isFav ? "Rimuovi dai Preferiti" : "Aggiungi ai Preferiti", systemImage: isFav ? "star.slash.fill" : "star.fill")
+                    Label(isFav ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti", systemImage: isFav ? "star.slash.fill" : "star.fill")
                 }
             }
         }
@@ -216,7 +225,10 @@ struct LiveTrainBand: View {
 
 struct TravelSolutionDetailsView: View {
     @EnvironmentObject var manager: TrainManager
+    @ObservedObject private var commuteManager = SupporterCommuteManager.shared
+    @Environment(\.dismiss) private var dismiss
     let solution: TravelSolution
+    var showCloseButton: Bool = false
     
     var passanteDirectAdvice: String? {
         let segs = solution.segments
@@ -294,26 +306,73 @@ struct TravelSolutionDetailsView: View {
             } header: {
                 Text("Treni del Viaggio")
             } footer: {
-                Text("Tieni premuto su un treno per seguirlo o aggiungerlo ai Preferiti.")
+                Text("Tieni premuto su un treno per aggiungere ai preferiti o saperne di più.\n\n\"Salva per dopo\" per ritrovarlo nei Viaggi in alto a destra. \"Segui ora\" per continuare a visualizzare il tuo percorso dalla Home.")
             }
         }
         .navigationTitle("Dettagli Viaggio")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color(.tertiarySystemFill))
+                                .frame(width: 30, height: 30)
+                            Image(systemName: "xmark")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Chiudi")
+                }
+            }
+            
             ToolbarItem(placement: .topBarTrailing) {
                 let isSaved = manager.isTripSaved(solution: solution)
-                Button(action: {
-                    withAnimation {
-                        manager.toggleSavedTrip(solution: solution)
+                let isFollowed = commuteManager.isSolutionFollowed(solution)
+                Menu {
+                    Button(role: isFollowed ? .destructive : nil) {
+                        Haptics.play(.medium)
+                        withAnimation {
+                            if isFollowed {
+                                commuteManager.stopFollowing(manager: manager)
+                            } else {
+                                if commuteManager.followedTrip != nil {
+                                    commuteManager.stopFollowing(manager: manager)
+                                }
+                                commuteManager.followSolution(solution)
+                            }
+                        }
+                    } label: {
+                        Label(
+                            isFollowed ? "Smetti di seguire" : "Segui ora",
+                            systemImage: isFollowed ? "xmark.circle" : "location.fill"
+                        )
                     }
-                }) {
+                    
+                    Button {
+                        Haptics.play(.medium)
+                        withAnimation {
+                            manager.toggleSavedTrip(solution: solution)
+                        }
+                    } label: {
+                        Label(
+                            isSaved ? "Rimuovi dai Viaggi" : "Salva per dopo",
+                            systemImage: isSaved ? "bookmark.slash.fill" : "bookmark.fill"
+                        )
+                    }
+                } label: {
                     HStack(spacing: 5) {
-                        Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                        Text(isSaved ? "Salvato" : "Salva")
+                        Image(systemName: isFollowed ? "checkmark.circle.fill" : (isSaved ? "bookmark.fill" : "bookmark"))
+                        Text(isFollowed ? "Seguito" : (isSaved ? "Salvato" : "Salva"))
                             .font(.subheadline)
                             .fontWeight(.medium)
                     }
-                    .foregroundColor(isSaved ? .green : .blue)
+                    .foregroundColor(isFollowed ? .orange : (isSaved ? .green : .blue))
                 }
             }
         }
@@ -861,12 +920,18 @@ struct SearchView: View {
     var initialDestName: String?
     var initialDestID: String?
     var autoSearchSolutions: Bool
-    @State private var selectedTab: Int // 0: Treni e Stazioni, 1: Soluzioni
-    @State private var isAssistantMode: Bool
+    /// 0 = Soluzioni, 1 = Assistente, 2 = Treni e Stazioni
+    @State private var currentPage: Int
+    @State private var navigationPath = NavigationPath()
+
+    private var isAssistantMode: Bool {
+        !isTravelOnly && currentPage == 1
+    }
     
     init(
         isTravelOnly: Bool = false,
         initialTab: Int = 1,
+        initialScope: SearchScope? = nil,
         initialAssistantMode: Bool = false,
         autoStartVoice: Bool = false,
         initialQuery: String? = nil,
@@ -885,8 +950,16 @@ struct SearchView: View {
         self.initialDestName = initialDestName
         self.initialDestID = initialDestID
         self.autoSearchSolutions = autoSearchSolutions
-        _selectedTab = State(initialValue: isTravelOnly ? 1 : initialTab)
-        _isAssistantMode = State(initialValue: !isTravelOnly && (initialAssistantMode || !(initialQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+        let resolvedTab: Int = {
+            if isTravelOnly { return 1 }
+            if let initialScope {
+                return initialScope == .solutions ? 1 : 0
+            }
+            return initialTab
+        }()
+        let startsInAssistant = !isTravelOnly && (initialAssistantMode || !(initialQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        let initialPage: Int = startsInAssistant ? 1 : (resolvedTab == 1 ? 0 : 2)
+        _currentPage = State(initialValue: initialPage)
     }
     
     // TAB 0 State
@@ -919,73 +992,67 @@ struct SearchView: View {
     // TAB 1 State
     @State private var query = ""
     @State private var searchTask: Task<Void, Never>? = nil
-    
+    @State private var cachedNearbyStations: [Station] = []
+    @FocusState private var isTrainsFieldFocused: Bool
+
     private var allRecentTrains: [SavedTrain] {
         Array(manager.unifiedRecentTrains.prefix(2))
     }
-    
+
     private var allRecentStations: [VTSearchStation] {
         Array(manager.unifiedRecentStations.prefix(4))
     }
-    
+
     private var nearbyStations: [Station] {
-        guard let userLoc = locationManager.userLocation else { return [] }
-        
+        cachedNearbyStations
+    }
+
+    private func refreshCachedNearbyStations() {
+        guard let userLoc = locationManager.userLocation else {
+            cachedNearbyStations = []
+            return
+        }
         let validCandidates = manager.allRFIStations.compactMap { st -> (station: RFIStation, distance: CLLocationDistance)? in
             guard let lat = st.lat, let lon = st.lon else { return nil }
             let loc = CLLocation(latitude: lat, longitude: lon)
             let dist = loc.distance(from: userLoc)
             return (st, dist)
         }
-        
         let sorted = validCandidates.sorted { $0.distance < $1.distance }
-        
-        var results: [Station] = []
-        for item in sorted.prefix(3) {
+        cachedNearbyStations = sorted.prefix(3).map { item in
             let st = item.station
-            results.append(Station(name: st.name, rfiID: st.rfiID, vtID: st.vtID, lat: st.lat, lon: st.lon))
+            return Station(name: st.name, rfiID: st.rfiID, vtID: st.vtID, lat: st.lat, lon: st.lon)
         }
-        return results
     }
-    
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                HStack(alignment: .center, spacing: 10) {
-                    Text(isTravelOnly ? "Cerca Viaggio" : (isAssistantMode ? "Assistente" : "Cerca"))
-                        .font(.largeTitle.bold())
-                        .foregroundColor(.primary)
-                    if !isTravelOnly && isAssistantMode {
-                        BetaBadgeView()
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 2)
-                .padding(.bottom, 6)
-                .background(Color(.systemGroupedBackground))
 
+    private func switchSearchPage(to newPage: Int) {
+        guard currentPage != newPage else { return }
+        if isAssistantFieldFocused { isAssistantFieldFocused = false }
+        if isTrainsFieldFocused { isTrainsFieldFocused = false }
+        if currentPage == 1 {
+            voiceController.stopListening(triggerFinal: false)
+        }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+            currentPage = newPage
+        }
+    }
+
+    var body: some View {
+        NavigationStack(path: $navigationPath) {
+            VStack(spacing: 0) {
                 if !isTravelOnly {
-                    let isSolutionsSelected = !isAssistantMode && selectedTab == 1
-                    let isTrainsSelected = !isAssistantMode && selectedTab == 0
+                    let isSolutionsSelected = currentPage == 0
+                    let isTrainsSelected = currentPage == 2
 
                     HStack(spacing: 10) {
                         searchModePill(
                             title: "Soluzioni",
-                            systemImage: "arrow.triangle.swap",
+                            systemImage: "map.fill",
                             isSelected: isSolutionsSelected,
                             minimumScaleFactor: 0.85
                         ) {
                             Haptics.play(.light)
-                            voiceController.stopListening(triggerFinal: false)
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                isAssistantMode = false
-                                selectedTab = 1
-                            }
-                            query = ""
-                            manager.searchResults = []
-                            manager.searchStationResults = []
+                            switchSearchPage(to: 0)
                         }
 
                         Button {
@@ -997,9 +1064,7 @@ struct SearchView: View {
                                     startVoiceInput()
                                 }
                             } else {
-                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                    isAssistantMode = true
-                                }
+                                switchSearchPage(to: 1)
                             }
                         } label: {
                             ZStack {
@@ -1039,31 +1104,36 @@ struct SearchView: View {
                             minimumScaleFactor: 0.8
                         ) {
                             Haptics.play(.light)
-                            voiceController.stopListening(triggerFinal: false)
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                isAssistantMode = false
-                                selectedTab = 0
-                            }
+                            switchSearchPage(to: 2)
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 4)
                     .padding(.bottom, 6)
                     .background(Color(.systemGroupedBackground))
                 }
-                
+
                 if isTravelOnly {
                     travelSolutionsTab
-                        .transition(.opacity)
-                } else if isAssistantMode {
-                    smartAssistantTab
-                        .transition(.opacity)
-                } else if selectedTab == 1 {
-                    travelSolutionsTab
-                        .transition(.opacity)
                 } else {
-                    trainsAndStationsTab
-                        .transition(.opacity)
+                    TabView(selection: $currentPage) {
+                        travelSolutionsTab
+                            .tag(0)
+                        smartAssistantTab
+                            .tag(1)
+                        trainsAndStationsTab
+                            .tag(2)
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .onChange(of: currentPage) { oldPage, newPage in
+                        if oldPage == 1 && newPage != 1 {
+                            voiceController.stopListening(triggerFinal: false)
+                        }
+                        if newPage == 0 {
+                            if isAssistantFieldFocused { isAssistantFieldFocused = false }
+                            if isTrainsFieldFocused { isTrainsFieldFocused = false }
+                        }
+                    }
                 }
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
@@ -1076,7 +1146,24 @@ struct SearchView: View {
                         dismiss()
                     }
                     .fontWeight(.bold)
+                    .foregroundColor(.primary)
                 }
+
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        Text(isTravelOnly ? "Cerca Viaggio" : (isAssistantMode ? "Assistente" : "Cerca"))
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(.primary)
+                        if !isTravelOnly && isAssistantMode {
+                            BetaBadgeView()
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .animation(.snappy(duration: 0.22), value: isAssistantMode)
+                }
+            }
+            .onChange(of: locationManager.userLocation) { _, _ in
+                refreshCachedNearbyStations()
             }
             .sheet(isPresented: $showOriginSearch) {
                 StationSelectionSheet(selectedName: $originName, selectedID: $originID, title: "Stazione di Partenza")
@@ -1094,13 +1181,13 @@ struct SearchView: View {
                 }
             }
             .onAppear {
+                refreshCachedNearbyStations()
                 if let initOrig = initialOriginName?.trimmingCharacters(in: .whitespacesAndNewlines),
                    let initDest = initialDestName?.trimmingCharacters(in: .whitespacesAndNewlines),
                    !initOrig.isEmpty, !initDest.isEmpty,
                    !didHandleInitialRoute {
                     didHandleInitialRoute = true
-                    isAssistantMode = false
-                    selectedTab = 1
+                    currentPage = 0
                     let resolvedOrig = manager.resolveStation(name: initOrig, fallbackVtID: initialOriginID, fallbackRfiID: initialOriginID)
                     let resolvedDest = manager.resolveStation(name: initDest, fallbackVtID: initialDestID, fallbackRfiID: initialDestID)
                     originName = resolvedOrig.name
@@ -1140,7 +1227,7 @@ struct SearchView: View {
                    !initQ.isEmpty,
                    !didHandleInitialQuery {
                     didHandleInitialQuery = true
-                    isAssistantMode = true
+                    currentPage = 1
                     assistantQuery = initQ
                     runAssistantSearch(inputMode: "text")
                 } else if autoStartVoice && isAssistantMode && !didHandleAutoVoice {
@@ -1150,10 +1237,11 @@ struct SearchView: View {
                     }
                 }
             }
-            .onDisappear {
-                voiceController.stopListening(triggerFinal: false)
-                assistantSearchTask?.cancel()
-            }
+        }
+        .onDisappear {
+            voiceController.stopListening(triggerFinal: false)
+            assistantSearchTask?.cancel()
+            navigationPath = NavigationPath()
         }
     }
 
@@ -1392,7 +1480,7 @@ struct SearchView: View {
                                     .foregroundColor(.white)
                                     .clipShape(Capsule())
                             }
-                            Text("Senza l'IA Cloud come Gemini, l'app usa solo il calcolo locale sul dispositivo e potrebbe non comprendere alcune richieste in linguaggio naturale.")
+                            Text("Chiedi orari, partenze, ritardi o tratte scrivendo o parlando. Senza Pro usa l'elaborazione locale sul dispositivo e può non essere precisa.")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.leading)
@@ -1416,13 +1504,28 @@ struct SearchView: View {
                 .padding(.bottom, 6)
                 .background(Color(.systemGroupedBackground))
             } else {
-                HStack {
-                    Text(assistantEngineLabel)
+                let engine = SmartQueryEnginePolicy.resolve(
+                    hasSupport: true,
+                    hasAppleIntelligence: aiManager.isAppleIntelligenceAvailable,
+                    aiModeChoice: aiManager.aiModeChoice
+                )
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: engine == .geminiCloud ? "cloud.fill" : "cpu")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Spacer()
+                        .foregroundColor(.purple)
+                        .padding(.top, 2)
+                    Text(
+                        engine == .geminiCloud
+                        ? "Chiedi orari, partenze, ritardi o soluzioni in linguaggio naturale. Con In Orario Pro usa il Cloud per risposte più rapide e precise."
+                        : "Chiedi orari, partenze, ritardi o soluzioni in linguaggio naturale. Stai usando l'elaborazione locale (\(assistantEngineLabel)): puoi passare al Cloud dalle Impostazioni."
+                    )
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 2)
                 .padding(.bottom, 6)
                 .background(Color(.systemGroupedBackground))
             }
@@ -1534,8 +1637,7 @@ struct SearchView: View {
                                 .buttonStyle(.plain)
 
                                 Button {
-                                    isAssistantMode = false
-                                    selectedTab = 1
+                                    switchSearchPage(to: 0)
                                 } label: {
                                     Text("Usa scheda Soluzioni")
                                         .font(.caption.bold())
@@ -1881,8 +1983,7 @@ struct SearchView: View {
         manager.lastSearchSolutionsDate = date
         manager.addRecentRoute(originName: origin, originID: resolvedOriginID, destName: destination, destID: resolvedDestID)
         self.hasSearchedSolutions = true
-        self.isAssistantMode = false
-        self.selectedTab = 1
+        self.switchSearchPage(to: 0)
     }
 
     private func contextualVoiceStrings() -> [String] {
@@ -2214,9 +2315,14 @@ struct SearchView: View {
                     // Riga inferiore: Data e Ora a sinistra + Pulsante Ricerca a destra (perfettamente reattivo su ogni schermo)
                     let hasRouteBottom = !originID.isEmpty && !destID.isEmpty
                     HStack(spacing: 12) {
-                        DatePicker("", selection: $searchDate, displayedComponents: [.date, .hourAndMinute])
-                            .labelsHidden()
-                            .environment(\.locale, Locale(identifier: "it_IT"))
+                        HStack(spacing: 6) {
+                            DatePicker("", selection: $searchDate, displayedComponents: .date)
+                                .labelsHidden()
+                                .environment(\.locale, SharedFormatters.italian24HourLocale)
+                                .environment(\.timeZone, TimeZone(identifier: "Europe/Rome") ?? .current)
+                            Italian24HourTimePicker(selection: $searchDate)
+                        }
+                        .transaction { $0.animation = nil }
                         
                         Spacer(minLength: 8)
                         
@@ -2293,7 +2399,8 @@ struct SearchView: View {
                         NavigationLink(destination: TravelSolutionDetailsView(solution: solution)) {
                             TravelSolutionRow(solution: solution)
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            let isSaved = manager.isTripSaved(solution: solution)
                             Button {
                                 withAnimation {
                                     manager.toggleSavedTrip(solution: solution)
@@ -2301,11 +2408,11 @@ struct SearchView: View {
                                 Haptics.play(.medium)
                             } label: {
                                 Label(
-                                    manager.isTripSaved(solution: solution) ? "Rimuovi" : "Salva",
-                                    systemImage: manager.isTripSaved(solution: solution) ? "bookmark.slash" : "bookmark.fill"
+                                    isSaved ? "Rimuovi dai preferiti" : "Salva",
+                                    systemImage: isSaved ? "star.slash.fill" : "star.fill"
                                 )
                             }
-                            .tint(manager.isTripSaved(solution: solution) ? .red : .blue)
+                            .tint(isSaved ? .red : .yellow)
                         }
                     }
                 }
@@ -2428,6 +2535,7 @@ struct SearchView: View {
                 
                 TextField("Cerca treno (es. 9604) o stazione", text: $query)
                     .font(.system(size: 16))
+                    .focused($isTrainsFieldFocused)
                     .submitLabel(.search)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -2636,7 +2744,7 @@ struct SearchView: View {
                                         manager.addToRecentTrains(result)
                                     }) {
                                         HStack(spacing: 12) {
-                                            Image(systemName: "train.side.front.car")
+                                            Image(systemName: "tram.fill")
                                                 .foregroundColor(.blue)
                                                 .font(.body)
                                                 .frame(width: 24)
@@ -2657,6 +2765,35 @@ struct SearchView: View {
                                             }
                                         }
                                         .padding(.vertical, 2)
+                                    }
+                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                        let isLive = manager.activeLiveActivities.contains(result.number)
+                                        Button {
+                                            Task { _ = await manager.toggleQuickLiveActivity(for: result) }
+                                        } label: {
+                                            Label(
+                                                isLive ? "Ferma Dynamic Island" : "Dynamic Island",
+                                                systemImage: isLive ? "livephoto.slash" : "livephoto.play"
+                                            )
+                                        }
+                                        .tint(isLive ? .red : .indigo)
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        let isFav = manager.isFavorite(trainNumber: result.number)
+                                        Button {
+                                            manager.toggleFavorite(
+                                                trainNumber: result.number,
+                                                description: result.description,
+                                                departureTime: timeStr
+                                            )
+                                            Haptics.play(.light)
+                                        } label: {
+                                            Label(
+                                                isFav ? "Rimuovi dai preferiti" : "Preferito",
+                                                systemImage: isFav ? "star.slash.fill" : "star.fill"
+                                            )
+                                        }
+                                        .tint(isFav ? .red : .yellow)
                                     }
                                 }
                             }
@@ -2682,20 +2819,22 @@ struct SearchView: View {
                                         }
                                         .padding(.vertical, 2)
                                     }
-                                    .swipeActions(edge: .trailing) {
-                                        if let vtID = tempStation.vtID, !vtID.isEmpty {
-                                            Button {
-                                                if manager.isMyStation(vtID: vtID) {
-                                                    manager.removeMyStation(vtID: vtID)
-                                                } else {
-                                                    manager.addMyStation(name: tempStation.name, vtID: vtID)
-                                                }
-                                                Haptics.play(.light)
-                                            } label: {
-                                                Label(manager.isMyStation(vtID: vtID) ? "Rimuovi dai Preferiti" : "Aggiungi ai Preferiti", systemImage: manager.isMyStation(vtID: vtID) ? "star.slash" : "star.fill")
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        let isFav = manager.isMyStation(tempStation)
+                                        Button {
+                                            if isFav {
+                                                manager.removeMyStation(tempStation)
+                                            } else {
+                                                manager.addMyStation(tempStation)
                                             }
-                                            .tint(.orange)
+                                            Haptics.play(.light)
+                                        } label: {
+                                            Label(
+                                                isFav ? "Rimuovi dai preferiti" : "Preferito",
+                                                systemImage: isFav ? "star.slash.fill" : "star.fill"
+                                            )
                                         }
+                                        .tint(isFav ? .red : .yellow)
                                     }
                                 }
                             }

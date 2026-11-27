@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 private struct DiscoveryRFIStation: Decodable, Sendable {
     let name: String
@@ -15,16 +16,25 @@ actor CommuteTrainDiscoveryService {
         let trains: [CommuteHabitTrain]
     }
 
+    private struct LocalPlanCacheEntry {
+        let fetchedAt: Date
+        let requestedDate: Date
+        let report: PlanBReportDTO
+    }
+
     private var locationIDCache: [String: [Int]] = [:]
     private var vtIDCache: [String: [String]] = [:]
     private var discoveryCache: [String: DiscoveryCacheEntry] = [:]
+    private var localPlanCache: [String: LocalPlanCacheEntry] = [:]
     private var rfiStationsCache: [DiscoveryRFIStation]? = nil
     private let cacheTTL: TimeInterval = 600.0
+    private let localPlanCacheTTL: TimeInterval = 1200.0
 
     private init() {}
 
     func clearCache() {
         discoveryCache.removeAll()
+        localPlanCache.removeAll()
     }
 
     // MARK: - Pure Helpers (nonisolated for unit tests & background parsing)
@@ -968,5 +978,755 @@ actor CommuteTrainDiscoveryService {
             arrivalTime: arrTime,
             isManuallyAdded: true
         )
+    }
+
+    // MARK: - On-Device Multi-Station Commute Aggregator (Free & Offline Fallback)
+
+    nonisolated static func extractAVCity(_ stationName: String) -> String? {
+        let u = stationName.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let avCities = [
+            "TORINO", "MILANO", "REGGIO EMILIA", "MEDIOPADANA", "BOLOGNA",
+            "FIRENZE", "ROMA", "NAPOLI", "SALERNO", "VENEZIA",
+            "PADOVA", "VERONA", "BRESCIA", "BARI"
+        ]
+        for city in avCities {
+            if u == city || u.hasPrefix(city + " ") || u.contains(" " + city) {
+                return city == "MEDIOPADANA" ? "REGGIO EMILIA" : city
+            }
+        }
+        return nil
+    }
+
+    nonisolated static func isAVCommuteCorridor(origins: [String], destinations: [String]) -> Bool {
+        let origCities = Set(origins.compactMap { extractAVCity($0) })
+        let destCities = Set(destinations.compactMap { extractAVCity($0) })
+        guard !origCities.isEmpty, !destCities.isEmpty else { return false }
+        for oc in origCities {
+            for dc in destCities where oc != dc {
+                return true
+            }
+        }
+        return false
+    }
+
+    nonisolated static func isAVOrLongDistanceTrain(category: String, trainNumber: String = "") -> Bool {
+        let catU = category.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let hints = ["FRECCIA", "ITALO", "NTV", "EUROCITY", "EURONIGHT", "INTERCITY", "ALTA VELOCIT"]
+        if hints.contains(where: { catU.contains($0) }) { return true }
+        if ["FR", "FA", "FB", "AV", "IC", "ICN", "EC", "EN", "ITA"].contains(catU) { return true }
+        let cleanN = extractCleanTrainNumber(from: trainNumber)
+        if cleanN.count == 4 && cleanN.allSatisfy(\.isNumber) {
+            let prefix = String(cleanN.prefix(2))
+            if ["88", "89", "93", "94", "95", "96", "97", "98", "99"].contains(prefix) {
+                return true
+            }
+        }
+        return false
+    }
+
+    nonisolated static func canCatchTransfer(
+        prevArrivalHHmm: String,
+        nextDepartureHHmm: String,
+        stationName: String
+    ) -> Bool {
+        guard let arrMin = CommuteTimeBand.parseHHmm(prevArrivalHHmm),
+              let depMin = CommuteTimeBand.parseHHmm(nextDepartureHHmm) else {
+            return true
+        }
+        var adjustedDep = depMin
+        if adjustedDep < arrMin - 720 {
+            adjustedDep += 1440
+        }
+        let u = stationName.uppercased()
+        let buffer: Int
+        if u.contains("CENTRALE") {
+            buffer = 5
+        } else if u.contains("GARIBALDI") {
+            buffer = 4
+        } else {
+            buffer = 3
+        }
+        return (adjustedDep - (arrMin + buffer)) >= 0
+    }
+
+    nonisolated static func parseLefrecceMultiStationSolutions(
+        from data: Data,
+        fallbackOrigin: String,
+        fallbackDest: String,
+        allowAV: Bool
+    ) -> [PlanBAlternativeItem] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let solutions = json["solutions"] as? [[String: Any]] else {
+            return []
+        }
+
+        var items: [PlanBAlternativeItem] = []
+
+        for entry in solutions {
+            guard let sol = entry["solution"] as? [String: Any],
+                  let nodes = sol["nodes"] as? [[String: Any]],
+                  !nodes.isEmpty,
+                  nodes.count <= 2 else {
+                continue
+            }
+
+            var builtLegs: [PlanBLegItem] = []
+            var rejectSolution = false
+
+            for node in nodes {
+                let tr = (node["train"] as? [String: Any]) ?? [:]
+                let acronym = (tr["acronym"] as? String) ?? ""
+                let rawCat = (tr["trainCategory"] as? String) ?? ""
+                let denom = (tr["denomination"] as? String) ?? ""
+                let catLow = rawCat.lowercased()
+                let denomLow = denom.lowercased()
+                let isUrbanFlag = (tr["urban"] as? Bool) ?? false
+
+                let isUrban = isUrbanFlag || acronym.uppercased() == "UB" ||
+                    ((catLow.contains("urban") || denomLow.contains("urban") || catLow.contains("metro")) && !catLow.contains("suburbano"))
+                let isWalk = acronym.uppercased() == "WK" || catLow.contains("walk") || denomLow.contains("piedi")
+
+                let orig = ((node["origin"] as? String) ?? fallbackOrigin).trimmingCharacters(in: .whitespacesAndNewlines)
+                let dest = ((node["destination"] as? String) ?? fallbackDest).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !orig.isEmpty, !dest.isEmpty else {
+                    rejectSolution = true
+                    break
+                }
+
+                // Escludi falsi cambi nello stesso complesso di stazione (es. Garibaldi Superficie <-> Passante)
+                if planBStationMatch(orig, dest) {
+                    continue
+                }
+
+                let depHHmm = extractHHmm(from: node["departureTime"] as? String) ?? "--:--"
+                let arrHHmm = extractHHmm(from: node["arrivalTime"] as? String) ?? "--:--"
+
+                if !builtLegs.isEmpty {
+                    let prevLeg = builtLegs[builtLegs.count - 1]
+                    if !canCatchTransfer(prevArrivalHHmm: prevLeg.arrival_time, nextDepartureHHmm: depHHmm, stationName: orig) {
+                        rejectSolution = true
+                        break
+                    }
+                }
+
+                if isWalk {
+                    builtLegs.append(PlanBLegItem(
+                        train_number: "A piedi",
+                        category: "Interscambio a piedi",
+                        origin: orig,
+                        destination: dest,
+                        departure_time: depHHmm,
+                        arrival_time: arrHHmm,
+                        delay: 0,
+                        platform: "--",
+                        is_urban: false,
+                        is_station_walk: true,
+                        travel_minutes: 3,
+                        urban_headsign: nil
+                    ))
+                } else if isUrban {
+                    builtLegs.append(PlanBLegItem(
+                        train_number: "(Metro / Mezzi)",
+                        category: "Trasporto Urbano",
+                        origin: orig,
+                        destination: dest,
+                        departure_time: depHHmm,
+                        arrival_time: arrHHmm,
+                        delay: 0,
+                        platform: "--",
+                        is_urban: true,
+                        is_station_walk: false,
+                        travel_minutes: 15,
+                        urban_headsign: nil
+                    ))
+                } else {
+                    let rawName = (tr["name"] as? String) ?? (tr["description"] as? String) ?? ""
+                    let cleanNum = extractCleanTrainNumber(from: rawName)
+                    guard !cleanNum.isEmpty else {
+                        rejectSolution = true
+                        break
+                    }
+                    let normCat = normalizeTrainCategory(
+                        acronym: acronym,
+                        category: rawCat,
+                        denomination: denom,
+                        trainNumber: cleanNum,
+                        destination: dest
+                    )
+                    if !allowAV && isAVOrLongDistanceTrain(category: normCat, trainNumber: cleanNum) {
+                        rejectSolution = true
+                        break
+                    }
+                    builtLegs.append(PlanBLegItem(
+                        train_number: cleanNum,
+                        category: normCat,
+                        origin: orig,
+                        destination: dest,
+                        departure_time: depHHmm,
+                        arrival_time: arrHHmm,
+                        delay: 0,
+                        platform: "--",
+                        is_urban: false,
+                        is_station_walk: false,
+                        travel_minutes: nil,
+                        urban_headsign: nil
+                    ))
+                }
+            }
+
+            guard !rejectSolution, !builtLegs.isEmpty else { continue }
+            guard let firstRail = builtLegs.first(where: { $0.isRailTrain }) else { continue }
+
+            let firstLeg = builtLegs[0]
+            let lastLeg = builtLegs[builtLegs.count - 1]
+            let dur = TrainManager.calculateDurationBetween(dep: firstLeg.departure_time, arr: lastLeg.arrival_time) ?? ""
+            let transferInfo: String = {
+                if builtLegs.count == 1 {
+                    return dur.isEmpty ? "Treno diretto" : "Treno diretto (\(dur))"
+                }
+                let cambioStations = builtLegs.dropFirst().map { $0.origin.compactStationName }.joined(separator: ", ")
+                let count = builtLegs.count - 1
+                let label = "\(count) camb\(count == 1 ? "io" : "i") (\(cambioStations))"
+                return dur.isEmpty ? label : "\(label) • \(dur)"
+            }()
+
+            items.append(PlanBAlternativeItem(
+                train_number: firstRail.train_number,
+                category: firstRail.category,
+                destination: lastLeg.destination,
+                station: firstLeg.origin,
+                departure_time: firstLeg.departure_time,
+                arrival_time: lastLeg.arrival_time,
+                duration: dur,
+                delay: 0,
+                platform: "--",
+                transfer_info: transferInfo,
+                legs: builtLegs
+            ))
+        }
+
+        return items
+    }
+
+    nonisolated static func deduplicateAndRankAlternatives(
+        _ rawCandidates: [PlanBAlternativeItem],
+        configuredOrigins: [String],
+        configuredDestinations: [String],
+        maxResults: Int = 10
+    ) -> [PlanBAlternativeItem] {
+        struct RankedEntry {
+            var item: PlanBAlternativeItem
+            var reachedDestinations: [String]
+        }
+
+        var map: [String: RankedEntry] = [:]
+
+        func canonicalOrigin(for rawStation: String) -> String {
+            configuredOrigins.first(where: { planBStationMatch($0, rawStation) }) ?? rawStation
+        }
+
+        func minValue(_ hhmm: String?) -> Int {
+            guard let hhmm, let m = CommuteTimeBand.parseHHmm(hhmm) else { return Int.max }
+            return m
+        }
+
+        for candidate in rawCandidates {
+            var c = candidate
+            let canonOrigin = canonicalOrigin(for: c.station)
+            let isDirect = c.resolvedLegs.count <= 1
+            let key = "\(c.train_number)_\(c.departure_time)_\(canonOrigin.lowercased())"
+
+            if var updatedLegs = c.legs, !updatedLegs.isEmpty {
+                updatedLegs[0] = PlanBLegItem(
+                    train_number: updatedLegs[0].train_number,
+                    category: updatedLegs[0].category,
+                    origin: canonOrigin,
+                    destination: updatedLegs[0].destination,
+                    departure_time: updatedLegs[0].departure_time,
+                    arrival_time: updatedLegs[0].arrival_time,
+                    delay: updatedLegs[0].delay,
+                    platform: updatedLegs[0].platform,
+                    is_urban: updatedLegs[0].is_urban,
+                    is_station_walk: updatedLegs[0].is_station_walk,
+                    travel_minutes: updatedLegs[0].travel_minutes,
+                    urban_headsign: updatedLegs[0].urban_headsign
+                )
+                c.legs = updatedLegs
+            }
+            let normalizedCand = PlanBAlternativeItem(
+                train_number: c.train_number,
+                category: c.category,
+                destination: c.destination,
+                station: canonOrigin,
+                departure_time: c.departure_time,
+                arrival_time: c.arrival_time,
+                duration: c.duration,
+                delay: c.delay,
+                platform: c.platform,
+                transfer_info: c.transfer_info,
+                legs: c.legs
+            )
+
+            guard var existing = map[key] else {
+                map[key] = RankedEntry(
+                    item: normalizedCand,
+                    reachedDestinations: [normalizedCand.destination.compactStationName]
+                )
+                continue
+            }
+
+            let existingIsDirect = existing.item.resolvedLegs.count <= 1
+            if isDirect && !existingIsDirect {
+                existing.item = normalizedCand
+                existing.reachedDestinations = [normalizedCand.destination.compactStationName]
+                map[key] = existing
+                continue
+            }
+            if !isDirect && existingIsDirect {
+                continue
+            }
+
+            // Entrambe dirette (o pari numero cambi) sullo stesso treno: unisci le destinazioni raggiunte
+            if isDirect && existingIsDirect {
+                let destName = normalizedCand.destination.compactStationName
+                if !existing.reachedDestinations.contains(where: { planBStationMatch($0, destName) }) {
+                    existing.reachedDestinations.append(destName)
+                }
+                if minValue(normalizedCand.arrival_time) < minValue(existing.item.arrival_time) {
+                    existing.item = normalizedCand
+                }
+                map[key] = existing
+            } else if c.resolvedLegs.count < existing.item.resolvedLegs.count {
+                existing.item = normalizedCand
+                existing.reachedDestinations = [normalizedCand.destination.compactStationName]
+                map[key] = existing
+            }
+        }
+
+        // Arricchisci transfer_info quando lo stesso treno diretto ferma in più stazioni di arrivo configurate
+        let mergedList: [PlanBAlternativeItem] = map.values.map { entry in
+            var item = entry.item
+            if item.resolvedLegs.count <= 1 && entry.reachedDestinations.count > 1 {
+                let primaryName = item.destination.compactStationName
+                let extraStops = entry.reachedDestinations.filter { !planBStationMatch($0, primaryName) }
+                if !extraStops.isEmpty {
+                    let durSuffix = (item.duration ?? "").isEmpty ? "" : " (\(item.duration ?? ""))"
+                    item = PlanBAlternativeItem(
+                        train_number: item.train_number,
+                        category: item.category,
+                        destination: item.destination,
+                        station: item.station,
+                        departure_time: item.departure_time,
+                        arrival_time: item.arrival_time,
+                        duration: item.duration,
+                        delay: item.delay,
+                        platform: item.platform,
+                        transfer_info: "Treno diretto\(durSuffix) · ferma anche a \(extraStops.joined(separator: ", "))",
+                        legs: item.legs
+                    )
+                }
+            }
+            return item
+        }
+
+        let sortedAll = mergedList.sorted { a, b in
+            let depA = (CommuteTimeBand.parseHHmm(a.departure_time) ?? 0) + max(0, a.delay)
+            let depB = (CommuteTimeBand.parseHHmm(b.departure_time) ?? 0) + max(0, b.delay)
+            if depA != depB { return depA < depB }
+            return minValue(a.arrival_time) < minValue(b.arrival_time)
+        }
+
+        // Garantisci almeno 1 migliore opzione per ciascuna stazione di partenza, poi riempi cronologicamente
+        var selected: [PlanBAlternativeItem] = []
+        for orig in configuredOrigins {
+            if selected.count >= maxResults { break }
+            let group = sortedAll.filter { planBStationMatch($0.station, orig) }
+            if let best = group.first(where: { $0.resolvedLegs.count <= 1 }) ?? group.first {
+                if !selected.contains(where: { $0.id == best.id }) {
+                    selected.append(best)
+                }
+            }
+        }
+        for item in sortedAll {
+            if selected.count >= maxResults { break }
+            if !selected.contains(where: { $0.id == item.id }) {
+                selected.append(item)
+            }
+        }
+
+        return selected.sorted { a, b in
+            let depA = (CommuteTimeBand.parseHHmm(a.departure_time) ?? 0) + max(0, a.delay)
+            let depB = (CommuteTimeBand.parseHHmm(b.departure_time) ?? 0) + max(0, b.delay)
+            if depA != depB { return depA < depB }
+            return minValue(a.arrival_time) < minValue(b.arrival_time)
+        }
+    }
+
+    func calculateLocalCommutePlan(
+        origins startStations: [String],
+        destinations endStations: [String],
+        departureDate: Date = Date(),
+        isReturn: Bool,
+        userLat: Double? = nil,
+        userLon: Double? = nil,
+        forceRefresh: Bool = false
+    ) async -> PlanBReportDTO {
+        var cleanOrigins = startStations.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let cleanDests = endStations.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let targetTimeStr = SharedFormatters.time.string(from: departureDate)
+        let titleStr = isReturn ? "Lavoro → Casa" : "Casa → Lavoro"
+
+        guard !cleanOrigins.isEmpty, !cleanDests.isEmpty else {
+            return PlanBReportDTO(
+                title: titleStr,
+                body: "Configura almeno una stazione di Casa e una di Lavoro.",
+                incident_type: "simulation",
+                incident_detail: nil,
+                cancelled_train: nil,
+                target_time: targetTimeStr,
+                origins: cleanOrigins,
+                destinations: cleanDests,
+                alternatives: [],
+                timestamp: ISO8601DateFormatter().string(from: Date())
+            )
+        }
+
+        // Ordina le stazioni di partenza per distanza GPS se disponibile
+        if let lat = userLat, let lon = userLon, cleanOrigins.count > 1 {
+            let userLoc = CLLocation(latitude: lat, longitude: lon)
+            let geoStations = await MainActor.run { RFIStationCatalog.shared.geoStations }
+            func dist(for name: String) -> Double {
+                if let match = geoStations.first(where: { planBStationMatch($0.name, name) }),
+                   let sLat = match.lat,
+                   let sLon = match.lon {
+                    return userLoc.distance(from: CLLocation(latitude: sLat, longitude: sLon))
+                }
+                return Double.greatestFiniteMagnitude
+            }
+            cleanOrigins.sort { dist(for: $0) < dist(for: $1) }
+        }
+
+        let dayKey = SupporterCommuteManager.romeDayKey(for: departureDate)
+        let cacheKey = "\(dayKey)|\(cleanOrigins.sorted().joined(separator: ","))->\(cleanDests.sorted().joined(separator: ","))"
+        let isNearNow = abs(departureDate.timeIntervalSinceNow) < 15 * 60
+
+        if !forceRefresh,
+           let cached = localPlanCache[cacheKey],
+           Date().timeIntervalSince(cached.fetchedAt) < localPlanCacheTTL,
+           abs(cached.requestedDate.timeIntervalSince(departureDate)) <= 20 * 60 {
+            if isNearNow {
+                let upcoming = SupporterCommuteManager.upcomingAlternatives(in: cached.report, at: Date())
+                if upcoming.count >= 2 {
+                    return PlanBReportDTO(
+                        title: cached.report.title,
+                        body: cached.report.body,
+                        incident_type: cached.report.incident_type,
+                        incident_detail: cached.report.incident_detail,
+                        cancelled_train: cached.report.cancelled_train,
+                        target_time: targetTimeStr,
+                        origins: cleanOrigins,
+                        destinations: cleanDests,
+                        alternatives: upcoming,
+                        timestamp: cached.report.timestamp
+                    )
+                }
+            } else {
+                return cached.report
+            }
+        }
+
+        let uniqueStations = Array(Set(cleanOrigins + cleanDests))
+        var locMap: [String: [Int]] = [:]
+        await withTaskGroup(of: (String, [Int]).self) { group in
+            for st in uniqueStations {
+                group.addTask {
+                    let ids = await self.resolveLefrecceLocationIDs(for: st)
+                    return (st, ids)
+                }
+            }
+            for await (st, ids) in group {
+                locMap[st] = ids
+            }
+        }
+
+        let searchAnchorDate = isNearNow ? Date().addingTimeInterval(-5 * 60) : departureDate
+        let isoFmt = DateFormatter()
+        isoFmt.locale = Locale(identifier: "en_US_POSIX")
+        isoFmt.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        isoFmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.000ZZZZZ"
+        let depTimeISO = isoFmt.string(from: searchAnchorDate)
+        let allowAV = Self.isAVCommuteCorridor(origins: cleanOrigins, destinations: cleanDests)
+
+        struct PairSpec: Sendable {
+            let orig: String
+            let dest: String
+            let depID: Int
+            let arrID: Int
+        }
+
+        var pairs: [PairSpec] = []
+        var seenPairs: Set<String> = []
+        for orig in cleanOrigins {
+            let depIDs = locMap[orig] ?? []
+            for dest in cleanDests {
+                guard !planBStationMatch(orig, dest) else { continue }
+                let arrIDs = locMap[dest] ?? []
+                for dID in depIDs {
+                    for aID in arrIDs where dID != aID {
+                        let pk = "\(dID)->\(aID)"
+                        if seenPairs.insert(pk).inserted {
+                            pairs.append(PairSpec(orig: orig, dest: dest, depID: dID, arrID: aID))
+                        }
+                    }
+                }
+            }
+        }
+
+        var rawCandidates: [PlanBAlternativeItem] = []
+        var pairIter = pairs.makeIterator()
+        await withTaskGroup(of: [PlanBAlternativeItem].self) { group in
+            func enqueue() {
+                guard let pair = pairIter.next() else { return }
+                group.addTask {
+                    await self.fetchLefrecceMultiStationPair(
+                        orig: pair.orig,
+                        dest: pair.dest,
+                        depID: pair.depID,
+                        arrID: pair.arrID,
+                        depTimeISO: depTimeISO,
+                        allowAV: allowAV
+                    )
+                }
+            }
+            for _ in 0..<4 { enqueue() }
+            for await found in group {
+                rawCandidates.append(contentsOf: found)
+                enqueue()
+            }
+        }
+
+        var ranked = Self.deduplicateAndRankAlternatives(
+            rawCandidates,
+            configuredOrigins: cleanOrigins,
+            configuredDestinations: cleanDests,
+            maxResults: 12
+        )
+
+        // Arricchimento live (ritardi, binari, soppressioni) solo per partenze odierne vicine all'orario corrente
+        let timeDeltaFromNow = departureDate.timeIntervalSinceNow
+        if timeDeltaFromNow >= -1800 && timeDeltaFromNow <= 10800 && !ranked.isEmpty {
+            let uniqueNums = Array(Set(ranked.prefix(10).map(\.train_number))).filter { $0.allSatisfy(\.isNumber) }
+            var stopsMap: [String: StopsResult] = [:]
+            var numIter = uniqueNums.makeIterator()
+            await withTaskGroup(of: (String, StopsResult).self) { group in
+                func enqueue() {
+                    guard let num = numIter.next() else { return }
+                    group.addTask {
+                        let res = await TrainRepository.shared.getLiveStops(for: num)
+                        return (num, res)
+                    }
+                }
+                for _ in 0..<4 { enqueue() }
+                for await (num, res) in group {
+                    stopsMap[num] = res
+                    enqueue()
+                }
+            }
+
+            ranked = ranked.compactMap { alt -> PlanBAlternativeItem? in
+                guard let stopsRes = stopsMap[alt.train_number], stopsRes.errorMessage == nil else {
+                    return alt
+                }
+                if stopsRes.status.isArrived && isNearNow {
+                    return nil
+                }
+                let matchedOriginStop = stopsRes.stops.first(where: { planBStationMatch($0.stationName, alt.station) })
+                if let origStop = matchedOriginStop {
+                    if origStop.isSuppressed { return nil }
+                    if isNearNow && (origStop.actualTime != nil && !(origStop.actualTime ?? "").isEmpty) && (origStop.actualTime ?? "") != "--" {
+                        return nil
+                    }
+                }
+                let liveDelay = matchedOriginStop?.delay ?? stopsRes.stops.compactMap(\.delay).last ?? alt.delay
+                let livePlatform: String = {
+                    let act = matchedOriginStop?.actualPlatform?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    if !act.isEmpty && act != "--" { return act }
+                    let plan = matchedOriginStop?.plannedPlatform?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    return (!plan.isEmpty && plan != "--") ? plan : alt.platform
+                }()
+
+                let updatedLegs = alt.resolvedLegs.enumerated().map { idx, leg -> PlanBLegItem in
+                    guard idx == 0 && leg.isRailTrain else { return leg }
+                    return PlanBLegItem(
+                        train_number: leg.train_number,
+                        category: leg.category,
+                        origin: leg.origin,
+                        destination: leg.destination,
+                        departure_time: leg.departure_time,
+                        arrival_time: leg.arrival_time,
+                        delay: liveDelay,
+                        platform: livePlatform,
+                        is_urban: leg.is_urban,
+                        is_station_walk: leg.is_station_walk,
+                        travel_minutes: leg.travel_minutes,
+                        urban_headsign: leg.urban_headsign
+                    )
+                }
+
+                if updatedLegs.count >= 2 && liveDelay > 0 {
+                    if let arrMin = CommuteTimeBand.parseHHmm(updatedLegs[0].arrival_time) {
+                        let delayedArrMin = (arrMin + liveDelay) % 1440
+                        let delayedArrStr = String(format: "%02d:%02d", delayedArrMin / 60, delayedArrMin % 60)
+                        if !Self.canCatchTransfer(prevArrivalHHmm: delayedArrStr, nextDepartureHHmm: updatedLegs[1].departure_time, stationName: updatedLegs[1].origin) {
+                            return nil
+                        }
+                    }
+                }
+
+                return PlanBAlternativeItem(
+                    train_number: alt.train_number,
+                    category: alt.category,
+                    destination: alt.destination,
+                    station: alt.station,
+                    departure_time: alt.departure_time,
+                    arrival_time: alt.arrival_time,
+                    duration: alt.duration,
+                    delay: liveDelay,
+                    platform: livePlatform,
+                    transfer_info: alt.transfer_info,
+                    legs: updatedLegs
+                )
+            }
+        }
+
+        // Fallback ViaggiaTreno se LeFrecce non ha restituito soluzioni
+        if ranked.isEmpty {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+            let startMins = CommuteTimeBand.minutes(from: searchAnchorDate, calendar: cal)
+            let band = CommuteTimeBand(startMinutes: startMins, endMinutes: (startMins + 90) % 1440)
+            let fallbackPairs = cleanOrigins.flatMap { orig in
+                cleanDests.filter { !planBStationMatch(orig, $0) }.map { (origin: orig, destination: $0) }
+            }
+            let vtTrains = await discoverViaViaggiaTrenoFallback(
+                pairs: fallbackPairs,
+                allDestinations: cleanDests,
+                band: band,
+                marginBefore: 5,
+                marginAfter: 15
+            )
+            let vtCandidates = vtTrains.map { tr -> PlanBAlternativeItem in
+                let arrStr = tr.arrivalTime ?? "--:--"
+                let dur = TrainManager.calculateDurationBetween(dep: tr.departureTime, arr: arrStr) ?? ""
+                let leg = PlanBLegItem(
+                    train_number: tr.trainNumber,
+                    category: tr.category,
+                    origin: tr.originStation,
+                    destination: tr.destinationStation,
+                    departure_time: tr.departureTime,
+                    arrival_time: arrStr,
+                    delay: 0,
+                    platform: "--",
+                    is_urban: false,
+                    is_station_walk: false,
+                    travel_minutes: nil,
+                    urban_headsign: nil
+                )
+                return PlanBAlternativeItem(
+                    train_number: tr.trainNumber,
+                    category: tr.category,
+                    destination: tr.destinationStation,
+                    station: tr.originStation,
+                    departure_time: tr.departureTime,
+                    arrival_time: arrStr,
+                    duration: dur,
+                    delay: 0,
+                    platform: "--",
+                    transfer_info: dur.isEmpty ? "Treno diretto" : "Treno diretto (\(dur))",
+                    legs: [leg]
+                )
+            }
+            ranked = Self.deduplicateAndRankAlternatives(
+                vtCandidates,
+                configuredOrigins: cleanOrigins,
+                configuredDestinations: cleanDests,
+                maxResults: 10
+            )
+        }
+
+        let finalAlts = Array(ranked.prefix(10))
+        let report = PlanBReportDTO(
+            title: titleStr,
+            body: "\(formatCityOrStationSummary(cleanOrigins)) → \(formatCityOrStationSummary(cleanDests))",
+            incident_type: "simulation",
+            incident_detail: nil,
+            cancelled_train: nil,
+            target_time: targetTimeStr,
+            origins: cleanOrigins,
+            destinations: cleanDests,
+            alternatives: finalAlts,
+            timestamp: ISO8601DateFormatter().string(from: Date())
+        )
+
+        if !finalAlts.isEmpty {
+            localPlanCache[cacheKey] = LocalPlanCacheEntry(
+                fetchedAt: Date(),
+                requestedDate: departureDate,
+                report: report
+            )
+        }
+        return report
+    }
+
+    private func fetchLefrecceMultiStationPair(
+        orig: String,
+        dest: String,
+        depID: Int,
+        arrID: Int,
+        depTimeISO: String,
+        allowAV: Bool
+    ) async -> [PlanBAlternativeItem] {
+        guard let url = URL(string: "https://www.lefrecce.it/Channels.Website.BFF.WEB/website/ticket/solutions") else {
+            return []
+        }
+        let payload: [String: Any] = [
+            "departureLocationId": depID,
+            "arrivalLocationId": arrID,
+            "departureTime": depTimeISO,
+            "adults": 1,
+            "children": 0,
+            "criteria": [
+                "frecceOnly": false,
+                "regionalOnly": false,
+                "noChanges": false,
+                "order": "DEPARTURE_DATE",
+                "offset": 0,
+                "limit": 25
+            ],
+            "advancedSearchRequest": [
+                "bestFare": false
+            ]
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 9.0
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148", forHTTPHeaderField: "User-Agent")
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            let (data, response) = try await NetworkService.shared.post(request: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return [] }
+            return Self.parseLefrecceMultiStationSolutions(
+                from: data,
+                fallbackOrigin: orig,
+                fallbackDest: dest,
+                allowAV: allowAV
+            )
+        } catch {
+            return []
+        }
     }
 }

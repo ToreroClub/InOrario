@@ -783,6 +783,7 @@ final class InOrarioTests: XCTestCase {
 
         // 2. Utente Pro
         defaults.set(true, forKey: "tip.colazionee")
+        defaults.set(true, forKey: "remoteNotificationsEnabled_v1")
         XCTAssertTrue(mgr.hasSupport())
         let proPayload = mgr.buildCommuteSyncPayload()
         XCTAssertEqual(proPayload?["scheduled_summary_enabled"] as? Bool, true)
@@ -2328,5 +2329,1432 @@ final class InOrarioTests: XCTestCase {
                 }
             }
         }
+    }
+
+    // MARK: - FollowedTrip & Transfer Margin Tests
+
+    func testTransferMarginCalculation() {
+        XCTAssertEqual(
+            FollowedTripCardView.transferMargin(arr: "10:00", arrDelay: 0, dep: "10:10", depDelay: 0, walk: 0),
+            10
+        )
+        XCTAssertEqual(
+            FollowedTripCardView.transferMargin(arr: "10:00", arrDelay: 8, dep: "10:10", depDelay: 0, walk: 0),
+            2
+        )
+        XCTAssertEqual(
+            FollowedTripCardView.transferMargin(arr: "10:00", arrDelay: 8, dep: "10:10", depDelay: 0, walk: 3),
+            -1
+        )
+        XCTAssertEqual(
+            FollowedTripCardView.transferMargin(arr: "23:55", arrDelay: 0, dep: "00:05", depDelay: 0, walk: 0),
+            10
+        )
+        XCTAssertNil(
+            FollowedTripCardView.transferMargin(arr: "--:--", arrDelay: 0, dep: "10:10", depDelay: 0, walk: 0)
+        )
+    }
+
+    func testFollowedTripIsSingleTrain() {
+        let alt = PlanBAlternativeItem(
+            train_number: "2461",
+            category: "REG",
+            destination: "Milano Centrale",
+            station: "Rho",
+            departure_time: "08:00",
+            arrival_time: "08:40",
+            duration: "40m",
+            delay: 0,
+            platform: "1",
+            transfer_info: "",
+            legs: nil
+        )
+        let trainLeg1 = PlanBLegItem(
+            train_number: "2461",
+            category: "REG",
+            origin: "Rho",
+            destination: "Milano Porta Garibaldi",
+            departure_time: "08:00",
+            arrival_time: "08:20",
+            delay: 0,
+            platform: "1",
+            is_urban: false,
+            is_station_walk: false,
+            travel_minutes: 20,
+            urban_headsign: nil
+        )
+        let metroLeg = PlanBLegItem(
+            train_number: "M2",
+            category: "Metro M2",
+            origin: "Garibaldi FS",
+            destination: "Centrale FS",
+            departure_time: "08:25",
+            arrival_time: "08:32",
+            delay: 0,
+            platform: "",
+            is_urban: true,
+            is_station_walk: false,
+            travel_minutes: 7,
+            urban_headsign: "Cologno Nord"
+        )
+        let walkLeg = PlanBLegItem(
+            train_number: "piedi",
+            category: "Interscambio a piedi",
+            origin: "Milano Porta Garibaldi",
+            destination: "Milano Porta Garibaldi Passante",
+            departure_time: "08:20",
+            arrival_time: "08:25",
+            delay: 0,
+            platform: "",
+            is_urban: false,
+            is_station_walk: true,
+            travel_minutes: 5,
+            urban_headsign: nil
+        )
+        let trainLeg2 = PlanBLegItem(
+            train_number: "2500",
+            category: "REG",
+            origin: "Milano Porta Garibaldi",
+            destination: "Monza",
+            departure_time: "08:30",
+            arrival_time: "08:45",
+            delay: 0,
+            platform: "3",
+            is_urban: false,
+            is_station_walk: false,
+            travel_minutes: 15,
+            urban_headsign: nil
+        )
+
+        let trainPlusMetro = FollowedTrip(
+            alternative: alt,
+            legs: [trainLeg1, metroLeg],
+            dayKey: "2026-11-25",
+            createdAt: Date()
+        )
+        XCTAssertTrue(trainPlusMetro.isSingleTrain)
+        XCTAssertEqual(trainPlusMetro.railLegs.count, 1)
+
+        let trainPlusWalkPlusTrain = FollowedTrip(
+            alternative: alt,
+            legs: [trainLeg1, walkLeg, trainLeg2],
+            dayKey: "2026-11-25",
+            createdAt: Date()
+        )
+        XCTAssertFalse(trainPlusWalkPlusTrain.isSingleTrain)
+        XCTAssertEqual(trainPlusWalkPlusTrain.railLegs.count, 2)
+    }
+
+    func testPlanBStationMatch() {
+        XCTAssertTrue(planBStationMatch("Milano P. Garibaldi", "Milano Porta Garibaldi"))
+        XCTAssertTrue(planBStationMatch("Milano Centrale", "MILANO CENTRALE"))
+        XCTAssertFalse(planBStationMatch("Milano Centrale", "Torino Porta Nuova"))
+    }
+
+    @MainActor
+    func testFollowedTripFromTravelSolutionAndPlanBRestore() {
+        let commute = SupporterCommuteManager.shared
+        let defaults = UserDefaults.standard
+        let oldSupport = defaults.object(forKey: "tip.colazionee")
+        let oldFollowed = commute.followedTrip
+        let oldActivePlanB = commute.activePlanB
+        let oldPinnedPlanB = commute.pinnedPlanB
+        let oldChosenId = commute.chosenAlternativeId
+
+        defer {
+            if let oldSupport {
+                defaults.set(oldSupport, forKey: "tip.colazionee")
+            } else {
+                defaults.removeObject(forKey: "tip.colazionee")
+            }
+            commute.followedTrip = oldFollowed
+            commute.activePlanB = oldActivePlanB
+            if let oldPinned = oldPinnedPlanB {
+                commute.pinPlanB(oldPinned)
+            } else {
+                commute.unpinPlanB()
+            }
+            commute.chosenAlternativeId = oldChosenId
+        }
+
+        let seg1 = TravelSegment(
+            origin: "Magenta",
+            destination: "Milano Porta Garibaldi",
+            departureTime: "10:15",
+            arrivalTime: "10:45",
+            trainNumber: "2461",
+            trainCategory: "Suburbano S6",
+            travelMinutes: 30
+        )
+        let seg2 = TravelSegment(
+            origin: "Garibaldi FS",
+            destination: "Cadorna FN",
+            departureTime: "10:50",
+            arrivalTime: "11:00",
+            trainNumber: "M2",
+            trainCategory: "Trasporto Urbano",
+            travelMinutes: 10,
+            urbanHeadsign: "Abbiategrasso"
+        )
+        let seg3 = TravelSegment(
+            origin: "Milano Cadorna",
+            destination: "Castano Primo",
+            departureTime: "11:10",
+            arrivalTime: "11:55",
+            trainNumber: "321",
+            trainCategory: "REG",
+            travelMinutes: 45
+        )
+        let solution = TravelSolution(
+            trainNumber: "2461",
+            category: "Suburbano S6",
+            departureTime: "10:15",
+            arrivalTime: "11:55",
+            origin: "Magenta",
+            destination: "Castano Primo",
+            duration: "1h 40m",
+            segments: [seg1, seg2, seg3]
+        )
+
+        let followed = FollowedTrip.from(solution: solution)
+        XCTAssertFalse(followed.isSingleTrain)
+        XCTAssertEqual(followed.railLegs.count, 2)
+        XCTAssertEqual(followed.toTravelSolution().segments.count, 3)
+
+        defaults.set(true, forKey: "tip.colazionee")
+        let delayPlan = PlanBReportDTO(
+            title: "Ritardo sulla linea",
+            body: "Alternative disponibili",
+            incident_type: "delay",
+            incident_detail: nil,
+            cancelled_train: nil,
+            target_time: "10:15",
+            origins: ["Magenta"],
+            destinations: ["Milano"],
+            alternatives: [],
+            timestamp: "2026-11-25T10:00:00Z"
+        )
+        commute.activePlanB = delayPlan
+        commute.pinPlanB(delayPlan)
+        commute.followSolution(solution)
+        commute.clearPlanBAfterFollow()
+
+        XCTAssertNotNil(commute.activePlanB)
+        XCTAssertNil(commute.homeBannerPlanB)
+
+        commute.followedTrip = nil
+        XCTAssertEqual(commute.homeBannerPlanB?.title, "Ritardo sulla linea")
+    }
+
+    // MARK: - 5-Tab Redesign, Contextual Search & Personal Lines Tests
+
+    func testMainTabBarOrderAndLaunchFallback() {
+        XCTAssertEqual(MainTab.barOrder, [.trains, .stations, .home, .trips, .lines])
+        XCTAssertEqual(MainTab.barOrder[2], .home)
+        XCTAssertEqual(MainTab.resolvedLaunchTab(rawValue: nil), .home)
+        XCTAssertEqual(MainTab.resolvedLaunchTab(rawValue: "unknown_tab"), .home)
+        XCTAssertEqual(MainTab.resolvedLaunchTab(rawValue: MainTab.trains.rawValue), .trains)
+        XCTAssertEqual(MainTab.resolvedLaunchTab(rawValue: MainTab.lines.rawValue), .lines)
+        // Changing launch screen preference never changes bar order
+        XCTAssertEqual(MainTab.barOrder.first, .trains)
+        XCTAssertEqual(MainTab.barOrder.last, .lines)
+    }
+
+    @MainActor
+    func testContextualSearchScopeAndHistoryMapping() {
+        XCTAssertEqual(MainTab.trains.defaultSearchScope, .trainsAndStations)
+        XCTAssertEqual(MainTab.stations.defaultSearchScope, .trainsAndStations)
+        XCTAssertEqual(MainTab.home.defaultSearchScope, .trainsAndStations)
+        XCTAssertEqual(MainTab.trips.defaultSearchScope, .solutions)
+        XCTAssertEqual(MainTab.lines.defaultSearchScope, .trainsAndStations)
+
+        XCTAssertEqual(MainTab.trains.defaultHistoryTabIndex, 2)
+        XCTAssertEqual(MainTab.stations.defaultHistoryTabIndex, 1)
+        XCTAssertEqual(MainTab.trips.defaultHistoryTabIndex, 0)
+        XCTAssertEqual(MainTab.home.defaultHistoryTabIndex, 0)
+        XCTAssertEqual(MainTab.lines.defaultHistoryTabIndex, 0)
+
+        let coordinator = MainNavigationCoordinator(launchTabRawValue: MainTab.trains.rawValue)
+        XCTAssertEqual(coordinator.selectedTab, .trains)
+        XCTAssertTrue(coordinator.mountedTabs.contains(.trains))
+        XCTAssertTrue(coordinator.mountedTabs.contains(.home))
+
+        // Selecting an already active tab produces a popToRoot token without unmounting
+        XCTAssertNil(coordinator.popToRootTokens[.trains])
+        coordinator.selectTab(.trains)
+        XCTAssertNotNil(coordinator.popToRootTokens[.trains])
+
+        coordinator.selectTab(.trips)
+        XCTAssertEqual(coordinator.selectedTab, .trips)
+        XCTAssertTrue(coordinator.mountedTabs.contains(.trips))
+
+        coordinator.openContextualSearch()
+        XCTAssertEqual(coordinator.activeSearchRequest?.scope, .solutions)
+    }
+
+    func testAppSectionDisplayTitlesAndTolerantDecoding() throws {
+        XCTAssertEqual(AppSection.myStations.displayTitle, "Stazioni")
+        XCTAssertEqual(AppSection.favoriteTrains.displayTitle, "Treni")
+        XCTAssertEqual(AppSection.favoriteRoutes.displayTitle, "Viaggi e Tratte")
+        XCTAssertEqual(AppSection.passante.displayTitle, "Linee")
+
+        // Ensures legacy or removed raw values (like "News, Scioperi e Lavori") are ignored cleanly without dropping user order
+        let legacyWithRemovedJSON = #"["Stazione Vicina","News, Scioperi e Lavori","I miei Treni","Le Mie Stazioni","Le Mie Tratte Abituali","Linee Suburbane"]"#
+        let data = try XCTUnwrap(legacyWithRemovedJSON.data(using: .utf8))
+        let rawStrings = try JSONDecoder().decode([String].self, from: data)
+        var loaded = rawStrings.compactMap { AppSection(rawValue: $0) }
+        for section in AppSection.allCases where !loaded.contains(section) {
+            loaded.append(section)
+        }
+        XCTAssertEqual(loaded, [.nearby, .favoriteTrains, .myStations, .favoriteRoutes, .passante])
+    }
+
+    @MainActor
+    func testCompactStationNameFormatting() {
+        XCTAssertEqual("Milano Porta Garibaldi".compactStationName, "Milano P. Garibaldi")
+        XCTAssertEqual("Torino Porta Nuova".compactStationName, "Torino P. Nuova")
+        XCTAssertEqual("Milano Porta Venezia".compactStationName, "Milano P. Venezia")
+    }
+
+    @MainActor
+    func testStationBoardSnapshotEvaluation() {
+        let station = Station(name: "Milano Centrale", rfiID: "1728", vtID: "S01700")
+
+        let emptySnapshot = TrainManager.evaluateStationBoardSnapshot(
+            station: station,
+            result: StationBoardResult(trains: [], alerts: nil)
+        )
+        XCTAssertEqual(emptySnapshot.circulationState, .noData)
+        XCTAssertEqual(emptySnapshot.healthMessage, "Dati non disponibili")
+
+        let minorDelays = [
+            Train(category: "FR", number: "9604", destination: "Torino P.N.", time: "08:00", delay: "In orario", platform: "4"),
+            Train(category: "RV", number: "2044", destination: "Verona P.N.", time: "08:15", delay: "+2'", platform: "8"),
+            Train(category: "REG", number: "24501", destination: "Bergamo", time: "08:20", delay: "+8'", platform: "1")
+        ]
+        let regularSnapshot = TrainManager.evaluateStationBoardSnapshot(
+            station: station,
+            result: StationBoardResult(trains: minorDelays, alerts: nil)
+        )
+        XCTAssertEqual(regularSnapshot.circulationState, .regular)
+        XCTAssertEqual(regularSnapshot.healthMessage, "Circolazione regolare")
+        XCTAssertEqual(regularSnapshot.cancelledCount, 0)
+
+        let moderateIssues = [
+            Train(category: "REG", number: "24503", destination: "Bergamo", time: "08:30", delay: "+12'", platform: "2"),
+            Train(category: "REG", number: "24505", destination: "Pavia", time: "08:40", delay: "+3'", platform: "3")
+        ]
+        let warningSnapshot = TrainManager.evaluateStationBoardSnapshot(
+            station: station,
+            result: StationBoardResult(trains: moderateIssues, alerts: nil)
+        )
+        XCTAssertEqual(warningSnapshot.circulationState, .warning)
+        XCTAssertEqual(warningSnapshot.healthMessage, "Rallentamenti dir. Bergamo")
+
+        let disrupted = [
+            Train(category: "REG", number: "1001", destination: "Lodi", time: "08:50", delay: "Soppresso", platform: "-"),
+            Train(category: "REG", number: "1003", destination: "Novara", time: "09:00", delay: "Cancellato", platform: "-")
+        ]
+        let disruptedSnapshot = TrainManager.evaluateStationBoardSnapshot(
+            station: station,
+            result: StationBoardResult(trains: disrupted, alerts: nil)
+        )
+        XCTAssertEqual(disruptedSnapshot.circulationState, .disrupted)
+        XCTAssertTrue(disruptedSnapshot.healthMessage.hasPrefix("Soppressioni dir."))
+        XCTAssertEqual(disruptedSnapshot.cancelledCount, 2)
+    }
+
+    @MainActor
+    func testPersonalLinesHonestHealthAndSuggestions() async {
+        let trainManager = TrainManager()
+        let passanteManager = PassanteManager()
+        let usageTracker = UsageTracker()
+        let commuteManager = SupporterCommuteManager.shared
+        let linesManager = PersonalLinesManager()
+
+        let prevFavs = trainManager.favoriteTrains
+        let prevRoutes = trainManager.favoriteRoutes
+        defer {
+            trainManager.favoriteTrains = prevFavs
+            trainManager.favoriteRoutes = prevRoutes
+            trainManager.saveFavorites()
+        }
+
+        trainManager.favoriteTrains = [
+            SavedTrain(number: "24501", description: "Varese - Treviglio", category: "S5")
+        ]
+        trainManager.favoriteRoutes = [
+            FavoriteRoute(originName: "Milano Centrale", originID: "S01700", destinationName: "Bergamo", destinationID: "S01407")
+        ]
+
+        // Remove if already persisted in test environment before evaluating suggestion output
+        linesManager.removeLine(id: "S5", passanteManager: nil)
+        linesManager.removeLine(id: "MI-BG", passanteManager: nil)
+
+        linesManager.rebuildSuggestions(
+            trainManager: trainManager,
+            passanteManager: passanteManager,
+            usageTracker: usageTracker,
+            commuteManager: commuteManager
+        )
+
+        XCTAssertTrue(linesManager.suggestedLines.contains(where: { $0.id == "S5" }))
+        XCTAssertTrue(linesManager.suggestedLines.contains(where: { $0.id == "MI-BG" }))
+
+        // Honest health status: zero observed trains/alerts must never fake .regular
+        let emptyHealth: LineHealthStatus = .noDataYet(reason: "Nessun treno attivo rilevato ora")
+        XCTAssertEqual(emptyHealth.semanticKind, .neutral)
+
+        if let s5 = RailwayLineCatalog.curatedCatalog.first(where: { $0.id == "S5" }) {
+            linesManager.addLine(s5, passanteManager: nil)
+            linesManager.rebuildSuggestions(
+                trainManager: trainManager,
+                passanteManager: passanteManager,
+                usageTracker: usageTracker,
+                commuteManager: commuteManager
+            )
+            XCTAssertFalse(linesManager.suggestedLines.contains(where: { $0.id == "S5" }))
+            linesManager.removeLine(id: "S5", passanteManager: nil)
+        }
+    }
+
+    @MainActor
+    func testStationUniqueMetroLineBadgesDeduplicatesDirections() {
+        let garibaldi = Station(name: "Milano Porta Garibaldi", rfiID: "1714", vtID: "S01647")
+        XCTAssertEqual(garibaldi.uniqueMetroLineBadges.map(\.code), ["M2", "M5"])
+
+        let centrale = Station(name: "Milano Centrale", rfiID: "1728", vtID: "S01700")
+        XCTAssertEqual(centrale.uniqueMetroLineBadges.map(\.code), ["M2", "M3"])
+
+        let rho = Station(name: "Rho Fiera", rfiID: "3098", vtID: "S01039")
+        XCTAssertEqual(rho.uniqueMetroLineBadges.map(\.code), ["M1"])
+    }
+
+    func testTrainsFilterModeOptions() {
+        XCTAssertEqual(TrainsFilterMode.allCases, [.all, .inTransit, .delayedOrAlert, .regular, .withAlerts])
+        XCTAssertEqual(TrainsFilterMode.withAlerts.rawValue, "Con avvisi attivi")
+        XCTAssertEqual(TrainsFilterMode.inTransit.rawValue, "In viaggio")
+    }
+
+    func testNewsItemStrikeAndLineRelevanceHelpers() {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        df.timeZone = TimeZone(identifier: "Europe/Rome")
+        let todayISO = df.string(from: Date())
+
+        let todayStrike = NewsItem(
+            title: "Sciopero nazionale trasporto ferroviario",
+            content: "Disagi possibili tutto il giorno",
+            isUrgent: true,
+            category: "sciopero",
+            date: todayISO
+        )
+        XCTAssertTrue(todayStrike.isStrikeCategory)
+        XCTAssertTrue(todayStrike.isStrikeToday)
+        XCTAssertEqual(todayStrike.daysUntilStrike, 0)
+
+        let works = NewsItem(
+            title: "Lavori programmati tra Milano Centrale e Bergamo",
+            content: "Modifiche alla circolazione dei treni S5 e RE",
+            isUrgent: false,
+            category: "lavori",
+            workLocation: "Linea Milano - Bergamo"
+        )
+        XCTAssertTrue(works.isWorksCategory)
+        XCTAssertFalse(works.isStrikeCategory)
+        XCTAssertTrue(works.isRelevantToUser(stationNames: ["Bergamo"], lineCodes: []))
+        XCTAssertTrue(works.isRelevantToUser(stationNames: [], lineCodes: ["S5"]))
+        XCTAssertFalse(works.isRelevantToUser(stationNames: ["Napoli Centrale"], lineCodes: ["M4"]))
+    }
+
+    @MainActor
+    func testFavoriteRouteIsReversedPersistenceAndBackwardCompatibility() throws {
+        // 1. Legacy JSON without `isReversed` decodes safely with effectiveIsReversed == false
+        let legacyJSON = """
+        {
+            "originName": "Magenta",
+            "originID": "S01042",
+            "destinationName": "Milano Dateo",
+            "destinationID": "S01645"
+        }
+        """.data(using: .utf8)!
+        let decodedLegacy = try JSONDecoder().decode(FavoriteRoute.self, from: legacyJSON)
+        XCTAssertNil(decodedLegacy.isReversed)
+        XCTAssertFalse(decodedLegacy.effectiveIsReversed)
+        XCTAssertEqual(decodedLegacy.effectiveOriginName, "Magenta")
+        XCTAssertEqual(decodedLegacy.effectiveDestinationName, "Milano Dateo")
+        XCTAssertTrue(decodedLegacy.matchesUndirected(originID: "S01645", destID: "S01042"))
+
+        // 2. Reversed computed endpoints & TrainManager persistence
+        let tm = TrainManager()
+        let prevRoutes = tm.favoriteRoutes
+        defer {
+            tm.favoriteRoutes = prevRoutes
+            tm.saveFavorites()
+        }
+
+        tm.favoriteRoutes = [decodedLegacy]
+        XCTAssertTrue(tm.isFavoriteRoute(originID: "S01645", destID: "S01042"))
+
+        tm.setFavoriteRouteReversed(routeID: decodedLegacy.id, isReversed: true)
+        XCTAssertEqual(tm.favoriteRoutes.first?.effectiveIsReversed, true)
+        XCTAssertEqual(tm.favoriteRoutes.first?.effectiveOriginName, "Milano Dateo")
+        XCTAssertEqual(tm.favoriteRoutes.first?.effectiveOriginID, "S01645")
+        XCTAssertEqual(tm.favoriteRoutes.first?.effectiveDestinationName, "Magenta")
+        XCTAssertEqual(tm.favoriteRoutes.first?.effectiveDestinationID, "S01042")
+
+        // Verify persistence roundtrip via UserDefaults
+        let tmReloaded = TrainManager()
+        let reloaded = tmReloaded.favoriteRoutes.first { $0.id == decodedLegacy.id }
+        XCTAssertEqual(reloaded?.effectiveIsReversed, true)
+        XCTAssertEqual(reloaded?.effectiveOriginName, "Milano Dateo")
+        XCTAssertEqual(reloaded?.effectiveDestinationName, "Magenta")
+    }
+
+    @MainActor
+    func testUsageTrackerLearnedHabitRoutesConsolidationAndExclusion() {
+        let tracker = UsageTracker()
+        let prevUsages = tracker.routeUsages
+        let prevIgnored = tracker.ignoredRouteKeys
+        defer {
+            tracker.routeUsages = prevUsages
+            tracker.ignoredRouteKeys = prevIgnored
+        }
+
+        tracker.ignoredRouteKeys = []
+        let cal = Calendar.current
+        let now = Date()
+        let day1 = cal.date(byAdding: .day, value: -1, to: now)!
+        let day2 = cal.date(byAdding: .day, value: -3, to: now)!
+        let day3 = cal.date(byAdding: .day, value: -6, to: now)!
+
+        tracker.routeUsages = [
+            // Undirected consolidation across A->B and B->A on 3 distinct days
+            RouteUsage(originID: "S01042", originName: "Magenta", destID: "S01700", destName: "Milano Centrale", date: day1, weekday: 2, hour: 8),
+            RouteUsage(originID: "S01700", originName: "Milano Centrale", destID: "S01042", destName: "Magenta", date: day2, weekday: 4, hour: 18),
+            RouteUsage(originID: "S01042", originName: "Magenta", destID: "S01700", destName: "Milano Centrale", date: day3, weekday: 6, hour: 8),
+            // Insufficient distinct days (only 2 days) -> excluded
+            RouteUsage(originID: "S01645", originName: "Milano Dateo", destID: "S01860", destName: "Pavia", date: day1, weekday: 2, hour: 9),
+            RouteUsage(originID: "S01645", originName: "Milano Dateo", destID: "S01860", destName: "Pavia", date: day2, weekday: 4, hour: 9)
+        ]
+
+        let habits = tracker.learnedHabitRoutes(excluding: [], limit: 3, at: now)
+        XCTAssertEqual(habits.count, 1)
+        XCTAssertEqual(habits.first?.distinctDays, 3)
+
+        // When saved in reversed orientation, must be excluded from suggestions
+        let reversedFav = FavoriteRoute(originName: "Milano Centrale", originID: "S01700", destinationName: "Magenta", destinationID: "S01042")
+        let excludedHabits = tracker.learnedHabitRoutes(excluding: [reversedFav], limit: 3, at: now)
+        XCTAssertTrue(excludedHabits.isEmpty)
+    }
+
+    @MainActor
+    func testItalianRailwayLineCatalogLoadsAndSeparatesAVFromRegional() async throws {
+        let catalog = RailwayLineCatalog.curatedCatalog
+        XCTAssertEqual(catalog.count, 191)
+        XCTAssertEqual(Set(catalog.map(\.id)).count, 191)
+
+        // All 6 kinds represented
+        let kinds = Set(catalog.map(\.kind))
+        XCTAssertTrue(kinds.contains(.suburban))
+        XCTAssertTrue(kinds.contains(.regional))
+        XCTAssertTrue(kinds.contains(.highSpeed))
+        XCTAssertTrue(kinds.contains(.intercity))
+        XCTAssertTrue(kinds.contains(.international))
+        XCTAssertTrue(kinds.contains(.airport))
+
+        let miTo = try XCTUnwrap(catalog.first(where: { $0.id == "MI-TO" }))
+        XCTAssertEqual(miTo.kind, .regional)
+        XCTAssertEqual(miTo.stations.first, "Torino Porta Nuova")
+        XCTAssertEqual(miTo.stations.last, "Milano Centrale")
+        XCTAssertFalse(miTo.categoryPrefixes.contains("FR"))
+        XCTAssertFalse(miTo.categoryPrefixes.contains("ITA"))
+
+        let avMiTo = try XCTUnwrap(catalog.first(where: { $0.id == "AV-TO-MI" }))
+        XCTAssertEqual(avMiTo.kind, .highSpeed)
+        XCTAssertEqual(avMiTo.stations.first, "Torino Porta Nuova")
+        XCTAssertEqual(avMiTo.stations.last, "Milano Centrale")
+        XCTAssertTrue(avMiTo.categoryPrefixes.contains("FR"))
+        XCTAssertTrue(avMiTo.categoryPrefixes.contains("ITA"))
+        XCTAssertTrue(avMiTo.categoryPrefixes.contains("NTV"))
+        XCTAssertFalse(avMiTo.stations.contains("Magenta"))
+
+        // Check AV Bologna deduplication
+        for avID in ["AV-MI-BO", "AV-BO-FI", "AV-VE-BO"] {
+            let avLine = try XCTUnwrap(catalog.first(where: { $0.id == avID }))
+            XCTAssertTrue(avLine.stations.contains("Bologna C.le/AV"))
+            XCTAssertFalse(avLine.stations.contains("Bologna Centrale"))
+        }
+
+        // Check TILO, Intercity, International, South & Islands lines
+        for requiredID in ["S10", "S19", "S40", "S50", "MI-CO", "IC-TIR", "IC-ADR", "EC-GOTT", "EC-BREN", "AV-FR", "PA-SFM", "CA-IGL", "GE-URB", "5T-EXP", "BA-MET", "RC-MET"] {
+            XCTAssertNotNil(catalog.first(where: { $0.id == requiredID }), "Missing line \(requiredID)")
+        }
+
+        XCTAssertEqual(catalog.first(where: { $0.id == "S19" })?.code, "S19")
+        XCTAssertEqual(catalog.first(where: { $0.id == "S6" })?.stations.first, "Novara")
+        XCTAssertEqual(catalog.first(where: { $0.id == "S6" })?.stations.last, "Treviglio")
+        XCTAssertEqual(catalog.first(where: { $0.id == "S6" })?.branches?.first?.effectiveIsDashed, true)
+        XCTAssertEqual(catalog.first(where: { $0.id == "S13" })?.branches?.first?.effectivePosition, .before)
+        XCTAssertEqual(catalog.first(where: { $0.id == "MXP" })?.branches?.first?.stations, ["Milano Cadorna"])
+        XCTAssertEqual(catalog.first(where: { $0.id == "FL4" })?.branches?.count, 2)
+        XCTAssertEqual(catalog.first(where: { $0.id == "SFM3" })?.branches?.first?.stations, ["Susa"])
+        XCTAssertEqual(catalog.first(where: { $0.id == "SFM3" })?.branches?.first?.effectivePosition, .before)
+        XCTAssertEqual(catalog.first(where: { $0.id == "MI-BG" })?.code, "RE2")
+        XCTAssertEqual(catalog.first(where: { $0.id == "MI-BS-VR" })?.code, "RE6")
+        XCTAssertEqual(catalog.first(where: { $0.id == "MI-LAV" })?.code, "RE1")
+
+        // Verify all 14 branched lines have valid junctions & branch stations
+        let branchedLines = catalog.filter { !($0.branches ?? []).isEmpty }
+        XCTAssertEqual(branchedLines.count, 14)
+        for line in branchedLines {
+            for br in line.branches ?? [] {
+                XCTAssertTrue(line.stations.contains(br.junctionStation), "Missing junction \(br.junctionStation) in \(line.id)")
+                for bs in br.stations {
+                    XCTAssertTrue(line.stations.contains(bs), "Missing branch station \(bs) in \(line.id)")
+                }
+            }
+        }
+
+        // Ensure Milano S1 and Bologna S1 (BO-SFM1) resolve distinctly by stations
+        let bolognaMatch = RailwayLineCatalog.findBestCatalogLine(
+            matchingStationA: "Porretta Terme",
+            stationB: "Bologna Centrale",
+            category: "S1"
+        )
+        XCTAssertEqual(bolognaMatch?.id, "BO-SFM1")
+
+        // Verify JSON station resolution, bilingual names & newly added Italian aliases
+        let tm = TrainManager()
+        await tm.loadRFIStationsAsync()
+        let linesManager = PersonalLinesManager()
+        let verifyAliases = [
+            "Bolzano/Bozen", "Ora/Auer", "Torino Aeroporto", "Rivarolo Canavese",
+            "Bologna C.le/AV", "Porretta Terme", "Firenze Campo di Marte",
+            "Punta Raisi", "Reggio di Calabria Aeroporto", "Settimo Torinese",
+            "San Candido/Innichen", "Palermo Politeama", "Bojano",
+            "Santa Margherita Ligure-Portofino", "Zola Predosa"
+        ]
+        let stationsWithoutRFICoords: Set<String> = [
+            "Torino Aeroporto",
+            "Palermo Politeama",
+            "Zola Predosa"
+        ]
+        for name in verifyAliases {
+            let st = tm.resolveStation(name: name)
+            XCTAssertNotNil(st.vtID, "Missing vtID for \(name)")
+            if !stationsWithoutRFICoords.contains(name) {
+                XCTAssertNotNil(st.lat, "Missing coordinates for \(name)")
+            }
+        }
+        let s6 = try XCTUnwrap(catalog.first(where: { $0.id == "S6" }))
+        let s6Stations = linesManager.resolvedStations(for: s6, trainManager: tm)
+        XCTAssertTrue(s6Stations.contains(where: { $0.name.localizedCaseInsensitiveContains("Treviglio") }))
+        let s13 = try XCTUnwrap(catalog.first(where: { $0.id == "S13" }))
+        let s13Stations = linesManager.resolvedStations(for: s13, trainManager: tm)
+        XCTAssertTrue(s13Stations.contains(where: { $0.name.localizedCaseInsensitiveContains("Garbagnate") }))
+
+        // Legacy PersonalLineKind value backward compatibility & new kinds
+        let legacyJSON = "\"Regionale / Diretta\"".data(using: .utf8)!
+        XCTAssertEqual(try JSONDecoder().decode(PersonalLineKind.self, from: legacyJSON), .regional)
+        let icJSON = "\"Intercity\"".data(using: .utf8)!
+        XCTAssertEqual(try JSONDecoder().decode(PersonalLineKind.self, from: icJSON), .intercity)
+        let intlJSON = "\"Internazionale\"".data(using: .utf8)!
+        XCTAssertEqual(try JSONDecoder().decode(PersonalLineKind.self, from: intlJSON), .international)
+    }
+
+    @MainActor
+    func testPersonalLineMatchesTrainSeparatesHighSpeedAndRegional() throws {
+        let catalog = RailwayLineCatalog.curatedCatalog
+        let miTo = try XCTUnwrap(catalog.first(where: { $0.id == "MI-TO" }))
+        let avMiTo = try XCTUnwrap(catalog.first(where: { $0.id == "AV-TO-MI" }))
+        let icTir = try XCTUnwrap(catalog.first(where: { $0.id == "IC-TIR" }))
+        let ecGott = try XCTUnwrap(catalog.first(where: { $0.id == "EC-GOTT" }))
+
+        let rvTrain = Train(category: "RV", number: "2020", destination: "TORINO PORTA NUOVA", time: "10:15", delay: "In orario", platform: "5")
+        let frTrain = Train(category: "FR", number: "9616", destination: "TORINO PORTA NUOVA", time: "10:25", delay: "+5'", platform: "7")
+        let ntvTrain = Train(category: "NTV", number: "9970", destination: "TORINO PORTA NUOVA", time: "10:35", delay: "In orario", platform: "8")
+        let s6Train = Train(category: "S6", number: "24626", destination: "NOVARA", time: "10:10", delay: "In orario", platform: "2")
+        let icTrain = Train(category: "IC", number: "657", destination: "ROMA TERMINI", time: "11:10", delay: "In orario", platform: "6")
+        let icnTrain = Train(category: "ICN", number: "1963", destination: "PALERMO CENTRALE", time: "20:10", delay: "In orario", platform: "9")
+        let ecTrain = Train(category: "EC", number: "314", destination: "LUGANO", time: "12:10", delay: "In orario", platform: "10")
+        let regComoTrain = Train(category: "R", number: "25020", destination: "CHIASSO", time: "12:15", delay: "In orario", platform: "11")
+
+        XCTAssertTrue(PersonalLinesManager.matchesLineTrain(rvTrain, boardStation: "Milano Centrale", line: miTo))
+        XCTAssertFalse(PersonalLinesManager.matchesLineTrain(frTrain, boardStation: "Milano Centrale", line: miTo))
+        XCTAssertFalse(PersonalLinesManager.matchesLineTrain(ntvTrain, boardStation: "Milano Centrale", line: miTo))
+        XCTAssertFalse(PersonalLinesManager.matchesLineTrain(s6Train, boardStation: "Magenta", line: miTo))
+
+        XCTAssertTrue(PersonalLinesManager.matchesLineTrain(frTrain, boardStation: "Milano Centrale", line: avMiTo))
+        XCTAssertTrue(PersonalLinesManager.matchesLineTrain(ntvTrain, boardStation: "Milano Centrale", line: avMiTo))
+        XCTAssertFalse(PersonalLinesManager.matchesLineTrain(rvTrain, boardStation: "Milano Centrale", line: avMiTo))
+
+        XCTAssertTrue(PersonalLinesManager.matchesLineTrain(icTrain, boardStation: "Milano Centrale", line: icTir))
+        XCTAssertTrue(PersonalLinesManager.matchesLineTrain(icnTrain, boardStation: "Milano Centrale", line: icTir))
+        XCTAssertFalse(PersonalLinesManager.matchesLineTrain(frTrain, boardStation: "Milano Centrale", line: icTir))
+        XCTAssertFalse(PersonalLinesManager.matchesLineTrain(rvTrain, boardStation: "Milano Centrale", line: icTir))
+
+        XCTAssertTrue(PersonalLinesManager.matchesLineTrain(ecTrain, boardStation: "Milano Centrale", line: ecGott))
+        XCTAssertFalse(PersonalLinesManager.matchesLineTrain(regComoTrain, boardStation: "Milano Centrale", line: ecGott))
+    }
+
+    func testStationInterchangeCatalogHardcodedLookupsAndExclusion() {
+        let centrale = StationInterchangeCatalog.interchanges(for: "Milano Centrale")
+        XCTAssertTrue(centrale.contains(where: { $0.code == "M2" }))
+        XCTAssertTrue(centrale.contains(where: { $0.code == "M3" }))
+        XCTAssertTrue(centrale.contains(where: { $0.code == "AV" }))
+
+        let cadorna = StationInterchangeCatalog.interchanges(for: "Milano Cadorna", excludingLineCode: "MXP")
+        XCTAssertTrue(cadorna.contains(where: { $0.code == "M1" }))
+        XCTAssertTrue(cadorna.contains(where: { $0.code == "S3" }))
+        XCTAssertFalse(cadorna.contains(where: { $0.code == "MXP" }))
+
+        let dateo = StationInterchangeCatalog.interchanges(for: "Dateo", excludingLineCode: "S6")
+        XCTAssertTrue(dateo.contains(where: { $0.code == "M4" }))
+        XCTAssertFalse(dateo.contains(where: { $0.code == "S6" }))
+
+        let roma = StationInterchangeCatalog.interchanges(for: "Roma Termini", excludingLineCode: "AV RM-NA")
+        XCTAssertTrue(roma.contains(where: { $0.code == "MA" }))
+        XCTAssertTrue(roma.contains(where: { $0.code == "MB" }))
+        XCTAssertFalse(roma.contains(where: { $0.code == "AV" }))
+
+        let torinoSusa = StationInterchangeCatalog.interchanges(for: "Torino Porta Susa")
+        XCTAssertTrue(torinoSusa.contains(where: { $0.code == "M1" }))
+        XCTAssertTrue(torinoSusa.contains(where: { $0.code == "AV" }))
+    }
+
+    func testMainTabDefaultHistoryTabIndicesMatchHistoryView() {
+        XCTAssertEqual(MainTab.trips.defaultHistoryTabIndex, 0)
+        XCTAssertEqual(MainTab.stations.defaultHistoryTabIndex, 1)
+        XCTAssertEqual(MainTab.trains.defaultHistoryTabIndex, 2)
+        XCTAssertEqual(MainTab.home.defaultHistoryTabIndex, 0)
+    }
+
+    func testRFIDelayFormattingAndItalian24HourLocale() {
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("Cancellato"), "Cancellato")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("Soppresso"), "Soppresso")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("14"), "+14'")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("+14'"), "+14'")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("0"), "In orario")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay(""), "In orario")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("In orario"), "In orario")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("-2"), "-2'")
+        XCTAssertEqual(StationRepository.formatScrapedRFIDelay("Deviato"), "Deviato")
+        XCTAssertEqual(SharedFormatters.italian24HourLocale.hourCycle, .zeroToTwentyThree)
+        XCTAssertEqual(SharedFormatters.format24HourTimeString("11:50 AM"), "11:50")
+        XCTAssertEqual(SharedFormatters.format24HourTimeString("3:15 PM"), "15:15")
+        XCTAssertEqual(SharedFormatters.format24HourTimeString("07:30"), "07:30")
+    }
+
+    func testTrainNotificationStandByPauseAndMasterToggles() throws {
+        var t1 = SavedTrain(number: "24530", description: "Treviglio - Varese")
+        t1.notifyDelay = true
+        t1.notifyScheduledTime = true
+        t1.scheduledNotificationTime = "7:30 AM"
+        XCTAssertTrue(t1.hasAnyConfiguredNotification)
+        XCTAssertTrue(t1.hasActiveNotifications)
+
+        // Stand-by pause preserves local configuration but excludes train from server sync payload
+        t1.notificationsPaused = true
+        XCTAssertTrue(t1.hasAnyConfiguredNotification)
+        XCTAssertFalse(t1.hasActiveNotifications)
+
+        var t2 = SavedTrain(number: "24627", description: "Novara - Pioltello")
+        t2.notifyScheduledTime = true
+        t2.scheduledNotificationTime = "08:15"
+
+        let activePayload = TrainManager.buildNotificationSyncTrainsPayload(
+            favoriteTrains: [t1, t2],
+            hasSupport: true,
+            masterEnabled: true,
+            trainsEnabled: true
+        )
+        XCTAssertEqual(activePayload.count, 1)
+        XCTAssertEqual(activePayload.first?["train_number"] as? String, "24627")
+
+        // Unpausing restores server payload with normalized 24h time
+        t1.notificationsPaused = false
+        let restoredPayload = TrainManager.buildNotificationSyncTrainsPayload(
+            favoriteTrains: [t1, t2],
+            hasSupport: true,
+            masterEnabled: true,
+            trainsEnabled: true
+        )
+        XCTAssertEqual(restoredPayload.count, 2)
+        XCTAssertEqual(restoredPayload.first?["scheduled_notification_time"] as? String, "07:30")
+
+        // Master OFF or Trains OFF empties server train payload while preserving local state
+        XCTAssertTrue(TrainManager.buildNotificationSyncTrainsPayload(favoriteTrains: [t1, t2], hasSupport: true, masterEnabled: false, trainsEnabled: true).isEmpty)
+        XCTAssertTrue(TrainManager.buildNotificationSyncTrainsPayload(favoriteTrains: [t1, t2], hasSupport: true, masterEnabled: true, trainsEnabled: false).isEmpty)
+
+        // Backward-compatible decoding without notificationsPaused key
+        let legacyData = #"{"number":"1234","description":"A - B","notifyDelay":true}"#.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(SavedTrain.self, from: legacyData)
+        XCTAssertFalse(decoded.isNotificationsPaused)
+        XCTAssertTrue(decoded.hasActiveNotifications)
+    }
+
+    func testTelemetryAckValidationAndDeltaSubtractionPreservesInFlightEvents() {
+        let validAck = #"{"status":"ok","saved":true,"user_id":"dev-1","batch_id":"batch-abc"}"#.data(using: .utf8)!
+        XCTAssertTrue(UserInterestTelemetryManager.canAcceptSyncAck(
+            responseData: validAck,
+            statusCode: 200,
+            expectedDeviceID: "DEV-1",
+            expectedBatchID: "batch-abc"
+        ))
+        XCTAssertFalse(UserInterestTelemetryManager.canAcceptSyncAck(
+            responseData: validAck,
+            statusCode: 500,
+            expectedDeviceID: "dev-1",
+            expectedBatchID: "batch-abc"
+        ))
+        XCTAssertFalse(UserInterestTelemetryManager.canAcceptSyncAck(
+            responseData: validAck,
+            statusCode: 200,
+            expectedDeviceID: "other-dev",
+            expectedBatchID: "batch-abc"
+        ))
+
+        var sent = TelemetryLocalStore()
+        sent.stationHistory["magenta"] = TelemetryStationEntry(
+            name: "Magenta", vtID: nil, rfiID: nil,
+            viewCount: 3, searchCount: 1,
+            firstSeen: "2026-11-27T08:00:00Z", lastSeen: "2026-11-27T09:00:00Z",
+            daysSeen: ["2026-11-27"], hoursHistogram: ["8": 3], weekdaysHistogram: ["6": 3],
+            gpsConfirmedCount: 1, lastLat: nil, lastLon: nil
+        )
+        sent.lineHistory["s6"] = TelemetryLineEntry(
+            lineID: "S6", code: "S6", name: "Novara - Pioltello", kind: "Suburbana", region: "Lombardia",
+            viewCount: 2, firstSeen: "2026-11-27T08:00:00Z", lastSeen: "2026-11-27T08:30:00Z",
+            daysSeen: ["2026-11-27"], hoursHistogram: ["8": 2], weekdaysHistogram: ["6": 2]
+        )
+
+        // Exact match -> completely cleared
+        let cleared = UserInterestTelemetryManager.subtractAcknowledgedStore(sent: sent, from: sent)
+        XCTAssertTrue(cleared.isEmpty)
+        XCTAssertNil(cleared.pendingBatchID)
+
+        // In-flight event arrives during sync -> only delta remains
+        var current = sent
+        current.stationHistory["magenta"]?.viewCount = 4
+        current.stationHistory["magenta"]?.hoursHistogram["9"] = 1
+        let remaining = UserInterestTelemetryManager.subtractAcknowledgedStore(sent: sent, from: current)
+        XCTAssertFalse(remaining.isEmpty)
+        XCTAssertEqual(remaining.stationHistory["magenta"]?.viewCount, 1)
+        XCTAssertEqual(remaining.stationHistory["magenta"]?.hoursHistogram, ["9": 1])
+        XCTAssertNil(remaining.lineHistory["s6"])
+    }
+
+    func testProactiveHabitPlanCacheAdvancesLocallyUntilLastSolutionDeparts() throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        func romeDate(hour: Int, minute: Int) -> Date {
+            var comps = DateComponents()
+            comps.year = 2026; comps.month = 11; comps.day = 27
+            comps.hour = hour; comps.minute = minute
+            return cal.date(from: comps)!
+        }
+
+        let alt1 = PlanBAlternativeItem(
+            train_number: "24631", category: "S6", destination: "Magenta",
+            station: "Milano Porta Garibaldi", departure_time: "13:15", arrival_time: "13:50",
+            duration: "35 min", delay: 0, platform: "1", transfer_info: "Diretto", legs: nil
+        )
+        let alt2 = PlanBAlternativeItem(
+            train_number: "24633", category: "S6", destination: "Magenta",
+            station: "Milano Porta Garibaldi", departure_time: "13:45", arrival_time: "14:20",
+            duration: "35 min", delay: 5, platform: "1", transfer_info: "Diretto", legs: nil
+        )
+        let alt3 = PlanBAlternativeItem(
+            train_number: "24635", category: "S6", destination: "Magenta",
+            station: "Milano Porta Garibaldi", departure_time: "14:46", arrival_time: "15:21",
+            duration: "35 min", delay: 0, platform: "1", transfer_info: "Diretto", legs: nil
+        )
+        let plan = PlanBReportDTO(
+            title: "Ritorno abituale", body: "", incident_type: "simulation",
+            incident_detail: nil, cancelled_train: nil, target_time: "13:00 - 14:50",
+            origins: ["Milano Porta Garibaldi"], destinations: ["Magenta"],
+            alternatives: [alt1, alt2, alt3], timestamp: "2026-11-27T13:00:00Z"
+        )
+        let dayKey = "2026-11-27"
+
+        // At 13:05 all 3 are upcoming
+        let at1305 = romeDate(hour: 13, minute: 5)
+        XCTAssertTrue(SupporterCommuteManager.hasValidUpcomingCachedSolutions(plan: plan, dayKey: dayKey, at: at1305))
+        XCTAssertEqual(SupporterCommuteManager.upcomingAlternatives(in: plan, at: at1305).map(\.train_number), ["24631", "24633", "24635"])
+
+        // At 13:47 alt1 departed, alt2 still upcoming thanks to +5' delay (13:50), alt3 upcoming
+        let at1347 = romeDate(hour: 13, minute: 47)
+        XCTAssertTrue(SupporterCommuteManager.hasValidUpcomingCachedSolutions(plan: plan, dayKey: dayKey, at: at1347))
+        XCTAssertEqual(SupporterCommuteManager.upcomingAlternatives(in: plan, at: at1347).map(\.train_number), ["24633", "24635"])
+
+        // At 14:10 only alt3 (14:46) remains -> cache still valid, NO server refetch needed
+        let at1410 = romeDate(hour: 14, minute: 10)
+        XCTAssertTrue(SupporterCommuteManager.hasValidUpcomingCachedSolutions(plan: plan, dayKey: dayKey, at: at1410))
+        XCTAssertEqual(SupporterCommuteManager.upcomingAlternatives(in: plan, at: at1410).map(\.train_number), ["24635"])
+
+        // At 14:55 all solutions have departed -> cache expires cleanly
+        let at1455 = romeDate(hour: 14, minute: 55)
+        XCTAssertFalse(SupporterCommuteManager.hasValidUpcomingCachedSolutions(plan: plan, dayKey: dayKey, at: at1455))
+        XCTAssertTrue(SupporterCommuteManager.upcomingAlternatives(in: plan, at: at1455).isEmpty)
+
+        // Different day invalidates cache immediately
+        XCTAssertFalse(SupporterCommuteManager.hasValidUpcomingCachedSolutions(plan: plan, dayKey: "2026-11-26", at: at1305))
+    }
+
+    func testHomeTrainSelectionDropsArrivedKeepsChronologicalOrderAndAlerts() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        func romeDate(hour: Int, minute: Int) -> Date {
+            var comps = DateComponents()
+            comps.year = 2026; comps.month = 11; comps.day = 27 // Venerdì (ISO 5)
+            comps.hour = hour; comps.minute = minute
+            return cal.date(from: comps)!
+        }
+
+        func makeSnap(num: String, dep: String, arr: String, delay: Int = 0, departed: Bool = false, arrived: Bool = false, cancelled: Bool = false) -> TrainLiveSnapshot {
+            let s1 = Stop(stationName: "A", time: dep, actualTime: departed ? dep : nil, delay: delay, estimatedTime: nil, plannedPlatform: "1", actualPlatform: nil, isSuppressed: cancelled)
+            let s2 = Stop(stationName: "B", time: arr, actualTime: arrived ? arr : nil, delay: delay, estimatedTime: nil, plannedPlatform: "2", actualPlatform: nil, isSuppressed: cancelled)
+            return TrainLiveSnapshot(
+                trainNumber: num, category: "S6", origin: "A", destination: "B",
+                stops: [s1, s2], status: TrainStatus(),
+                delayMinutes: delay, isCancelled: cancelled, isArrived: arrived, isDeparted: departed,
+                lastStation: nil, lastTime: nil, nextStation: nil, nextEstimatedTime: nil,
+                progress: arrived ? 1.0 : (departed ? 0.5 : 0.0), fetchedAt: Date()
+            )
+        }
+
+        let tArrived = SavedTrain(number: "1001", description: "A - B", departureTime: "07:30", arrivalTime: "08:10")
+        let tInTransit = SavedTrain(number: "1002", description: "A - B", departureTime: "08:15", arrivalTime: "09:00")
+        let tSoonDelayed = SavedTrain(number: "1003", description: "A - B", departureTime: "09:10", arrivalTime: "09:50")
+        let tSoonRegular = SavedTrain(number: "1004", description: "A - B", departureTime: "09:40", arrivalTime: "10:20")
+        let tEvening1 = SavedTrain(number: "2001", description: "B - A", departureTime: "18:15", arrivalTime: "18:55")
+        let tEvening2 = SavedTrain(number: "2002", description: "B - A", departureTime: "18:45", arrivalTime: "19:25")
+
+        // Inserted out of chronological order to verify stable chronological output
+        let favorites = [tEvening2, tSoonRegular, tArrived, tSoonDelayed, tInTransit, tEvening1]
+
+        // Scenario 1: At 08:30 -> tArrived is GONE immediately; tInTransit + tSoonDelayed (+20') + tSoonRegular selected in chronological order, orange triangle!
+        let snaps1: [String: TrainLiveSnapshot] = [
+            "1001": makeSnap(num: "1001", dep: "07:30", arr: "08:10", departed: true, arrived: true),
+            "1002": makeSnap(num: "1002", dep: "08:15", arr: "09:00", delay: 0, departed: true, arrived: false),
+            "1003": makeSnap(num: "1003", dep: "09:10", arr: "09:50", delay: 20, departed: false, arrived: false),
+            "1004": makeSnap(num: "1004", dep: "09:40", arr: "10:20", delay: 0, departed: false, arrived: false)
+        ]
+        let sel1 = TrainManager.selectHomeTrains(favoriteTrains: favorites, snapshots: snaps1, now: romeDate(hour: 8, minute: 30))
+        XCTAssertTrue(sel1.hasActiveWindowTrains)
+        XCTAssertEqual(sel1.trains.map(\.number), ["1002", "1003", "1004"]) // chronological 08:15 -> 09:10 -> 09:40, NOT shuffled by delay!
+        XCTAssertEqual(sel1.alertSeverity, .warning) // > 15 min delay -> orange triangle
+
+        // Scenario 2: Cancelled train near departure -> red triangle & guaranteed included in chronological order
+        var snaps2 = snaps1
+        snaps2["1004"] = makeSnap(num: "1004", dep: "09:40", arr: "10:20", cancelled: true)
+        let sel2 = TrainManager.selectHomeTrains(favoriteTrains: favorites, snapshots: snaps2, now: romeDate(hour: 8, minute: 30))
+        XCTAssertEqual(sel2.alertSeverity, .critical) // cancelled -> red triangle
+        XCTAssertEqual(sel2.trains.map(\.number), ["1002", "1003", "1004"])
+
+        // Scenario 3: Outside all active windows (14:00) -> fallback shows next 2 upcoming (18:15, 18:45) in chronological order, no alert
+        let sel3 = TrainManager.selectHomeTrains(favoriteTrains: favorites, snapshots: [:], now: romeDate(hour: 14, minute: 0))
+        XCTAssertFalse(sel3.hasActiveWindowTrains)
+        XCTAssertEqual(sel3.trains.map(\.number), ["2001", "2002"])
+        XCTAssertEqual(sel3.alertSeverity, .none)
+
+        // Scenario 4: Consistent chronological sorting for full Trains tab & SavedTrips
+        let allSorted = TrainManager.sortedTrainsByDeparture(favorites, snapshots: snaps1)
+        XCTAssertEqual(allSorted.map(\.number), ["1001", "1002", "1003", "1004", "2001", "2002"])
+
+        let tripLate = SavedTrip(id: "t2", origin: "A", destination: "B", departureTime: "18:30", arrivalTime: "19:10", duration: "40m", segments: [])
+        let tripEarly = SavedTrip(id: "t1", origin: "A", destination: "B", departureTime: "08:05", arrivalTime: "08:45", duration: "40m", segments: [])
+        XCTAssertEqual(TrainManager.sortedSavedTripsByDeparture([tripLate, tripEarly]).map(\.id), ["t1", "t2"])
+
+        // Scenario 5: Home stations skip GPS duplicate already shown in "Per te"
+        let s1 = Station(name: "Magenta", rfiID: nil, vtID: "S01025", lat: nil, lon: nil)
+        let s2 = Station(name: "Milano Centrale", rfiID: nil, vtID: "S01700", lat: nil, lon: nil)
+        let s3 = Station(name: "Rho Fiera", rfiID: nil, vtID: "S01039", lat: nil, lon: nil)
+        let s4 = Station(name: "Milano Porta Garibaldi", rfiID: nil, vtID: "S01645", lat: nil, lon: nil)
+        let homeSt = TrainManager.selectHomeStations(myStations: [s1, s2, s3, s4], excludingNearby: s1, maxCount: 3)
+        XCTAssertEqual(homeSt.map(\.name), ["Milano Centrale", "Rho Fiera", "Milano Porta Garibaldi"])
+    }
+
+    @MainActor
+    func testHomeSectionMaxItemsWidgetExclusionKeyAndIndividualUnignore() {
+        let defaults = UserDefaults.standard
+        let savedMaxItems = defaults.object(forKey: "homeSectionMaxItems_v1")
+        defer {
+            if let savedMaxItems {
+                defaults.set(savedMaxItems, forKey: "homeSectionMaxItems_v1")
+            } else {
+                defaults.removeObject(forKey: "homeSectionMaxItems_v1")
+            }
+        }
+        defaults.removeObject(forKey: "homeSectionMaxItems_v1")
+
+        // 1. Per-section max items default (4 for stations, 3 for others), independent customization & 1...10 clamping
+        let tm = TrainManager()
+        XCTAssertEqual(tm.homeMaxItems(for: .myStations), 4)
+        XCTAssertEqual(tm.homeMaxItems(for: .favoriteTrains), 3)
+        XCTAssertEqual(tm.homeMaxItems(for: .favoriteRoutes), 3)
+        XCTAssertEqual(tm.homeMaxItems(for: .passante), 3)
+
+        // 1b. Hidden stations overflow summary ("+N stazioni" / "+N stazioni · M con avvisi")
+        let hiddenSt1 = Station(name: "Magenta", rfiID: "1564", vtID: "S01025", lat: nil, lon: nil)
+        let hiddenSt2 = Station(name: "Rho", rfiID: "2345", vtID: "S01037", lat: nil, lon: nil)
+        let hiddenSt3 = Station(name: "Milano Certosa", rfiID: "1708", vtID: "S01640", lat: nil, lon: nil)
+        XCTAssertNil(TrainManager.homeHiddenStationsSummary(hiddenStations: [], snapshots: [:]))
+
+        let oneRegular = TrainManager.homeHiddenStationsSummary(hiddenStations: [hiddenSt1], snapshots: [:])
+        XCTAssertEqual(oneRegular?.text, "+1 stazione")
+        XCTAssertEqual(oneRegular?.alertCount, 0)
+        XCTAssertEqual(oneRegular?.hasCritical, false)
+
+        let snapWarning = StationBoardSnapshot(
+            stationKey: TrainManager.canonicalStationKey(for: hiddenSt2),
+            stationName: hiddenSt2.name,
+            circulationState: .warning,
+            healthMessage: "Ritardi dir. Milano",
+            averageDelayMinutes: 12,
+            delayedCount: 2,
+            cancelledCount: 0,
+            trains: [],
+            previewTrains: [],
+            alerts: nil,
+            fetchedAt: Date()
+        )
+        let snapDisrupted = StationBoardSnapshot(
+            stationKey: TrainManager.canonicalStationKey(for: hiddenSt3),
+            stationName: hiddenSt3.name,
+            circulationState: .disrupted,
+            healthMessage: "Soppressioni dir. Rho",
+            averageDelayMinutes: 20,
+            delayedCount: 1,
+            cancelledCount: 2,
+            trains: [],
+            previewTrains: [],
+            alerts: nil,
+            fetchedAt: Date()
+        )
+        let threeOneAlert = TrainManager.homeHiddenStationsSummary(
+            hiddenStations: [hiddenSt1, hiddenSt2, hiddenSt3],
+            snapshots: [snapWarning.stationKey: snapWarning]
+        )
+        XCTAssertEqual(threeOneAlert?.text, "+3 stazioni · 1 con avvisi")
+        XCTAssertEqual(threeOneAlert?.alertCount, 1)
+        XCTAssertEqual(threeOneAlert?.hasCritical, false)
+
+        let twoCritical = TrainManager.homeHiddenStationsSummary(
+            hiddenStations: [hiddenSt2, hiddenSt3],
+            snapshots: [snapWarning.stationKey: snapWarning, snapDisrupted.stationKey: snapDisrupted]
+        )
+        XCTAssertEqual(twoCritical?.text, "+2 stazioni · 2 con avvisi")
+        XCTAssertEqual(twoCritical?.alertCount, 2)
+        XCTAssertEqual(twoCritical?.hasCritical, true)
+
+        tm.setHomeMaxItems(7, for: .favoriteTrains)
+        tm.setHomeMaxItems(0, for: .myStations)   // clamps to 1
+        tm.setHomeMaxItems(25, for: .passante)    // clamps to 10
+        XCTAssertEqual(tm.homeMaxItems(for: .favoriteTrains), 7)
+        XCTAssertEqual(tm.homeMaxItems(for: .myStations), 1)
+        XCTAssertEqual(tm.homeMaxItems(for: .passante), 10)
+        XCTAssertEqual(tm.homeMaxItems(for: .favoriteRoutes), 3)
+
+        // Persists across fresh TrainManager instances
+        let tmReloaded = TrainManager()
+        XCTAssertEqual(tmReloaded.homeMaxItems(for: .favoriteTrains), 7)
+        XCTAssertEqual(tmReloaded.homeMaxItems(for: .myStations), 1)
+        XCTAssertEqual(tmReloaded.homeMaxItems(for: .passante), 10)
+
+        // 2. Stable widget station exclusion keys (normalized name > vtID > rfiID, matching StationBoardWidget)
+        let stName = Station(name: "  Milano Cadorna ", rfiID: "1705", vtID: "S01066", lat: nil, lon: nil)
+        let stVtFallback = Station(name: "   ", rfiID: "1728", vtID: "S01700", lat: nil, lon: nil)
+        let stRfiFallback = Station(name: "", rfiID: "3468", vtID: nil, lat: nil, lon: nil)
+        XCTAssertEqual(TrainManager.widgetStationExclusionKey(for: stName), "milano cadorna")
+        XCTAssertEqual(TrainManager.widgetStationExclusionKey(for: stVtFallback), "s01700")
+        XCTAssertEqual(TrainManager.widgetStationExclusionKey(for: stRfiFallback), "3468")
+
+        // 3. UsageTracker per-item unignore only removes the targeted suggestion
+        let tracker = UsageTracker()
+        tracker.unignoreAll()
+        tracker.ignoreStation("Magenta")
+        tracker.ignoreStation("Milano Centrale")
+        tracker.ignoreTrain("24627")
+        tracker.ignoreTrain("24629")
+        tracker.ignoreRoute("830001025-830001700")
+        tracker.ignoreRoute("830001037-830001650")
+
+        tracker.unignoreStation("Magenta")
+        XCTAssertEqual(tracker.ignoredStationNames, Set(["milano centrale"]))
+
+        tracker.unignoreTrain("24627")
+        XCTAssertEqual(tracker.ignoredTrainNumbers, Set(["24629"]))
+
+        tracker.unignoreRoute("830001025-830001700")
+        XCTAssertEqual(tracker.ignoredRouteKeys, Set(["830001037-830001650"]))
+
+        tracker.unignoreAll()
+    }
+
+    @MainActor
+    func testStationHealthIgnoresAVDelaysAutoUnpinOnArrivalAndHomeOpensAssistant() {
+        // 1. Station health MUST ignore Alta Velocità delays when commuter trains are regular,
+        //    and NEVER display "Forti Ritardi Alta Velocità" / "Alta Velocità" anywhere.
+        let avDelayed = [
+            Train(category: "FR", number: "9614", destination: "ROMA TERMINI", time: "09:00", delay: "+45'", platform: "1"),
+            Train(category: "ITA", number: "9920", destination: "NAPOLI CENTRALE", time: "09:10", delay: "Soppresso", platform: "2"),
+            Train(category: "S6", number: "24627", destination: "NOVARA", time: "09:15", delay: "In orario", platform: "3"),
+            Train(category: "REG", number: "2019", destination: "TORINO PORTA NUOVA", time: "09:20", delay: "+4'", platform: "4")
+        ]
+        let mixedHealth = TrainManager.computeLineHealth(for: avDelayed)
+        XCTAssertEqual(mixedHealth.state, .regular)
+        XCTAssertEqual(mixedHealth.message, "Circolazione regolare")
+        XCTAssertFalse(mixedHealth.message.localizedCaseInsensitiveContains("alta velocit"))
+
+        // Even on a pure-AV board, message never mentions "Alta Velocità"
+        let pureAVDisrupted = [
+            Train(category: "FR", number: "9614", destination: "ROMA TERMINI", time: "09:00", delay: "+40'", platform: "1"),
+            Train(category: "FR", number: "9616", destination: "NAPOLI CENTRALE", time: "09:15", delay: "+35'", platform: "2")
+        ]
+        let pureAVHealth = TrainManager.computeLineHealth(for: pureAVDisrupted)
+        XCTAssertEqual(pureAVHealth.state, .warning)
+        XCTAssertFalse(pureAVHealth.message.localizedCaseInsensitiveContains("alta velocit"))
+
+        // Regional cancellations & severe delays are properly reported with directions
+        let regCancellations = [
+            Train(category: "S6", number: "24627", destination: "NOVARA", time: "09:15", delay: "Soppresso", platform: "1"),
+            Train(category: "S6", number: "24629", destination: "NOVARA", time: "09:45", delay: "Cancellato", platform: "1"),
+            Train(category: "REG", number: "2019", destination: "TORINO PORTA NUOVA", time: "09:20", delay: "In orario", platform: "2")
+        ]
+        let regCancHealth = TrainManager.computeLineHealth(for: regCancellations)
+        XCTAssertEqual(regCancHealth.state, .disrupted)
+        XCTAssertEqual(regCancHealth.message, "Soppressioni dir. Novara")
+
+        // 2. Live Activity auto-unpin when train arrives at destination
+        let stopA = Stop(stationName: "Magenta", time: "08:00", actualTime: "08:01", delay: 1, estimatedTime: nil, plannedPlatform: "1", actualPlatform: "1", isSuppressed: false)
+        let stopBPending = Stop(stationName: "Milano Centrale", time: "08:40", actualTime: nil, delay: 1, estimatedTime: "08:41", plannedPlatform: "2", actualPlatform: nil, isSuppressed: false)
+        let stopBArrived = Stop(stationName: "Milano Centrale", time: "08:40", actualTime: "08:41", delay: 1, estimatedTime: "08:41", plannedPlatform: "2", actualPlatform: "2", isSuppressed: false)
+
+        var inTransitStatus = TrainStatus()
+        inTransitStatus.isDeparted = true
+        inTransitStatus.isArrived = false
+        inTransitStatus.statusMessage = "In viaggio (+1')"
+        XCTAssertFalse(TrainManager.shouldAutoEndLiveActivity(stops: [stopA, stopBPending], status: inTransitStatus))
+
+        var arrivedStatus = TrainStatus()
+        arrivedStatus.isDeparted = true
+        arrivedStatus.isArrived = true
+        arrivedStatus.statusMessage = "Arrivato"
+        XCTAssertTrue(TrainManager.shouldAutoEndLiveActivity(stops: [stopA, stopBPending], status: arrivedStatus))
+        XCTAssertTrue(TrainManager.shouldAutoEndLiveActivity(stops: [stopA, stopBArrived], status: inTransitStatus))
+
+        // 3. Opening Search from Home opens the Assistant (without forcing mic on)
+        let coordinator = MainNavigationCoordinator(launchTabRawValue: MainTab.home.rawValue)
+        coordinator.openContextualSearch(for: .home)
+        XCTAssertEqual(coordinator.activeSearchRequest?.initialAssistantMode, true)
+        XCTAssertEqual(coordinator.activeSearchRequest?.autoStartVoice, false)
+
+        coordinator.openContextualSearch(for: .stations)
+        XCTAssertEqual(coordinator.activeSearchRequest?.initialAssistantMode, false)
+        XCTAssertEqual(coordinator.activeSearchRequest?.scope, .trainsAndStations)
+
+        coordinator.openContextualSearch(for: .trips)
+        XCTAssertEqual(coordinator.activeSearchRequest?.initialAssistantMode, false)
+        XCTAssertEqual(coordinator.activeSearchRequest?.scope, .solutions)
+    }
+
+    @MainActor
+    func testTravelSolutions30MinuteRouteCacheHitExpirationAndDateMismatch() {
+        let now = Date(timeIntervalSince1970: 1_764_260_000)
+        let sampleSolution = TravelSolution(
+            trainNumber: "24627",
+            category: "S6",
+            departureTime: "08:15",
+            arrivalTime: "08:50",
+            origin: "Magenta",
+            destination: "Milano Porta Garibaldi",
+            duration: "35 min",
+            segments: [
+                TravelSegment(
+                    origin: "Magenta",
+                    destination: "Milano Porta Garibaldi",
+                    departureTime: "08:15",
+                    arrivalTime: "08:50",
+                    trainNumber: "24627",
+                    trainCategory: "S6",
+                    travelMinutes: 35
+                )
+            ]
+        )
+
+        let entry = CachedTravelSolutionsEntry(
+            originID: "830001025",
+            destID: "830001645",
+            resolvedOriginID: "830001025",
+            resolvedDestID: "830001645",
+            requestedDate: now,
+            fetchedAt: now,
+            solutions: [CachedTravelSolutionDTO(from: sampleSolution)]
+        )
+
+        // 1. Within 30 minutes and same requested time window -> cache hit
+        let hit = TrainManager.cachedSolutionsIfValid(
+            entry: entry,
+            requestedDate: now.addingTimeInterval(10 * 60),
+            now: now.addingTimeInterval(20 * 60)
+        )
+        XCTAssertEqual(hit?.count, 1)
+        XCTAssertEqual(hit?.first?.trainNumber, "24627")
+
+        // 2. After 31 minutes -> cache expired
+        let expired = TrainManager.cachedSolutionsIfValid(
+            entry: entry,
+            requestedDate: now.addingTimeInterval(31 * 60),
+            now: now.addingTimeInterval(31 * 60)
+        )
+        XCTAssertNil(expired)
+
+        // 3. Within 30 min fetch age, but user manually changed departure time by +2 hours -> cache miss
+        let differentTime = TrainManager.cachedSolutionsIfValid(
+            entry: entry,
+            requestedDate: now.addingTimeInterval(120 * 60),
+            now: now.addingTimeInterval(5 * 60)
+        )
+        XCTAssertNil(differentTime)
+
+        // 4. Reverse direction produces a distinct cache key
+        XCTAssertNotEqual(
+            TrainManager.travelSolutionsRouteKey(originID: "830001025", destID: "830001645"),
+            TrainManager.travelSolutionsRouteKey(originID: "830001645", destID: "830001025")
+        )
+    }
+
+    @MainActor
+    func testPerformanceCatalogBoundingBoxOriginCacheAndLazyTabs() {
+        // 1. Shared RFIStationCatalog loads once and fast bounding-box lookup matches Milano Centrale accurately
+        let rfiCount = RFIStationCatalog.shared.rfiStations.count
+        XCTAssertGreaterThan(rfiCount, 3000)
+        let geoStations = RFIStationCatalog.shared.geoStations
+        XCTAssertFalse(geoStations.isEmpty)
+
+        let nearCentrale = CLLocation(latitude: 45.4859, longitude: 9.2043)
+        let closest = RFIStationCatalog.nearestStation(to: nearCentrale, in: geoStations, maxDistanceMeters: 4000)
+        XCTAssertEqual(closest?.station.name, "MILANO CENTRALE")
+        XCTAssertLessThan(closest?.distance ?? 9999, 500)
+
+        let middleOfSea = CLLocation(latitude: 40.0, longitude: 11.0)
+        XCTAssertNil(RFIStationCatalog.nearestStation(to: middleOfSea, in: geoStations, maxDistanceMeters: 4000))
+
+        // 2. Daily train origin resolution keys & Rome calendar day formatting
+        let fixedDate = Date(timeIntervalSince1970: 1_764_260_000) // 2025-11-27
+        let dayKey = TrainRepository.currentRomeDayKey(for: fixedDate)
+        XCTAssertEqual(dayKey, "2025-11-27")
+        let keys = TrainRepository.originResolutionKeys(
+            dayKey: dayKey,
+            cleanNumber: "24627",
+            destination: " Novara ",
+            origin: " Pioltello-Limito "
+        )
+        XCTAssertEqual(keys.generic, "2025-11-27|24627")
+        XCTAssertEqual(keys.specific, "2025-11-27|24627|PIOLTELLO-LIMITO|NOVARA")
+
+        // 3. Lazy tab mounting: only initial + home mounted at boot, switching tab mounts target
+        let coordinator = MainNavigationCoordinator(launchTabRawValue: MainTab.home.rawValue)
+        XCTAssertEqual(coordinator.mountedTabs, [.home])
+        XCTAssertFalse(coordinator.mountedTabs.contains(.lines))
+        coordinator.selectedTab = .lines
+        XCTAssertTrue(coordinator.mountedTabs.contains(.lines))
+    }
+
+    @MainActor
+    func testOnboardingCampaignLaunchDecisionAndConditionalPermissions() {
+        // 1. Launch decision: brand new user -> full onboarding
+        XCTAssertEqual(
+            OnboardingLaunchDecision.resolve(hasCompletedOnboarding: false, lastSeenUpdateID: ""),
+            .showFullOnboarding
+        )
+
+        // 2. Existing user upgrading from older version -> What's New update onboarding once
+        XCTAssertEqual(
+            OnboardingLaunchDecision.resolve(hasCompletedOnboarding: true, lastSeenUpdateID: ""),
+            .showUpdateOnboarding
+        )
+        XCTAssertEqual(
+            OnboardingLaunchDecision.resolve(hasCompletedOnboarding: true, lastSeenUpdateID: "older_campaign"),
+            .showUpdateOnboarding
+        )
+
+        // 3. Existing user who already saw current campaign -> no onboarding
+        XCTAssertEqual(
+            OnboardingLaunchDecision.resolve(
+                hasCompletedOnboarding: true,
+                lastSeenUpdateID: OnboardingCampaign.currentUpdateID
+            ),
+            .none
+        )
+
+        // 4. Permission snapshot: both active -> skip permissions step
+        let bothActive = OnboardingPermissionSnapshot.from(
+            notificationStatus: .authorized,
+            remoteNotificationsEnabled: true,
+            locationStatus: .authorizedWhenInUse
+        )
+        XCTAssertFalse(bothActive.needsNotifications)
+        XCTAssertFalse(bothActive.needsLocation)
+        XCTAssertFalse(bothActive.needsAnyPermission)
+
+        // 5. System authorized but in-app notification toggle OFF -> needs notifications
+        let appToggleOff = OnboardingPermissionSnapshot.from(
+            notificationStatus: .authorized,
+            remoteNotificationsEnabled: false,
+            locationStatus: .authorizedAlways
+        )
+        XCTAssertEqual(appToggleOff.notifications, .authorizedAppToggleOff)
+        XCTAssertTrue(appToggleOff.needsNotifications)
+        XCTAssertFalse(appToggleOff.needsLocation)
+        XCTAssertTrue(appToggleOff.needsAnyPermission)
+
+        // 6. Notifications denied, location ok -> needs notifications
+        let notifDenied = OnboardingPermissionSnapshot.from(
+            notificationStatus: .denied,
+            remoteNotificationsEnabled: false,
+            locationStatus: .authorizedWhenInUse
+        )
+        XCTAssertEqual(notifDenied.notifications, .denied)
+        XCTAssertTrue(notifDenied.needsNotifications)
+        XCTAssertFalse(notifDenied.needsLocation)
+
+        // 7. Provisional notifications OK, location denied -> needs location
+        let locDenied = OnboardingPermissionSnapshot.from(
+            notificationStatus: .provisional,
+            remoteNotificationsEnabled: true,
+            locationStatus: .denied
+        )
+        XCTAssertFalse(locDenied.needsNotifications)
+        XCTAssertEqual(locDenied.location, .deniedOrRestricted)
+        XCTAssertTrue(locDenied.needsLocation)
+
+        // 8. Both notDetermined -> needs both
+        let bothUnset = OnboardingPermissionSnapshot.from(
+            notificationStatus: .notDetermined,
+            remoteNotificationsEnabled: false,
+            locationStatus: .notDetermined
+        )
+        XCTAssertTrue(bothUnset.needsNotifications)
+        XCTAssertTrue(bothUnset.needsLocation)
+        XCTAssertTrue(bothUnset.needsAnyPermission)
+
+        // 9. Dynamic step sequences across modes, regions, and permission state
+        XCTAssertEqual(
+            OnboardingStep.steps(for: .updateWhatsNew, strikeRegion: "Lombardia", includePermissionsStep: false),
+            [.whatsNew, .quickGuide]
+        )
+        XCTAssertEqual(
+            OnboardingStep.steps(for: .updateWhatsNew, strikeRegion: "Lazio", includePermissionsStep: true),
+            [.whatsNew, .permissions, .quickGuide]
+        )
+        XCTAssertEqual(
+            OnboardingStep.steps(for: .fullFirstLaunch, strikeRegion: "Lombardia", includePermissionsStep: true),
+            [.welcome, .permissions, .region, .passante, .stations, .quickGuide]
+        )
+        XCTAssertEqual(
+            OnboardingStep.steps(for: .fullFirstLaunch, strikeRegion: "Lazio", includePermissionsStep: false),
+            [.welcome, .region, .stations, .quickGuide]
+        )
+
+        // 10. Verify Free scheduled notification limit remains 10
+        XCTAssertEqual(TrainManager.freeScheduledNotificationLimit, 10)
+    }
+
+    @MainActor
+    func testUnifiedCommuteDirectionMaxStationsAndLocalMultiStationAggregator() {
+        // 1. Max 3+3 station cap applies ONLY to Free users; Pro users have no 3-station cap
+        XCTAssertEqual(SupporterCommuteManager.maxStationsPerSide, 3)
+        XCTAssertTrue(SupporterCommuteManager.canAddStation(currentCount: 2, isPro: false))
+        XCTAssertFalse(SupporterCommuteManager.canAddStation(currentCount: 3, isPro: false))
+        XCTAssertTrue(SupporterCommuteManager.canAddStation(currentCount: 3, isPro: true))
+        XCTAssertTrue(SupporterCommuteManager.canAddStation(currentCount: 6, isPro: true))
+
+        // 1b. Onboarding audience differentiates Pro vs Free before display
+        XCTAssertEqual(OnboardingAudience.resolve(hasSupport: false), .free)
+        XCTAssertEqual(OnboardingAudience.resolve(hasSupport: true), .pro)
+
+        // 2. Time-based automatic direction selection (Europe/Rome)
+        var romeCal = Calendar(identifier: .gregorian)
+        romeCal.timeZone = TimeZone(identifier: "Europe/Rome")!
+        let morningDate = romeCal.date(from: DateComponents(year: 2026, month: 11, day: 27, hour: 7, minute: 30))!
+        let lateMorningDate = romeCal.date(from: DateComponents(year: 2026, month: 11, day: 27, hour: 11, minute: 0))!
+        let afternoonDate = romeCal.date(from: DateComponents(year: 2026, month: 11, day: 27, hour: 13, minute: 30))!
+        let eveningDate = romeCal.date(from: DateComponents(year: 2026, month: 11, day: 27, hour: 17, minute: 45))!
+
+        XCTAssertFalse(SupporterCommuteManager.preferredIsReturn(at: morningDate, outboundBand: "07:00 - 08:00", returnBand: "17:00 - 18:00"))
+        XCTAssertFalse(SupporterCommuteManager.preferredIsReturn(at: lateMorningDate, outboundBand: "07:00 - 08:00", returnBand: "17:00 - 18:00"))
+        XCTAssertTrue(SupporterCommuteManager.preferredIsReturn(at: afternoonDate, outboundBand: "07:00 - 08:00", returnBand: "17:00 - 18:00"))
+        XCTAssertTrue(SupporterCommuteManager.preferredIsReturn(at: eveningDate, outboundBand: "07:00 - 08:00", returnBand: "17:00 - 18:00"))
+
+        // 3. AV corridor detection
+        XCTAssertFalse(CommuteTrainDiscoveryService.isAVCommuteCorridor(
+            origins: ["Magenta", "Corbetta-S. Stefano"],
+            destinations: ["Milano Centrale", "Milano Porta Garibaldi"]
+        ))
+        XCTAssertTrue(CommuteTrainDiscoveryService.isAVCommuteCorridor(
+            origins: ["Bologna Centrale"],
+            destinations: ["Milano Centrale"]
+        ))
+
+        // 4. Local multi-station deduplication: direct beats transfer & collapses multiple direct destinations
+        let transferCandidate = PlanBAlternativeItem(
+            train_number: "24627",
+            category: "S6",
+            destination: "Milano Centrale",
+            station: "Magenta",
+            departure_time: "08:04",
+            arrival_time: "08:55",
+            duration: "51min",
+            delay: 0,
+            platform: "1",
+            transfer_info: "1 cambio",
+            legs: [
+                PlanBLegItem(train_number: "24627", category: "S6", origin: "Magenta", destination: "Milano Porta Garibaldi", departure_time: "08:04", arrival_time: "08:39", delay: 0, platform: "1", is_urban: false, is_station_walk: false),
+                PlanBLegItem(train_number: "M2", category: "Trasporto Urbano", origin: "Milano Porta Garibaldi", destination: "Milano Centrale", departure_time: "08:45", arrival_time: "08:55", delay: 0, platform: "--", is_urban: true, is_station_walk: false)
+            ]
+        )
+        let directGaribaldi = PlanBAlternativeItem(
+            train_number: "24627",
+            category: "S6",
+            destination: "Milano Porta Garibaldi",
+            station: "Magenta",
+            departure_time: "08:04",
+            arrival_time: "08:39",
+            duration: "35min",
+            delay: 0,
+            platform: "1",
+            transfer_info: "Treno diretto",
+            legs: [
+                PlanBLegItem(train_number: "24627", category: "S6", origin: "Magenta", destination: "Milano Porta Garibaldi", departure_time: "08:04", arrival_time: "08:39", delay: 0, platform: "1", is_urban: false, is_station_walk: false)
+            ]
+        )
+        let directRepubblica = PlanBAlternativeItem(
+            train_number: "24627",
+            category: "S6",
+            destination: "Milano Repubblica",
+            station: "Magenta",
+            departure_time: "08:04",
+            arrival_time: "08:42",
+            duration: "38min",
+            delay: 0,
+            platform: "1",
+            transfer_info: "Treno diretto",
+            legs: [
+                PlanBLegItem(train_number: "24627", category: "S6", origin: "Magenta", destination: "Milano Repubblica", departure_time: "08:04", arrival_time: "08:42", delay: 0, platform: "1", is_urban: false, is_station_walk: false)
+            ]
+        )
+
+        let ranked = CommuteTrainDiscoveryService.deduplicateAndRankAlternatives(
+            [transferCandidate, directRepubblica, directGaribaldi],
+            configuredOrigins: ["Magenta"],
+            configuredDestinations: ["Milano Centrale", "Milano Porta Garibaldi", "Milano Repubblica"]
+        )
+        XCTAssertEqual(ranked.count, 1)
+        XCTAssertEqual(ranked[0].resolvedLegs.count, 1)
+        XCTAssertEqual(ranked[0].destination, "Milano Porta Garibaldi")
+        XCTAssertTrue(ranked[0].transfer_info.contains("Repubblica"))
     }
 }

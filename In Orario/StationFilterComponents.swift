@@ -301,7 +301,7 @@ struct StationFilterToolbarMenu: View {
     private func categorySystemImage(_ group: TrainCategoryGroup) -> String {
         switch group {
         case .highSpeed: return "bolt.fill"
-        case .intercity: return "train.side.front.car"
+        case .intercity: return "tram.fill"
         case .regional: return "tram.fill"
         case .suburban: return "s.circle"
         case .airport: return "airplane"

@@ -171,6 +171,18 @@ class UsageTracker: ObservableObject {
         ignoredRouteKeys.insert(key)
         routeUsages.removeAll { "\($0.originID)-\($0.destID)" == key }
     }
+
+    func unignoreStation(_ name: String) {
+        ignoredStationNames.remove(name.lowercased())
+    }
+
+    func unignoreTrain(_ number: String) {
+        ignoredTrainNumbers.remove(number)
+    }
+
+    func unignoreRoute(_ key: String) {
+        ignoredRouteKeys.remove(key)
+    }
     
     func unignoreAll() {
         ignoredStationNames.removeAll()
@@ -666,6 +678,56 @@ class UsageTracker: ObservableObject {
             )
         }
     }
+
+    func learnedHabitRoutes(excluding favoriteRoutes: [FavoriteRoute], limit: Int = 3, at now: Date = Date()) -> [LearnedRouteHabit] {
+        let cal = Calendar.current
+        let recentRouteUsages = routeUsages.filter {
+            (cal.dateComponents([.day], from: $0.date, to: now).day ?? 999) <= 35
+        }
+        let grouped = Dictionary(grouping: recentRouteUsages) { usage -> String in
+            let a = usage.originID
+            let b = usage.destID
+            return a <= b ? "\(a)|\(b)" : "\(b)|\(a)"
+        }
+
+        var candidates: [(habit: LearnedRouteHabit, usageCount: Int)] = []
+        for (_, usages) in grouped {
+            guard let sample = usages.max(by: { $0.date < $1.date }) else { continue }
+            let alreadyFavorite = favoriteRoutes.contains {
+                $0.matchesUndirected(originID: sample.originID, destID: sample.destID)
+            }
+            if alreadyFavorite { continue }
+
+            let forwardKey = "\(sample.originID)-\(sample.destID)"
+            let reverseKey = "\(sample.destID)-\(sample.originID)"
+            if isRouteIgnored(forwardKey) || isRouteIgnored(reverseKey) { continue }
+
+            let distinctDays = Set(usages.map { cal.startOfDay(for: $0.date) }).count
+            guard distinctDays >= 3 else { continue }
+
+            let route = FavoriteRoute(
+                originName: sample.originName,
+                originID: sample.originID,
+                destinationName: sample.destName,
+                destinationID: sample.destID,
+                lastViewedAt: sample.date
+            )
+            candidates.append((LearnedRouteHabit(route: route, distinctDays: distinctDays), usages.count))
+        }
+
+        return candidates
+            .sorted { lhs, rhs in
+                if lhs.habit.distinctDays != rhs.habit.distinctDays {
+                    return lhs.habit.distinctDays > rhs.habit.distinctDays
+                }
+                if lhs.usageCount != rhs.usageCount {
+                    return lhs.usageCount > rhs.usageCount
+                }
+                return lhs.habit.route.originName < rhs.habit.route.originName
+            }
+            .prefix(limit)
+            .map(\.habit)
+    }
 }
 
 // MARK: - Learned Habits Models & Helpers
@@ -795,13 +857,14 @@ func resolveTrainCategory(number: String, categoryDesc: String?, destination: St
 }
 
 func habitCategoryColor(for cat: String) -> Color {
-    let c = cat.uppercased()
-    if c.contains("FR") || c.contains("ITA") || c == "AV" { return .red }
-    if c == "IC" || c == "EC" || c == "ICN" || c == "EN" { return Color(white: 0.4) }
-    if c.contains("S") { return Color(red: 0.0, green: 0.6, blue: 0.2) }
-    if c.contains("RV") || c.contains("RE") { return .blue }
-    if c.contains("XP") || c.contains("MXP") { return Color(red: 0.75, green: 0.10, blue: 0.25) }
-    return Color(red: 0.2, green: 0.45, blue: 0.85)
+    let c = cat.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    if c == "BUS" { return .gray }
+    if c.contains("FR") || c.contains("ITA") || c.contains("NTV") || c == "AV" || c == "FA" || c == "FB" || c == "ES" { return .red }
+    if c == "IC" || c == "EC" || c == "ICN" || c == "EN" { return .gray }
+    if c.contains("XP") || c.contains("MXP") { return Color(red: 0.65, green: 0.10, blue: 0.18) }
+    if c == "S" || (c.hasPrefix("S") && c.count <= 3 && c.dropFirst().allSatisfy(\.isNumber)) { return Color(red: 0.0, green: 0.6, blue: 0.2) }
+    if c.contains("RV") || c.contains("RE") || c == "REG" || c == "R" { return .blue }
+    return .blue
 }
 
 struct LearnedStationHabit: Identifiable, Equatable {
@@ -841,5 +904,11 @@ struct TimeSlotHabit: Identifiable, Equatable {
     var isEmpty: Bool {
         stations.isEmpty && trains.isEmpty
     }
+}
+
+struct LearnedRouteHabit: Identifiable, Equatable {
+    var id: String { route.id }
+    let route: FavoriteRoute
+    let distinctDays: Int
 }
 

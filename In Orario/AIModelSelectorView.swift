@@ -333,8 +333,8 @@ struct SupportPaywallSheet: View {
                         SupportBenefitRow(
                             icon: "tram.fill",
                             iconColor: .blue,
-                            title: "Monitoraggio fino a 10 treni",
-                            description: "Monitoraggio simultaneo fino a 10 treni con notifiche push e giorni attivi personalizzati."
+                            title: "Monitoraggio continuo fino a 20 treni",
+                            description: "Monitoraggio continuo simultaneo fino a 20 treni su ritardi, partenze, passaggi in stazione e cambi binario."
                         )
 
                         Divider()
@@ -342,8 +342,8 @@ struct SupportPaywallSheet: View {
                         SupportBenefitRow(
                             icon: "bolt.fill",
                             iconColor: .orange,
-                            title: "Live Activities ad alta frequenza",
-                            description: "Live Activities ad alta frequenza con aggiornamenti automatici ogni 30–60 secondi su schermata di blocco e Isola Dinamica."
+                            title: "Live Activities istantanee ogni minuto",
+                            description: "Aggiornamenti automatici in tempo reale ogni minuto su schermata di blocco e Isola Dinamica (anziché ogni 2 minuti)."
                         )
 
                         Divider()

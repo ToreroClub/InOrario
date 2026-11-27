@@ -10,9 +10,18 @@ struct CommuteSetupView: View {
     @StateObject private var commuteManager = SupporterCommuteManager.shared
     var showCloseButton: Bool = false
     @State private var showPaywallSheet: Bool = false
+    @State private var showBugFeedbackSheet: Bool = false
 
     private var isPro: Bool {
         manager.hasSupport()
+    }
+
+    private var canAddMoreOrigins: Bool {
+        SupporterCommuteManager.canAddStation(currentCount: origins.count, isPro: isPro)
+    }
+
+    private var canAddMoreDestinations: Bool {
+        SupporterCommuteManager.canAddStation(currentCount: destinations.count, isPro: isPro)
     }
     
     @State private var origins: [String] = []
@@ -60,12 +69,12 @@ struct CommuteSetupView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
-                            Image(systemName: "lock.fill")
-                                .foregroundColor(.orange)
-                            Text("Funzionalità In Orario Pro")
+                            Image(systemName: "crown.fill")
+                                .foregroundColor(.pink)
+                            Text("Monitoraggio automatico con Pro")
                                 .font(.headline)
                         }
-                        Text("Imposta le tue stazioni abituali e gli orari per ricevere avvisi proattivi e alternative in tempo reale con In Orario Pro.")
+                        Text("Puoi già configurare stazioni, fasce e giorni per vedere subito Casa ↔ Lavoro in Home e Viaggi e usare i filtri nei tabelloni. Con In Orario Pro il server monitora i tuoi treni e ti avvisa in anticipo in caso di cancellazioni o ritardi.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Button {
@@ -74,13 +83,13 @@ struct CommuteSetupView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "crown.fill")
-                                Text("Passa a In Orario Pro")
+                                Text("Scopri In Orario Pro")
                                     .fontWeight(.semibold)
                             }
                             .font(.subheadline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
-                            .background(Color.blue)
+                            .background(Color.pink)
                             .foregroundColor(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
@@ -92,7 +101,9 @@ struct CommuteSetupView: View {
 
             // Header pulito
             Section {
-                Text("Il server monitora la tua tratta abituale in caso di cancellazioni o gravi ritardi e riceverai un'alternativa. Personalizza le tue stazioni di partenza, arrivo e viceversa e gli orari per ogni singolo giorno.")
+                Text(isPro
+                     ? "Il server monitora la tua tratta abituale in caso di cancellazioni o gravi ritardi e riceverai un'alternativa. Personalizza le tue stazioni di partenza, arrivo e gli orari per ogni giorno."
+                     : "Imposta fino a \(SupporterCommuteManager.maxStationsPerSide) stazioni di Casa e \(SupporterCommuteManager.maxStationsPerSide) di Lavoro con i tuoi orari: i dati restano sul tuo iPhone e trovi subito la tratta Casa ↔ Lavoro in Home e Viaggi.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.vertical, 2)
@@ -101,37 +112,35 @@ struct CommuteSetupView: View {
             // STAZIONI DI PARTENZA
             Section(
                 header: Label("Stazioni di partenza (Casa)", systemImage: "house.fill"),
-                footer: Text("Usate anche per il filtro \"Portami a Casa\" nei tabelloni stazione.")
+                footer: Text(isPro
+                             ? "Usate anche per il filtro \"Portami a Casa\" nei tabelloni stazione."
+                             : "Massimo \(SupporterCommuteManager.maxStationsPerSide) stazioni con il piano Free. Usate anche per il filtro \"Portami a Casa\" nei tabelloni stazione.")
             ) {
                 if origins.isEmpty {
-                    lockedControl {
-                        Text("Nessuna stazione di partenza impostata")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
+                    Text("Nessuna stazione di partenza impostata")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
                 } else {
                     ForEach(origins, id: \.self) { st in
-                        lockedControl {
-                            HStack {
-                                Image(systemName: "house.fill")
-                                    .foregroundColor(.blue)
-                                Text(st)
-                                    .font(.body)
-                                Spacer()
-                                Button {
-                                    origins.removeAll { $0 == st }
-                                    pruneStationFromExclusions(st)
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
-                                .buttonStyle(.borderless)
+                        HStack {
+                            Image(systemName: "house.fill")
+                                .foregroundColor(.blue)
+                            Text(st)
+                                .font(.body)
+                            Spacer()
+                            Button {
+                                origins.removeAll { $0 == st }
+                                pruneStationFromExclusions(st)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
                             }
+                            .buttonStyle(.borderless)
                         }
                     }
                 }
                 
-                lockedControl {
+                if canAddMoreOrigins {
                     Button {
                         showOriginPicker = true
                     } label: {
@@ -142,43 +151,45 @@ struct CommuteSetupView: View {
                                 .foregroundColor(.blue)
                         }
                     }
+                } else {
+                    Text("Limite piano Free raggiunto (\(SupporterCommuteManager.maxStationsPerSide) stazioni). Passa a Pro per aggiungerne altre.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
             
             // STAZIONI DI ARRIVO
             Section(
                 header: Label("Stazioni di arrivo (Lavoro)", systemImage: "briefcase.fill"),
-                footer: Text("Usate anche per il filtro \"Portami al Lavoro\" nei tabelloni stazione.")
+                footer: Text(isPro
+                             ? "Usate anche per il filtro \"Portami al Lavoro\" nei tabelloni stazione."
+                             : "Massimo \(SupporterCommuteManager.maxStationsPerSide) stazioni con il piano Free. Usate anche per il filtro \"Portami al Lavoro\" nei tabelloni stazione.")
             ) {
                 if destinations.isEmpty {
-                    lockedControl {
-                        Text("Nessuna stazione di arrivo impostata")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
+                    Text("Nessuna stazione di arrivo impostata")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
                 } else {
                     ForEach(destinations, id: \.self) { st in
-                        lockedControl {
-                            HStack {
-                                Image(systemName: "briefcase.fill")
-                                    .foregroundColor(.green)
-                                Text(st)
-                                    .font(.body)
-                                Spacer()
-                                Button {
-                                    destinations.removeAll { $0 == st }
-                                    pruneStationFromExclusions(st)
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
-                                .buttonStyle(.borderless)
+                        HStack {
+                            Image(systemName: "briefcase.fill")
+                                .foregroundColor(.green)
+                            Text(st)
+                                .font(.body)
+                            Spacer()
+                            Button {
+                                destinations.removeAll { $0 == st }
+                                pruneStationFromExclusions(st)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
                             }
+                            .buttonStyle(.borderless)
                         }
                     }
                 }
                 
-                lockedControl {
+                if canAddMoreDestinations {
                     Button {
                         showDestPicker = true
                     } label: {
@@ -189,66 +200,62 @@ struct CommuteSetupView: View {
                                 .foregroundColor(.green)
                         }
                     }
+                } else {
+                    Text("Limite piano Free raggiunto (\(SupporterCommuteManager.maxStationsPerSide) stazioni). Passa a Pro per aggiungerne altre.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
             
             // ORARI E GIORNI DI VIAGGIO (SCHEDA UNICA)
             Section(header: Text("Orari di viaggio")) {
-                lockedControl {
-                    Toggle("Personalizza per singolo giorno", isOn: $customizePerDay.animation(.easeInOut(duration: 0.2)))
-                }
+                Toggle("Personalizza per singolo giorno", isOn: $customizePerDay.animation(.easeInOut(duration: 0.2)))
                 
                 if !customizePerDay {
-                    lockedControl {
-                        CommuteTimeRangeRow(
-                            title: "Andata",
-                            accentColor: .blue,
-                            bandString: $defaultOutboundBand
-                        )
-                    }
+                    CommuteTimeRangeRow(
+                        title: "Andata",
+                        accentColor: .blue,
+                        bandString: $defaultOutboundBand
+                    )
                     
-                    lockedControl {
-                        CommuteTimeRangeRow(
-                            title: "Ritorno",
-                            accentColor: .purple,
-                            bandString: $defaultReturnBand
-                        )
-                    }
+                    CommuteTimeRangeRow(
+                        title: "Ritorno",
+                        accentColor: .purple,
+                        bandString: $defaultReturnBand
+                    )
                     
-                    lockedControl {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Giorni di viaggio")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            HStack(spacing: 6) {
-                                ForEach(weekdayNames, id: \.0) { day, shortName, _ in
-                                    let isSelected = selectedWeekdays.contains(day)
-                                    Button {
-                                        Haptics.play(.light)
-                                        if isSelected {
-                                            if selectedWeekdays.count > 1 {
-                                                selectedWeekdays.remove(day)
-                                            }
-                                        } else {
-                                            selectedWeekdays.insert(day)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Giorni di viaggio")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 6) {
+                            ForEach(weekdayNames, id: \.0) { day, shortName, _ in
+                                let isSelected = selectedWeekdays.contains(day)
+                                Button {
+                                    Haptics.play(.light)
+                                    if isSelected {
+                                        if selectedWeekdays.count > 1 {
+                                            selectedWeekdays.remove(day)
                                         }
-                                    } label: {
-                                        Text(shortName)
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 8)
-                                            .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
-                                            .foregroundColor(isSelected ? .white : .primary)
-                                            .cornerRadius(8)
+                                    } else {
+                                        selectedWeekdays.insert(day)
                                     }
-                                    .buttonStyle(.plain)
+                                } label: {
+                                    Text(shortName)
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
+                                        .foregroundColor(isSelected ? .white : .primary)
+                                        .cornerRadius(8)
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .padding(.vertical, 4)
                     }
+                    .padding(.vertical, 4)
                 } else {
                     ForEach(weekdayNames, id: \.0) { dayIndex, shortName, fullName in
                         let sched = daySchedules[dayIndex] ?? DayCommuteSchedule(
@@ -261,106 +268,102 @@ struct CommuteSetupView: View {
                         let ret = sched.returnBand
                         let isExpanded = expandedDays.contains(dayIndex)
 
-                        lockedControl {
-                            HStack(alignment: .center, spacing: 8) {
+                        HStack(alignment: .center, spacing: 8) {
+                            Button {
+                                if isEnabled {
+                                    let enabledCount = weekdayNames.filter { daySchedules[$0.0]?.isEnabled ?? selectedWeekdays.contains($0.0) }.count
+                                    if enabledCount <= 1 {
+                                        Haptics.notify(.warning)
+                                        return
+                                    }
+                                }
+                                Haptics.play(.light)
+                                withAnimation(.easeInOut(duration: 0.18)) {
+                                    var cur = sched
+                                    cur.isEnabled.toggle()
+                                    daySchedules[dayIndex] = cur
+                                    if !cur.isEnabled {
+                                        expandedDays.remove(dayIndex)
+                                    }
+                                }
+                                if !isEnabled && isPro {
+                                    scheduleDiscoverForDayIfEmpty(dayIndex)
+                                }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 13, weight: .bold))
+                                    Text(fullName)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(isEnabled ? Color.blue.opacity(0.15) : Color(.tertiarySystemFill))
+                                .foregroundColor(isEnabled ? .blue : .secondary)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer(minLength: 6)
+
+                            if !isEnabled {
+                                Text("Nessun viaggio")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary.opacity(0.6))
+                                    .strikethrough(true, color: .secondary.opacity(0.5))
+                                    .lineLimit(1)
+                                    .padding(.trailing, 4)
+                            } else {
                                 Button {
-                                    if isEnabled {
-                                        let enabledCount = weekdayNames.filter { daySchedules[$0.0]?.isEnabled ?? selectedWeekdays.contains($0.0) }.count
-                                        if enabledCount <= 1 {
-                                            Haptics.notify(.warning)
-                                            return
-                                        }
-                                    }
                                     Haptics.play(.light)
-                                    withAnimation(.easeInOut(duration: 0.18)) {
-                                        var cur = sched
-                                        cur.isEnabled.toggle()
-                                        daySchedules[dayIndex] = cur
-                                        if !cur.isEnabled {
+                                    withAnimation(.easeInOut(duration: 0.22)) {
+                                        if isExpanded {
                                             expandedDays.remove(dayIndex)
+                                        } else {
+                                            expandedDays.insert(dayIndex)
                                         }
-                                    }
-                                    if !isEnabled {
-                                        scheduleDiscoverForDayIfEmpty(dayIndex)
                                     }
                                 } label: {
-                                    HStack(spacing: 5) {
-                                        Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
-                                            .font(.system(size: 13, weight: .bold))
-                                        Text(fullName)
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .lineLimit(1)
-                                            .fixedSize(horizontal: true, vertical: false)
+                                    HStack(spacing: 6) {
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text("\(compactBand(outbound))  •  \(compactBand(ret))")
+                                                .font(.caption.weight(.semibold))
+                                                .monospacedDigit()
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.8)
+                                                .foregroundColor(.primary)
+                                            if sched.hasCustomStationExclusions {
+                                                Text("Stazioni personalizzate")
+                                                    .font(.caption2.bold())
+                                                    .foregroundColor(.orange)
+                                            } else {
+                                                Text("Tutte le stazioni")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(.secondary)
+                                            .frame(width: 18, height: 18)
                                     }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(isEnabled ? Color.blue.opacity(0.15) : Color(.tertiarySystemFill))
-                                    .foregroundColor(isEnabled ? .blue : .secondary)
-                                    .clipShape(Capsule())
                                 }
                                 .buttonStyle(.plain)
-
-                                Spacer(minLength: 6)
-
-                                if !isEnabled {
-                                    Text("Nessun viaggio")
-                                        .font(.footnote)
-                                        .foregroundColor(.secondary.opacity(0.6))
-                                        .strikethrough(true, color: .secondary.opacity(0.5))
-                                        .lineLimit(1)
-                                        .padding(.trailing, 4)
-                                } else {
-                                    Button {
-                                        Haptics.play(.light)
-                                        withAnimation(.easeInOut(duration: 0.22)) {
-                                            if isExpanded {
-                                                expandedDays.remove(dayIndex)
-                                            } else {
-                                                expandedDays.insert(dayIndex)
-                                            }
-                                        }
-                                    } label: {
-                                        HStack(spacing: 6) {
-                                            VStack(alignment: .trailing, spacing: 2) {
-                                                Text("\(compactBand(outbound))  •  \(compactBand(ret))")
-                                                    .font(.caption.weight(.semibold))
-                                                    .monospacedDigit()
-                                                    .lineLimit(1)
-                                                    .minimumScaleFactor(0.8)
-                                                    .foregroundColor(.primary)
-                                                if sched.hasCustomStationExclusions {
-                                                    Text("Stazioni personalizzate")
-                                                        .font(.caption2.bold())
-                                                        .foregroundColor(.orange)
-                                                } else {
-                                                    Text("Tutte le stazioni")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
-                                                }
-                                            }
-                                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                                .font(.caption.weight(.semibold))
-                                                .foregroundColor(.secondary)
-                                                .frame(width: 18, height: 18)
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                }
                             }
-                            .padding(.vertical, 4)
                         }
+                        .padding(.vertical, 4)
                         .id("day_hdr_\(dayIndex)")
 
                         if isEnabled && isExpanded {
-                            lockedControl {
-                                dayDetailCard(
-                                    dayIndex: dayIndex,
-                                    sched: sched,
-                                    outbound: outbound,
-                                    ret: ret
-                                )
-                            }
+                            dayDetailCard(
+                                dayIndex: dayIndex,
+                                sched: sched,
+                                outbound: outbound,
+                                ret: ret
+                            )
                             .listRowSeparator(.hidden, edges: .top)
                             .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 10, trailing: 16))
                             .id("day_det_\(dayIndex)")
@@ -369,51 +372,71 @@ struct CommuteSetupView: View {
                 }
             }
 
-            // TABELLA TRENI PER GIORNO (CALCOLATA ON-DEVICE SU IPHONE)
+            // TABELLA TRENI PER GIORNO (PRO — MONITORAGGIO SERVER)
             trainsTableSection
             
-            // VERIFICA ALTERNATIVE (CON SELEZIONE ANDATA / RITORNO)
-            Section(header: Text("Verifica alternative")) {
-                lockedControl {
-                    Picker("Direzione", selection: $simulationTripType) {
-                        Text("Andata").tag(false)
-                        Text("Ritorno").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.vertical, 2)
+            // VERIFICA SOLUZIONI ADESSO (PER TUTTI: PRO SERVER + FREE ON-DEVICE)
+            Section {
+                Picker("Direzione", selection: $simulationTripType) {
+                    Text("Andata").tag(false)
+                    Text("Ritorno").tag(true)
                 }
+                .pickerStyle(.segmented)
+                .padding(.vertical, 2)
                 
-                lockedControl {
-                    Button {
-                        Task {
-                            commuteManager.activePlanB = nil
-                            await saveSettings()
-                            let loc = await locationManager.getCurrentLocation(maxAge: 30)
-                            let coord = loc?.coordinate
-                            await commuteManager.requestManualPlanB(
-                                for: simulationTripType,
-                                userLat: coord?.latitude,
-                                userLon: coord?.longitude
-                            )
-                            if commuteManager.activePlanB != nil {
-                                showPlanBSheet = true
-                            } else if let err = commuteManager.lastSyncError {
-                                errorMessage = err
-                                showErrorAlert = true
-                            }
+                Button {
+                    Task {
+                        _ = applyLocalSettingsToManager()
+                        if isPro {
+                            await commuteManager.syncRoutineWithServer()
                         }
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.triangle.swap")
-                            Text("Verifica alternative adesso")
-                            if commuteManager.isCalculatingPlanB {
-                                Spacer()
-                                ProgressView()
-                            }
+                        let loc = await locationManager.getCurrentLocation(maxAge: 30)
+                        let coord = loc?.coordinate
+                        let startSt = simulationTripType ? destinations : origins
+                        let endSt = simulationTripType ? origins : destinations
+                        let report = await commuteManager.fetchCommuteSolutionsReport(
+                            origins: startSt,
+                            destinations: endSt,
+                            departureDate: Date(),
+                            isReturn: simulationTripType,
+                            userLat: coord?.latitude,
+                            userLon: coord?.longitude,
+                            forceRefresh: true
+                        )
+                        commuteManager.activePlanB = report
+                        showPlanBSheet = true
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.left.arrow.right")
+                        Text("Verifica soluzioni adesso")
+                        if commuteManager.isCalculatingCommuteSolutions || commuteManager.isCalculatingPlanB {
+                            Spacer()
+                            ProgressView()
                         }
                     }
-                    .disabled(origins.isEmpty || destinations.isEmpty || commuteManager.isCalculatingPlanB)
                 }
+                .disabled(origins.isEmpty || destinations.isEmpty || commuteManager.isCalculatingCommuteSolutions || commuteManager.isCalculatingPlanB)
+            } header: {
+                Text("Verifica soluzioni")
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Esegui un test qui per verificare che sia tutto corretto.")
+                    HStack(spacing: 4) {
+                        Text("Se riscontri un problema,")
+                        Button {
+                            Haptics.play(.light)
+                            showBugFeedbackSheet = true
+                        } label: {
+                            Text("avvisaci.")
+                                .fontWeight(.semibold)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .font(.footnote)
+                .foregroundColor(.secondary)
             }
         }
         .navigationTitle("Abitudini di viaggio")
@@ -428,22 +451,14 @@ struct CommuteSetupView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                if isPro {
-                    Button("Salva") {
-                        Task {
-                            await saveSettings()
-                            dismiss()
-                        }
+                Button("Salva") {
+                    Task {
+                        await saveSettings()
+                        dismiss()
                     }
-                    .fontWeight(.bold)
-                    .disabled(origins.isEmpty || destinations.isEmpty || isSaving)
-                } else {
-                    Button("Sblocca Pro") {
-                        Haptics.play(.medium)
-                        showPaywallSheet = true
-                    }
-                    .fontWeight(.bold)
                 }
+                .fontWeight(.bold)
+                .disabled(origins.isEmpty || destinations.isEmpty || isSaving)
             }
         }
         .onAppear {
@@ -454,13 +469,25 @@ struct CommuteSetupView: View {
                 scheduleDiscoverMissingTrains()
             }
         }
+        .sheet(isPresented: $showBugFeedbackSheet) {
+            let routeHint = (!origins.isEmpty || !destinations.isEmpty)
+                ? " (\(origins.joined(separator: ", ")) ↔ \(destinations.joined(separator: ", ")))"
+                : ""
+            FeedbackFormView(
+                initialCategory: "Bug",
+                initialMessage: "Problema Abitudini di Viaggio\(routeHint):\n",
+                defaultIncludeDiagnostics: true
+            )
+            .environmentObject(manager)
+        }
         .onDisappear {
             discoveryTask?.cancel()
             for task in perDayDiscoveryTasks.values {
                 task.cancel()
             }
             perDayDiscoveryTasks.removeAll()
-            if manager.hasSupport() && applyLocalSettingsToManager() {
+            let didChange = applyLocalSettingsToManager()
+            if manager.hasSupport() && didChange {
                 Task {
                     await commuteManager.syncRoutineWithServer()
                 }
@@ -518,7 +545,9 @@ struct CommuteSetupView: View {
         }
         .onChange(of: tempOriginName) { _, newName in
             let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty && !origins.contains(trimmed) {
+            if !trimmed.isEmpty &&
+                canAddMoreOrigins &&
+                !origins.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
                 origins.append(trimmed)
             }
             tempOriginName = ""
@@ -537,7 +566,9 @@ struct CommuteSetupView: View {
         }
         .onChange(of: tempDestName) { _, newName in
             let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty && !destinations.contains(trimmed) {
+            if !trimmed.isEmpty &&
+                canAddMoreDestinations &&
+                !destinations.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
                 destinations.append(trimmed)
             }
             tempDestName = ""
@@ -587,12 +618,16 @@ struct CommuteSetupView: View {
         .sheet(isPresented: $showPlanBSheet) {
             if let plan = commuteManager.activePlanB {
                 NavigationStack {
-                    PlanBDetailView(plan: plan)
-                        .environmentObject(manager)
-                        .environmentObject(passanteManager)
-                        .environmentObject(locationManager)
-                        .environmentObject(cache)
-                        .environmentObject(usageTracker)
+                    PlanBDetailView(
+                        plan: plan,
+                        interactiveCommuteMode: true,
+                        initialIsReturn: simulationTripType
+                    )
+                    .environmentObject(manager)
+                    .environmentObject(passanteManager)
+                    .environmentObject(locationManager)
+                    .environmentObject(cache)
+                    .environmentObject(usageTracker)
                 }
             }
         }
@@ -713,7 +748,9 @@ struct CommuteSetupView: View {
         defer { isSaving = false }
 
         _ = applyLocalSettingsToManager()
-        await commuteManager.syncRoutineWithServer()
+        if isPro {
+            await commuteManager.syncRoutineWithServer()
+        }
     }
 
     private func pruneStationFromExclusions(_ station: String) {
@@ -787,7 +824,7 @@ struct CommuteSetupView: View {
     private var trainsTableSection: some View {
         Section(
             header: HStack {
-                Text("Treni")
+                Text(isPro ? "Treni monitorati" : "Treni monitorati (Pro)")
                 Spacer()
                 if !origins.isEmpty && !destinations.isEmpty {
                     lockedControl {
@@ -808,7 +845,7 @@ struct CommuteSetupView: View {
                     }
                 }
             },
-            footer: Text("I treni vengono cercati direttamente dal tuo iPhone in base alle fasce orarie sopra. Tocca la matita per modificare i treni di un giorno: le notifiche monitoreranno questi treni evitando falsi avvisi per altre corse.")
+            footer: Text("Con In Orario Pro i treni nelle fasce orarie vengono monitorati dal server: tocca la matita per personalizzare quelli di ogni giorno ed evitare falsi avvisi.")
         ) {
             if origins.isEmpty || destinations.isEmpty {
                 lockedControl {
@@ -965,7 +1002,7 @@ struct CommuteSetupView: View {
     // MARK: - On-Device Discovery Orchestration
 
     private func scheduleDiscoverMissingTrains() {
-        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        guard manager.hasSupport(), !origins.isEmpty && !destinations.isEmpty else { return }
         discoveryTask?.cancel()
         discoveryTask = Task {
             let active = activeDaysForDisplay
@@ -987,7 +1024,7 @@ struct CommuteSetupView: View {
     }
 
     private func scheduleDiscoverForDayIfEmpty(_ dayIndex: Int) {
-        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        guard manager.hasSupport(), !origins.isEmpty && !destinations.isEmpty else { return }
         let sched = daySchedules[dayIndex] ?? DayCommuteSchedule()
         let needOut = sched.outboundTrains.isEmpty && !sched.outboundTrainsCustomized
         let needRet = sched.returnTrains.isEmpty && !sched.returnTrainsCustomized
@@ -1004,7 +1041,7 @@ struct CommuteSetupView: View {
 
     private func scheduleDiscoverAllActive(forceRefresh: Bool) {
         discoveryTask?.cancel()
-        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        guard manager.hasSupport(), !origins.isEmpty && !destinations.isEmpty else { return }
         discoveryTask = Task {
             if !forceRefresh {
                 try? await Task.sleep(nanoseconds: 600_000_000)
@@ -1023,7 +1060,7 @@ struct CommuteSetupView: View {
 
     private func scheduleDiscoverGlobalDirection(isReturn: Bool) {
         discoveryTask?.cancel()
-        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        guard manager.hasSupport(), !origins.isEmpty && !destinations.isEmpty else { return }
         discoveryTask = Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
             guard !Task.isCancelled else { return }
@@ -1035,7 +1072,7 @@ struct CommuteSetupView: View {
     }
 
     private func scheduleDiscoverSingleDayDirection(dayIndex: Int, isReturn: Bool) {
-        guard !origins.isEmpty && !destinations.isEmpty else { return }
+        guard manager.hasSupport(), !origins.isEmpty && !destinations.isEmpty else { return }
         let taskKey = "\(dayIndex)_\(isReturn ? "ret" : "out")"
         perDayDiscoveryTasks[taskKey]?.cancel()
         perDayDiscoveryTasks[taskKey] = Task {
@@ -1320,11 +1357,51 @@ struct PlanBDetailView: View {
     let plan: PlanBReportDTO
     var initialFocusedAlternativeId: String? = nil
     var customTitle: String? = nil
+    var interactiveCommuteMode: Bool = false
+    var initialIsReturn: Bool = false
+    var autoLoadOnAppear: Bool = false
+
     @State private var selectedDetailTrain: Train? = nil
     @State private var selectedOriginStation: String? = nil
+    @State private var localPlan: PlanBReportDTO? = nil
+    @State private var isReturnDirection: Bool
+    @State private var selectedDate: Date = Date()
+    @State private var hasTriggeredInitialLoad: Bool = false
+    @State private var isLoadingSolutions: Bool = false
+    @State private var reloadTask: Task<Void, Never>? = nil
+
+    init(
+        plan: PlanBReportDTO,
+        initialFocusedAlternativeId: String? = nil,
+        customTitle: String? = nil,
+        interactiveCommuteMode: Bool = false,
+        initialIsReturn: Bool = false,
+        autoLoadOnAppear: Bool = false
+    ) {
+        self.plan = plan
+        self.initialFocusedAlternativeId = initialFocusedAlternativeId
+        self.customTitle = customTitle
+        self.interactiveCommuteMode = interactiveCommuteMode
+        self.initialIsReturn = initialIsReturn
+        self.autoLoadOnAppear = autoLoadOnAppear
+        self._isReturnDirection = State(initialValue: initialIsReturn)
+    }
     
     private var currentPlan: PlanBReportDTO {
-        commuteManager.activePlanB ?? plan
+        if let localPlan {
+            return localPlan
+        }
+        return interactiveCommuteMode ? plan : (commuteManager.activePlanB ?? plan)
+    }
+
+    private var activeStationsForCurrentDirection: (origins: [String], destinations: [String]) {
+        if commuteManager.hasConfiguredCommute {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+            let weekday = ((cal.component(.weekday, from: selectedDate) + 5) % 7) + 1
+            return commuteManager.effectiveStations(for: weekday, isReturn: isReturnDirection)
+        }
+        return isReturnDirection ? (plan.destinations, plan.origins) : (plan.origins, plan.destinations)
     }
     
     private var nearestOrigin: (name: String, distance: Double)? {
@@ -1353,26 +1430,7 @@ struct PlanBDetailView: View {
     }
     
     private func isStationMatch(_ s1: String, _ s2: String) -> Bool {
-        if s1.localizedCaseInsensitiveCompare(s2) == .orderedSame { return true }
-        let l1 = s1.lowercased()
-        let l2 = s2.lowercased()
-        if l1.contains("garibaldi") && l2.contains("garibaldi") &&
-           !l1.contains("pavia") && !l2.contains("pavia") &&
-           !l1.contains("casalecchio") && !l2.contains("casalecchio") &&
-           !l1.contains("napoli") && !l2.contains("napoli") {
-            return true
-        }
-        if s1.localizedCaseInsensitiveContains(s2) || s2.localizedCaseInsensitiveContains(s1) { return true }
-        func clean(_ s: String) -> String {
-            var str = s.uppercased()
-            for w in ["MILANO ", "ROMA ", "NAPOLI ", "TORINO ", "BOLOGNA ", "FIRENZE ", "PASSANTE", "SUPERFICIE", "SOTTERRANEA", "SOTTERRANEO", "SOTT.", "FS", "F.S.", "POLITECNICO", "PORTA ", "P.TA ", "P. ", "P "] {
-                str = str.replacingOccurrences(of: w, with: "")
-            }
-            return str.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        let c1 = clean(s1)
-        let c2 = clean(s2)
-        return !c1.isEmpty && !c2.isEmpty && c1 == c2
+        planBStationMatch(s1, s2)
     }
     
     private var displayedAlternatives: [PlanBAlternativeItem] {
@@ -1392,7 +1450,26 @@ struct PlanBDetailView: View {
         }
     }
     
-    private func reloadAlternatives() async {
+    private func reloadAlternatives(forceRefresh: Bool = true) async {
+        if interactiveCommuteMode {
+            isLoadingSolutions = true
+            defer { isLoadingSolutions = false }
+            let loc = await locationManager.getCurrentLocation(maxAge: 30)
+            let coord = loc?.coordinate
+            let stations = activeStationsForCurrentDirection
+            let fetched = await commuteManager.fetchCommuteSolutionsReport(
+                origins: stations.origins,
+                destinations: stations.destinations,
+                departureDate: selectedDate,
+                isReturn: isReturnDirection,
+                userLat: coord?.latitude,
+                userLon: coord?.longitude,
+                forceRefresh: forceRefresh
+            )
+            localPlan = fetched
+            return
+        }
+
         let loc = await locationManager.getCurrentLocation(maxAge: 30)
         let coord = loc?.coordinate
         let isReturn = currentPlan.origins.contains { orig in
@@ -1405,6 +1482,9 @@ struct PlanBDetailView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                if interactiveCommuteMode {
+                    interactiveControlsCard
+                }
                 if customTitle == nil,
                    let incType = currentPlan.incident_type,
                    incType.hasPrefix("summary_") || incType == "cancelled" || incType == "delay" {
@@ -1548,7 +1628,17 @@ struct PlanBDetailView: View {
                     }
                     .padding(.horizontal)
                     
-                    if displayedAlternatives.isEmpty {
+                    if isLoadingSolutions && displayedAlternatives.isEmpty {
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.1)
+                            Text("Ricerca soluzioni tra le tue stazioni...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 36)
+                    } else if displayedAlternatives.isEmpty {
                         VStack(spacing: 12) {
                             Image(systemName: "tram.slash")
                                 .font(.system(size: 36))
@@ -1590,7 +1680,7 @@ struct PlanBDetailView: View {
                         .padding(.vertical, 24)
                     } else {
                         ForEach(Array(displayedAlternatives.enumerated()), id: \.element.id) { index, alt in
-                            let isChosen = commuteManager.chosenAlternativeId == alt.id
+                            let isChosen = commuteManager.followedTrip?.alternative.id == alt.id
                             let isNearest = nearestOrigin != nil && alt.station.localizedCaseInsensitiveContains(nearestOrigin!.name)
                             let legsToDisplay: [PlanBLegItem] = {
                                 if let l = alt.legs, !l.isEmpty {
@@ -1745,7 +1835,7 @@ struct PlanBDetailView: View {
                                             } label: {
                                                 VStack(alignment: .leading, spacing: 6) {
                                                     HStack {
-                                                        Image(systemName: "train.side.front.car")
+                                                        Image(systemName: "tram.fill")
                                                             .foregroundColor(.blue)
                                                         Text(displayCatNum)
                                                             .font(.subheadline)
@@ -1886,26 +1976,58 @@ struct PlanBDetailView: View {
                                 
                                 Divider()
                                 
-                                // Azioni individuali per questa opzione
-                                Button {
-                                    Haptics.play(.medium)
-                                    withAnimation(.easeInOut(duration: 0.15)) {
-                                        commuteManager.toggleChosenAlternative(id: alt.id)
+                                // Azioni individuali per questa opzione: Salva + Segui
+                                let solutionObj = alt.toTravelSolution()
+                                let isSavedTrip = manager.isTripSaved(solution: solutionObj)
+                                HStack(spacing: 10) {
+                                    Button {
+                                        Haptics.play(.medium)
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            manager.toggleSavedTrip(solution: solutionObj)
+                                        }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: isSavedTrip ? "bookmark.fill" : "bookmark")
+                                                .font(.system(size: 13, weight: .semibold))
+                                            Text(isSavedTrip ? "Salvato" : "Salva")
+                                                .font(.subheadline.weight(.semibold))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(isSavedTrip ? Color.green.opacity(0.18) : Color(.tertiarySystemFill))
+                                        .foregroundColor(isSavedTrip ? .green : .primary)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     }
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: isChosen ? "checkmark.circle.fill" : "circle")
-                                            .font(.system(size: 14, weight: .semibold))
-                                        Text(isChosen ? "Seguito" : "Segui")
-                                            .font(.subheadline.weight(.semibold))
+                                    .buttonStyle(.plain)
+
+                                    Button {
+                                        Haptics.play(.medium)
+                                        if isChosen {
+                                            withAnimation(.easeInOut(duration: 0.15)) {
+                                                commuteManager.stopFollowing(manager: manager)
+                                            }
+                                        } else {
+                                            if commuteManager.followedTrip != nil {
+                                                commuteManager.stopFollowing(manager: manager)
+                                            }
+                                            commuteManager.followAlternative(alt, legs: legsToDisplay)
+                                            dismiss()
+                                        }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: isChosen ? "checkmark.circle.fill" : "location.viewfinder")
+                                                .font(.system(size: 13, weight: .semibold))
+                                            Text(isChosen ? "Seguito" : "Segui")
+                                                .font(.subheadline.weight(.semibold))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(isChosen ? Color.orange.opacity(0.18) : Color.blue.opacity(0.14))
+                                        .foregroundColor(isChosen ? .orange : .blue)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(isChosen ? Color.orange.opacity(0.18) : Color(.tertiarySystemFill))
-                                    .foregroundColor(isChosen ? .orange : .primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
                             .padding()
                             .background(isChosen ? Color.orange.opacity(0.06) : Color(.secondarySystemGroupedBackground))
@@ -1926,14 +2048,38 @@ struct PlanBDetailView: View {
             locationManager.requestLocation()
             scrollToChosenAlternative(using: scrollProxy)
         }
+        .task {
+            if interactiveCommuteMode && (autoLoadOnAppear || currentPlan.alternatives.isEmpty) && !hasTriggeredInitialLoad {
+                hasTriggeredInitialLoad = true
+                await reloadAlternatives(forceRefresh: false)
+            }
+        }
+        .onChange(of: selectedDate) { _, _ in
+            guard interactiveCommuteMode, hasTriggeredInitialLoad || !autoLoadOnAppear else { return }
+            reloadTask?.cancel()
+            reloadTask = Task {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                guard !Task.isCancelled else { return }
+                await reloadAlternatives(forceRefresh: false)
+            }
+        }
         .onDisappear {
-            if (currentPlan.incident_type == "summary_ok" || currentPlan.incident_type == "simulation"),
-               commuteManager.chosenAlternativeId == nil {
+            reloadTask?.cancel()
+            reloadTask = nil
+            if commuteManager.followedTrip != nil {
+                commuteManager.clearPlanBAfterFollow()
+            } else if !interactiveCommuteMode &&
+                (currentPlan.incident_type == "summary_ok" || currentPlan.incident_type == "simulation") &&
+                commuteManager.chosenAlternativeId == nil {
                 commuteManager.activePlanB = nil
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(customTitle ?? (currentPlan.incident_type?.hasPrefix("summary_") == true ? "Riepilogo Tratta" : "Alternative di viaggio"))
+        .navigationTitle(
+            interactiveCommuteMode
+                ? (isReturnDirection ? "Lavoro → Casa" : "Casa → Lavoro")
+                : (customTitle ?? (currentPlan.incident_type?.hasPrefix("summary_") == true ? "Riepilogo Tratta" : "Alternative di viaggio"))
+        )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -1956,17 +2102,17 @@ struct PlanBDetailView: View {
                 Button {
                     Haptics.play(.light)
                     Task {
-                        await reloadAlternatives()
+                        await reloadAlternatives(forceRefresh: true)
                     }
                 } label: {
-                    if commuteManager.isCalculatingPlanB {
+                    if isLoadingSolutions || commuteManager.isCalculatingPlanB {
                         ProgressView()
                             .controlSize(.small)
                     } else {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
-                .disabled(commuteManager.isCalculatingPlanB)
+                .disabled(isLoadingSolutions || commuteManager.isCalculatingPlanB)
             }
         }
         .sheet(item: $selectedDetailTrain) { t in
@@ -1980,7 +2126,77 @@ struct PlanBDetailView: View {
             }
         }
     }
-}
+    }
+
+    private var interactiveControlsCard: some View {
+        let stations = activeStationsForCurrentDirection
+        let origSummary = formatCityOrStationSummary(stations.origins)
+        let destSummary = formatCityOrStationSummary(stations.destinations)
+        let showResetNow = abs(selectedDate.timeIntervalSinceNow) > 5 * 60
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: isReturnDirection ? "briefcase.fill" : "house.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(isReturnDirection ? .purple : .blue)
+                Text("\(origSummary) → \(destSummary)")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Button {
+                    Haptics.play(.medium)
+                    isReturnDirection.toggle()
+                    selectedOriginStation = nil
+                    hasTriggeredInitialLoad = true
+                    Task {
+                        await reloadAlternatives(forceRefresh: false)
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.caption.bold())
+                        Text("Inverti")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundColor(.green)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.green.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoadingSolutions)
+            }
+
+            HStack(spacing: 8) {
+                DatePicker("", selection: $selectedDate, displayedComponents: .date)
+                    .labelsHidden()
+                    .environment(\.locale, SharedFormatters.italian24HourLocale)
+                    .environment(\.timeZone, TimeZone(identifier: "Europe/Rome") ?? .current)
+                Italian24HourTimePicker(selection: $selectedDate)
+                    .transaction { $0.animation = nil }
+
+                Spacer(minLength: 4)
+
+                if showResetNow {
+                    Button("Adesso") {
+                        Haptics.play(.light)
+                        selectedDate = Date()
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.horizontal)
+    }
 
     private func scrollToChosenAlternative(using proxy: ScrollViewProxy) {
         let targetId = initialFocusedAlternativeId ?? commuteManager.chosenAlternativeId

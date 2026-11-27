@@ -1,5 +1,11 @@
 import Foundation
 
+struct ResolvedTrainOriginEntry: Codable, Sendable, Equatable {
+    let originID: String
+    let timestamp: String
+    let dayKey: String
+}
+
 /// Repository dedicato al recupero, parsing, calcolo punteggi e caching dei dettagli treno e fermate (ViaggiaTreno).
 /// Tutte le operazioni di scraping, deserializzazione JSON e comparazione corse avvengono fuori dal MainActor.
 actor TrainRepository {
@@ -13,6 +19,34 @@ actor TrainRepository {
     private var cache: [String: CacheEntry] = [:]
     private var inFlightTasks: [String: Task<StopsResult, Never>] = [:]
     private let cacheTTL: TimeInterval = 45.0
+    private var resolvedOrigins: [String: ResolvedTrainOriginEntry] = [:]
+    private var hasLoadedResolvedOrigins = false
+    private let resolvedOriginsStorageKey = "vtResolvedTrainOrigins_v1"
+
+    nonisolated private static let romeCalendar: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Rome") ?? .current
+        return cal
+    }()
+
+    nonisolated static func currentRomeDayKey(for date: Date = Date()) -> String {
+        let comps = romeCalendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", comps.year ?? 0, comps.month ?? 0, comps.day ?? 0)
+    }
+
+    nonisolated static func originResolutionKeys(
+        dayKey: String,
+        cleanNumber: String,
+        destination: String?,
+        origin: String?
+    ) -> (specific: String, generic: String) {
+        let normOrig = (origin ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let normDest = (destination ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return (
+            specific: "\(dayKey)|\(cleanNumber)|\(normOrig)|\(normDest)",
+            generic: "\(dayKey)|\(cleanNumber)"
+        )
+    }
     
     private init() {}
     
@@ -22,6 +56,95 @@ actor TrainRepository {
     
     func cacheCount() -> Int {
         return cache.count
+    }
+
+    private func loadResolvedOriginsIfNeeded(todayKey: String) {
+        guard !hasLoadedResolvedOrigins else { return }
+        hasLoadedResolvedOrigins = true
+        guard let data = UserDefaults.standard.data(forKey: resolvedOriginsStorageKey),
+              let decoded = try? JSONDecoder().decode([String: ResolvedTrainOriginEntry].self, from: data) else {
+            return
+        }
+        resolvedOrigins = decoded.filter { $0.value.dayKey == todayKey }
+    }
+
+    private func lookupResolvedOrigin(
+        cleanNumber: String,
+        destination: String?,
+        origin: String?,
+        todayKey: String
+    ) -> ResolvedTrainOriginEntry? {
+        loadResolvedOriginsIfNeeded(todayKey: todayKey)
+        let keys = Self.originResolutionKeys(
+            dayKey: todayKey,
+            cleanNumber: cleanNumber,
+            destination: destination,
+            origin: origin
+        )
+        if let exact = resolvedOrigins[keys.specific], exact.dayKey == todayKey {
+            return exact
+        }
+        if let generic = resolvedOrigins[keys.generic], generic.dayKey == todayKey {
+            return generic
+        }
+        return nil
+    }
+
+    private func saveResolvedOrigin(
+        originID: String,
+        timestamp: String,
+        dayKey: String,
+        cleanNumber: String,
+        destination: String?,
+        origin: String?,
+        isUnambiguousSingleTarget: Bool
+    ) {
+        guard !originID.isEmpty else { return }
+        loadResolvedOriginsIfNeeded(todayKey: dayKey)
+        let entry = ResolvedTrainOriginEntry(originID: originID, timestamp: timestamp, dayKey: dayKey)
+        let keys = Self.originResolutionKeys(
+            dayKey: dayKey,
+            cleanNumber: cleanNumber,
+            destination: destination,
+            origin: origin
+        )
+        resolvedOrigins = resolvedOrigins.filter { $0.value.dayKey == dayKey }
+        resolvedOrigins[keys.specific] = entry
+        if isUnambiguousSingleTarget {
+            resolvedOrigins[keys.generic] = entry
+        }
+        if let encoded = try? JSONEncoder().encode(resolvedOrigins) {
+            UserDefaults.standard.set(encoded, forKey: resolvedOriginsStorageKey)
+        }
+    }
+
+    private func freshCachedResultByTrainNumber(
+        cleanNumber: String,
+        destination: String?,
+        origin: String?
+    ) -> StopsResult? {
+        let prefix = "\(cleanNumber)|"
+        let now = Date()
+        let normOrig = (origin ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normDest = (destination ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        for (cachedKey, entry) in cache where cachedKey.hasPrefix(prefix) {
+            guard now.timeIntervalSince(entry.timestamp) < cacheTTL else { continue }
+            guard entry.result.errorMessage == nil, !entry.result.stops.isEmpty else { continue }
+            if normOrig.isEmpty && normDest.isEmpty {
+                return entry.result
+            }
+            let firstStop = entry.result.stops.first?.stationName.lowercased() ?? ""
+            let lastStop = entry.result.stops.last?.stationName.lowercased() ?? ""
+            let destMatches = normDest.isEmpty || normDest.contains(lastStop) || lastStop.contains(normDest)
+                || entry.result.stops.contains { $0.stationName.lowercased().contains(normDest) || normDest.contains($0.stationName.lowercased()) }
+            let origMatches = normOrig.isEmpty || normOrig.contains(firstStop) || firstStop.contains(normOrig)
+                || entry.result.stops.contains { $0.stationName.lowercased().contains(normOrig) || normOrig.contains($0.stationName.lowercased()) }
+            if destMatches && origMatches {
+                return entry.result
+            }
+        }
+        return nil
     }
     
     func cacheKey(trainNumber: String, destination: String?, origin: String?, scheduledTime: String?) -> String {
@@ -56,6 +179,10 @@ actor TrainRepository {
             if let entry = cache[key], Date().timeIntervalSince(entry.timestamp) < cacheTTL {
                 AppLogger.cache("TrainRepository: Cache hit per treno \(cleanNumber) (key: \(key))")
                 return entry.result
+            }
+            if let matchingEntry = freshCachedResultByTrainNumber(cleanNumber: cleanNumber, destination: destination, origin: origin) {
+                AppLogger.cache("TrainRepository: Cross-key cache hit per treno \(cleanNumber)")
+                return matchingEntry
             }
             if let inFlight = inFlightTasks[key] {
                 AppLogger.duplicateAvoided(key: "TrainRepository:\(cleanNumber)")
@@ -92,6 +219,32 @@ actor TrainRepository {
         origin: String?,
         scheduledTime: String?
     ) async -> StopsResult {
+        let todayKey = Self.currentRomeDayKey()
+        if let cachedOrigin = lookupResolvedOrigin(
+            cleanNumber: cleanNumber,
+            destination: destination,
+            origin: origin,
+            todayKey: todayKey
+        ) {
+            var directUrl = "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/andamentoTreno/\(cachedOrigin.originID)/\(cleanNumber)"
+            if !cachedOrigin.timestamp.isEmpty { directUrl += "/\(cachedOrigin.timestamp)" }
+            if let dUrl = URL(string: directUrl) {
+                var request = URLRequest(url: dUrl)
+                request.timeoutInterval = 10.0
+                if let (stData, response) = try? await NetworkService.shared.get(request: request),
+                   let httpResponse = response as? HTTPURLResponse,
+                   httpResponse.statusCode == 200,
+                   !stData.isEmpty,
+                   let json = try? JSONSerialization.jsonObject(with: stData) as? [String: Any] {
+                    let directParsed = parseStopsResult(from: json, cleanNumber: cleanNumber)
+                    if directParsed.errorMessage == nil && !directParsed.stops.isEmpty {
+                        AppLogger.cache("TrainRepository: Direct origin cache hit per treno \(cleanNumber)")
+                        return directParsed
+                    }
+                }
+            }
+        }
+
         let searchUrl = "https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/cercaNumeroTrenoTrenoAutocomplete/\(cleanNumber)"
         
         guard let sUrl = URL(string: searchUrl) else {
@@ -162,6 +315,7 @@ actor TrainRepository {
             }
             
             let nowTs = Date().timeIntervalSince1970 * 1000.0
+            var bestTargetLine: String? = nil
             var bestJson: [String: Any]? = nil
             var bestScore: Double = -999999.0
             
@@ -274,78 +428,103 @@ actor TrainRepository {
                 if score > bestScore {
                     bestScore = score
                     bestJson = json
+                    bestTargetLine = targetLine
                 }
             }
             
+            let winningLine = bestTargetLine ?? results[0].0
             let json = bestJson ?? results[0].1
-            
-            var status = TrainStatus()
-            status.isDeparted = !(json["nonPartito"] as? Bool ?? true)
-            status.isArrived = (json["arrivato"] as? Bool) ?? false
-            status.lastStation = (json["stazioneUltimoRilevamento"] as? String) ?? "--"
-            status.lastTime = (json["compOraUltimoRilevamento"] as? String) ?? (json["oraUltimoRilevamento"] as? String) ?? "--:--"
-            let rawCatJson = ((json["compNumeroTreno"] as? String) ?? (json["categoria"] as? String) ?? (json["subTitle"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let origNameJson = (json["origine"] as? String) ?? ((json["fermate"] as? [[String: Any]])?.first?["stazione"] as? String) ?? ""
-            let destNameJson = (json["destinazione"] as? String) ?? ((json["fermate"] as? [[String: Any]])?.last?["stazione"] as? String) ?? ""
-            status.detectedCategory = resolveTrainCategory(
-                number: cleanNumber,
-                rawCategory: rawCatJson.replacingOccurrences(of: cleanNumber, with: "").trimmingCharacters(in: .whitespacesAndNewlines),
-                description: "\(origNameJson) - \(destNameJson)"
-            )
-            
-            if let ritardi = json["compRitardo"] as? [String], !ritardi.isEmpty { status.statusMessage = ritardi[0] }
-            else { status.statusMessage = status.isDeparted ? "In viaggio" : "In attesa di partenza" }
-            if let provv = json["provvedimento"] as? Int, provv != 0 { status.cancellationNote = "TRENO CANCELLATO O DEVIATO"; status.statusMessage = "Soppresso" }
-            
-            let globalDelay = (json["ritardo"] as? Int) ?? 0
-            
-            if let fermate = json["fermate"] as? [[String: Any]] {
-                let mappedStops = fermate.map { f -> Stop in
-                    let name = (f["stazione"] as? String) ?? "Sconosciuta"
-                    let tProg = (f["programmata"] as? Int) ?? 0
-                    let tEff = (f["effettiva"] as? Int) ?? 0
-                    
-                    let stopSpecificDelay = (f["ritardo"] as? Int) ?? 0
-                    let effectiveDelay = stopSpecificDelay > 0 ? stopSpecificDelay : globalDelay
-                    
-                    let d = Date(timeIntervalSince1970: TimeInterval(tProg/1000))
-                    let actT = tEff > 0 ? SharedFormatters.time.string(from: Date(timeIntervalSince1970: TimeInterval(tEff/1000))) : nil
-                    
-                    var estT: String? = nil
-                    if actT == nil && effectiveDelay >= 3 {
-                        if let futureDate = Calendar.current.date(byAdding: .minute, value: effectiveDelay, to: d) {
-                            estT = SharedFormatters.time.string(from: futureDate)
-                        }
+            let parsed = parseStopsResult(from: json, cleanNumber: cleanNumber)
+            if parsed.errorMessage == nil && !parsed.stops.isEmpty {
+                let pipes = winningLine.components(separatedBy: "|")
+                if pipes.count >= 2 {
+                    let subParts = pipes[1].components(separatedBy: "-")
+                    if subParts.count >= 2 {
+                        let resolvedOrigID = subParts[1]
+                        let resolvedTs = subParts.count >= 3 ? subParts[2] : ""
+                        saveResolvedOrigin(
+                            originID: resolvedOrigID,
+                            timestamp: resolvedTs,
+                            dayKey: todayKey,
+                            cleanNumber: cleanNumber,
+                            destination: destination,
+                            origin: origin,
+                            isUnambiguousSingleTarget: targets.count == 1
+                        )
                     }
-                    
-                    let progArr = f["binarioProgrammatoArrivoDescrizione"] as? String
-                    let progPart = f["binarioProgrammatoPartenzaDescrizione"] as? String
-                    let effArr = f["binarioEffettivoArrivoDescrizione"] as? String
-                    let effPart = f["binarioEffettivoPartenzaDescrizione"] as? String
-                    
-                    let plannedPlatform = (progPart ?? progArr)?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let actualPlatform = (effPart ?? effArr)?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let isSuppressed = (f["actualFermataType"] as? Int) == 3 || ((f["tipoFermata"] as? String)?.uppercased() == "S")
-                    
-                    return Stop(
-                        stationName: name.capitalized,
-                        time: SharedFormatters.time.string(from: d),
-                        actualTime: actT,
-                        delay: effectiveDelay,
-                        estimatedTime: estT,
-                        plannedPlatform: plannedPlatform,
-                        actualPlatform: actualPlatform,
-                        isSuppressed: isSuppressed
-                    )
                 }
-                return StopsResult(stops: mappedStops, status: status, errorMessage: nil)
             }
-            return StopsResult(stops: [], status: status, errorMessage: "Nessuna fermata trovata.")
+            return parsed
         } catch is CancellationError {
             return StopsResult(stops: [], status: TrainStatus(), errorMessage: nil)
         } catch {
             AppLogger.refreshFailed(target: "TrainLiveStops:\(cleanNumber)", error: error)
             return StopsResult(stops: [], status: TrainStatus(), errorMessage: "Errore di rete o blocco di sicurezza (controlla i permessi ATS nel file Info.plist).")
         }
+    }
+
+    private func parseStopsResult(from json: [String: Any], cleanNumber: String) -> StopsResult {
+        var status = TrainStatus()
+        status.isDeparted = !(json["nonPartito"] as? Bool ?? true)
+        status.isArrived = (json["arrivato"] as? Bool) ?? false
+        status.lastStation = (json["stazioneUltimoRilevamento"] as? String) ?? "--"
+        status.lastTime = (json["compOraUltimoRilevamento"] as? String) ?? (json["oraUltimoRilevamento"] as? String) ?? "--:--"
+        let rawCatJson = ((json["compNumeroTreno"] as? String) ?? (json["categoria"] as? String) ?? (json["subTitle"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let origNameJson = (json["origine"] as? String) ?? ((json["fermate"] as? [[String: Any]])?.first?["stazione"] as? String) ?? ""
+        let destNameJson = (json["destinazione"] as? String) ?? ((json["fermate"] as? [[String: Any]])?.last?["stazione"] as? String) ?? ""
+        status.detectedCategory = resolveTrainCategory(
+            number: cleanNumber,
+            rawCategory: rawCatJson.replacingOccurrences(of: cleanNumber, with: "").trimmingCharacters(in: .whitespacesAndNewlines),
+            description: "\(origNameJson) - \(destNameJson)"
+        )
+
+        if let ritardi = json["compRitardo"] as? [String], !ritardi.isEmpty { status.statusMessage = ritardi[0] }
+        else { status.statusMessage = status.isDeparted ? "In viaggio" : "In attesa di partenza" }
+        if let provv = json["provvedimento"] as? Int, provv != 0 { status.cancellationNote = "TRENO CANCELLATO O DEVIATO"; status.statusMessage = "Soppresso" }
+
+        let globalDelay = (json["ritardo"] as? Int) ?? 0
+
+        if let fermate = json["fermate"] as? [[String: Any]] {
+            let mappedStops = fermate.map { f -> Stop in
+                let name = (f["stazione"] as? String) ?? "Sconosciuta"
+                let tProg = (f["programmata"] as? Int) ?? 0
+                let tEff = (f["effettiva"] as? Int) ?? 0
+
+                let stopSpecificDelay = (f["ritardo"] as? Int) ?? 0
+                let effectiveDelay = stopSpecificDelay > 0 ? stopSpecificDelay : globalDelay
+
+                let d = Date(timeIntervalSince1970: TimeInterval(tProg/1000))
+                let actT = tEff > 0 ? SharedFormatters.time.string(from: Date(timeIntervalSince1970: TimeInterval(tEff/1000))) : nil
+
+                var estT: String? = nil
+                if actT == nil && effectiveDelay >= 3 {
+                    if let futureDate = Calendar.current.date(byAdding: .minute, value: effectiveDelay, to: d) {
+                        estT = SharedFormatters.time.string(from: futureDate)
+                    }
+                }
+
+                let progArr = f["binarioProgrammatoArrivoDescrizione"] as? String
+                let progPart = f["binarioProgrammatoPartenzaDescrizione"] as? String
+                let effArr = f["binarioEffettivoArrivoDescrizione"] as? String
+                let effPart = f["binarioEffettivoPartenzaDescrizione"] as? String
+
+                let plannedPlatform = (progPart ?? progArr)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let actualPlatform = (effPart ?? effArr)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let isSuppressed = (f["actualFermataType"] as? Int) == 3 || ((f["tipoFermata"] as? String)?.uppercased() == "S")
+
+                return Stop(
+                    stationName: name.capitalized,
+                    time: SharedFormatters.time.string(from: d),
+                    actualTime: actT,
+                    delay: effectiveDelay,
+                    estimatedTime: estT,
+                    plannedPlatform: plannedPlatform,
+                    actualPlatform: actualPlatform,
+                    isSuppressed: isSuppressed
+                )
+            }
+            return StopsResult(stops: mappedStops, status: status, errorMessage: nil)
+        }
+        return StopsResult(stops: [], status: status, errorMessage: "Nessuna fermata trovata.")
     }
 }

@@ -47,7 +47,7 @@ struct FAQView: View {
             items: [
                 FAQItem(
                     question: "Quanti treni posso monitorare contemporaneamente?",
-                    answer: "Con il piano gratuito puoi attivare la notifica o la Live Activity per 1 treno alla volta. Passando a In Orario Pro sblocchi il monitoraggio simultaneo fino a 10 treni, Live Activities ad alta frequenza e notifiche push dedicate per gli scioperi. La scelta dei giorni e la notifica a un orario specifico sono disponibili per tutti."
+                    answer: "Con il piano gratuito puoi attivare gratis le notifiche a un orario specifico (scegliendo anche i giorni della settimana) fino a 10 treni, più 1 Live Activity alla volta con aggiornamenti automatici ogni 2 minuti e avvisi sonori. Passando a In Orario Pro sblocchi il monitoraggio continuo (variazioni ritardo, partenze, passaggi e cambi binario) fino a 20 treni, Live Activities ogni minuto e notifiche push dedicate per gli scioperi."
                 ),
                 FAQItem(
                     question: "Perché le notifiche o la Live Activity non si aggiornano?",
@@ -57,7 +57,7 @@ struct FAQView: View {
         ),
         FAQSectionData(
             title: "Treni e Tabelloni",
-            icon: "train.side.front.car",
+            icon: "tram.fill",
             color: .blue,
             items: [
                 FAQItem(
@@ -88,7 +88,7 @@ struct FAQView: View {
             items: [
                 FAQItem(
                     question: "L'app In Orario è davvero gratuita?",
-                    answer: "Sì! In Orario è un progetto indipendente sviluppato nel tempo libero per rendere la vita dei pendolari più semplice, senza pubblicità. Per accedere alle funzionalità avanzate (IA su server, notifiche push scioperi, monitoraggio fino a 10 treni e Live Activities ad alta frequenza) puoi attivare In Orario Pro."
+                    answer: "Sì! In Orario è un progetto indipendente sviluppato nel tempo libero per rendere la vita dei pendolari più semplice, senza pubblicità. Per accedere alle funzionalità avanzate (IA su server, notifiche push scioperi, monitoraggio continuo fino a 20 treni e Live Activities ogni minuto) puoi attivare In Orario Pro."
                 )
             ]
         )

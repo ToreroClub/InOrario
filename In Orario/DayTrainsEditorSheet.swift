@@ -49,10 +49,7 @@ struct CommuteTimeRangeRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                DatePicker("", selection: startBinding, displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .tint(accentColor)
+                Italian24HourTimePicker(selection: startBinding, tintColor: accentColor)
                     .fixedSize(horizontal: true, vertical: false)
 
                 Image(systemName: "arrow.right")
@@ -63,10 +60,7 @@ struct CommuteTimeRangeRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                DatePicker("", selection: endBinding, displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .tint(accentColor)
+                Italian24HourTimePicker(selection: endBinding, tintColor: accentColor)
                     .fixedSize(horizontal: true, vertical: false)
 
                 Spacer(minLength: 2)
@@ -330,8 +324,13 @@ struct DayTrainsEditorSheet: View {
                                     .font(.caption)
                                     .foregroundColor(.secondary)
 
-                                DatePicker("Orario partenza previsto", selection: $manualFallbackTime, displayedComponents: .hourAndMinute)
-                                    .font(.caption)
+                                HStack {
+                                    Text("Orario partenza previsto")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Italian24HourTimePicker(selection: $manualFallbackTime, tintColor: currentAccent)
+                                }
 
                                 Button {
                                     addManualFallbackTrain(number: digits)
